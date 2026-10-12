@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="0次・1次・2次避難の防災グッズと保管場所を管理するチェックリスト">
+<meta name="theme-color" content="#FAF6EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1B2227" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="防災リスト">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<title>わが家の防災リスト</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+  :root{
+    --paper: #FAF6EE;
+    --card: #F2EDE0;
+    --ink: #22303C;
+    --ink-soft: #5B6B75;
+    --line: #DCD3C0;
+    --clay: #B5563C;
+    --clay-soft: #EFDCD4;
+    --amber: #C98A2B;
+    --amber-soft: #F1E3C7;
+    --teal: #3F7565;
+    --teal-soft: #DCE7DF;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper: #1B2227;
+      --card: #222B31;
+      --ink: #EDE7DA;
+      --ink-soft: #93A2AA;
+      --line: #39454C;
+      --clay: #DD8468;
+      --clay-soft: #3C2B27;
+      --amber: #E3AE5C;
+      --amber-soft: #3B3123;
+      --teal: #6BAE98;
+      --teal-soft: #223330;
+    }
+  }
+
+  :root[data-theme="dark"]{
+    --paper: #1B2227;
+    --card: #222B31;
+    --ink: #EDE7DA;
+    --ink-soft: #93A2AA;
+    --line: #39454C;
+    --clay: #DD8468;
+    --clay-soft: #3C2B27;
+    --amber: #E3AE5C;
+    --amber-soft: #3B3123;
+    --teal: #6BAE98;
+    --teal-soft: #223330;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);}
+  body{transition:background-color .2s ease;}
+  body{
+    font-family:'Noto Sans JP', sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    background:var(--paper);
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+
+  .header{
+    padding:28px 20px 18px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .theme-toggle, .settings-gear{
+    position:absolute;
+    top:24px;
+    right:20px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 12px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    font-family:inherit;
+    font-size:11.5px;
+    font-weight:700;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .header h1{
+    font-size:22px;
+    font-weight:900;
+    margin:0 0 4px;
+    letter-spacing:0.02em;
+  }
+  .header p{
+    margin:0;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+
+  .overview{
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .ov-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .ov-label{
+    font-size:12px;
+    font-weight:700;
+    width:52px;
+    flex-shrink:0;
+  }
+  .ov-track{
+    flex:1;
+    height:8px;
+    background:var(--card);
+    border:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+  }
+  .ov-fill{
+    height:100%;
+    transition:width .3s ease;
+  }
+  .ov-count{
+    font-size:11px;
+    color:var(--ink-soft);
+    width:42px;
+    text-align:right;
+    flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .loc-settings-toggle{
+    background:none;
+    border:none;
+    font-family:inherit;
+    font-size:12px;
+    color:var(--ink-soft);
+    text-decoration:underline;
+    text-underline-offset:2px;
+    cursor:pointer;
+    padding:0;
+    align-self:flex-start;
+  }
+
+  .loc-settings{
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+    background:var(--card);
+  }
+  .loc-settings-title{
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+  }
+  .desc-textarea{
+    width:100%;
+    min-height:64px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    font-family:inherit;
+    font-size:13px;
+    color:var(--ink);
+    line-height:1.5;
+    resize:vertical;
+    margin-bottom:16px;
+  }
+  .desc-textarea:focus{outline:2px solid var(--ink);outline-offset:-1px;}
+  .loc-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .loc-chip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+    padding:6px 6px 6px 12px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    border-radius:3px;
+  }
+  .loc-chip button{
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    cursor:pointer;
+    font-size:13px;
+    padding:0 4px;
+    line-height:1;
+  }
+  .loc-chip.pending{
+    padding:6px 6px 6px 12px;
+    gap:8px;
+  }
+  .loc-chip.pending span{
+    color:var(--ink-soft);
+  }
+  .loc-chip .mini-yes{
+    font-family:inherit;
+    font-size:11.5px;
+    font-weight:700;
+    padding:5px 10px;
+    border-radius:3px;
+    cursor:pointer;
+    background:var(--clay);
+    border:1px solid var(--clay);
+    color:#fff;
+  }
+  .loc-chip .mini-no{
+    font-family:inherit;
+    font-size:11.5px;
+    font-weight:700;
+    padding:5px 10px;
+    border-radius:3px;
+    cursor:pointer;
+    background:var(--paper);
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .loc-add-row{
+    display:flex;
+    gap:8px;
+  }
+  .loc-add-row input{
+    flex:1;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    font-family:inherit;
+    font-size:13px;
+    color:var(--ink);
+  }
+  .loc-add-row button{
+    padding:9px 14px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:#fff;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .tabs{
+    display:flex;
+    border-bottom:1px solid var(--line);
+  }
+  .tab{
+    flex:1;
+    padding:14px 4px 12px;
+    text-align:center;
+    background:none;
+    border:none;
+    font-family:inherit;
+    cursor:pointer;
+    position:relative;
+    color:var(--ink-soft);
+  }
+  .tab .stamp{
+    width:30px;height:30px;
+    border-radius:50%;
+    border:2px solid currentColor;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:900;
+    font-size:14px;
+    margin:0 auto 4px;
+  }
+  .tab .tlabel{
+    font-size:11px;
+    font-weight:700;
+  }
+  .tab.active{color:var(--ink);}
+  .tab.active::after{
+    content:'';
+    position:absolute;
+    left:0;right:0;bottom:-1px;
+    height:2px;
+    background:var(--accent, var(--ink));
+  }
+  .tab.active .stamp{
+    background:var(--accent-soft, var(--card));
+    border-color:var(--accent, var(--ink));
+  }
+
+  .group-desc{
+    padding:16px 20px;
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    border-bottom:1px solid var(--line);
+    background:var(--card);
+  }
+  .group-desc b{color:var(--ink);}
+
+  .items{
+    padding:4px 20px 0;
+  }
+  .item{
+    padding:14px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .item-top{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .checkbox{
+    width:22px;height:22px;
+    flex-shrink:0;
+    border:2px solid var(--ink-soft);
+    background:var(--paper);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    margin-top:1px;
+  }
+  .checkbox.checked{
+    background:var(--accent, var(--teal));
+    border-color:var(--accent, var(--teal));
+    color:#fff;
+    font-size:14px;
+    font-weight:900;
+  }
+  .item-name{
+    flex:1;
+    font-size:14.5px;
+    font-weight:500;
+    line-height:1.4;
+    padding-top:1px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .item-name.checked{
+    color:var(--ink-soft);
+    text-decoration:line-through;
+    text-decoration-color:var(--line);
+  }
+  .del-btn{
+    background:none;border:none;
+    color:var(--ink-soft);
+    font-size:16px;
+    cursor:pointer;
+    padding:0 2px;
+    flex-shrink:0;
+    opacity:0.6;
+  }
+  .edit-btn{
+    background:none;border:none;
+    color:var(--ink-soft);
+    font-size:13px;
+    cursor:pointer;
+    padding:0 4px;
+    flex-shrink:0;
+    opacity:0.6;
+  }
+  .item-name-input{
+    flex:1;
+    font-family:inherit;
+    font-size:14.5px;
+    font-weight:500;
+    padding:4px 6px;
+    border:1px solid var(--ink-soft);
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .locations{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin:10px 0 0 32px;
+  }
+  .loc-pill{
+    font-size:11.5px;
+    padding:5px 10px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--ink-soft);
+    border-radius:3px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .loc-pill.active{
+    background:var(--accent, var(--ink));
+    border-color:var(--accent, var(--ink));
+    color:#fff;
+    font-weight:700;
+  }
+
+  .confirm-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:10px 0 0 32px;
+    font-size:12.5px;
+  }
+  .confirm-row span{
+    color:var(--ink-soft);
+  }
+  .confirm-row button{
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    padding:6px 12px;
+    border-radius:3px;
+    cursor:pointer;
+  }
+  .confirm-yes{
+    background:var(--clay);
+    border:1px solid var(--clay);
+    color:#fff;
+  }
+  .confirm-no{
+    background:var(--paper);
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+
+  .add-row{
+    display:flex;
+    gap:8px;
+    padding:16px 20px 24px;
+  }
+  .add-row input{
+    flex:1;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    background:var(--card);
+    font-family:inherit;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .add-row input:focus{outline:2px solid var(--accent, var(--ink));outline-offset:-1px;}
+  .add-row button{
+    padding:10px 16px;
+    border:1px solid var(--accent, var(--ink));
+    background:var(--accent, var(--ink));
+    color:#fff;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .footer-note{
+    padding:10px 20px 4px;
+    font-size:11px;
+    color:var(--ink-soft);
+    text-align:center;
+  }
+
+  .view-toggle{
+    display:flex;
+    border-bottom:1px solid var(--line);
+  }
+  .view-toggle button{
+    flex:1;
+    padding:10px 4px;
+    text-align:center;
+    background:var(--card);
+    border:none;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .view-toggle button.active{
+    background:var(--paper);
+    color:var(--ink);
+    box-shadow:inset 0 -2px 0 var(--accent, var(--ink));
+  }
+
+  .loc-group{
+    padding:4px 20px 18px;
+  }
+  .loc-group-title{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--ink-soft);
+    padding:14px 0 8px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:2px;
+  }
+  .loc-group-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .loc-group-item .item-name{
+    padding-top:0;
+  }
+
+  .back-btn{
+    background:none;
+    border:none;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink-soft);
+    cursor:pointer;
+    padding:0;
+    margin-bottom:14px;
+  }
+  .settings-section{
+    padding:20px;
+    border-bottom:1px solid var(--line);
+  }
+  .settings-section-title{
+    font-size:13px;
+    font-weight:900;
+    margin-bottom:12px;
+  }
+  .settings-section-note{
+    font-size:12px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    margin:-4px 0 12px;
+  }
+  .settings-btn{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:700;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .theme-option-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:4px;
+  }
+  .theme-option{
+    flex:1;
+    padding:10px 4px;
+    text-align:center;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink-soft);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    border-radius:4px;
+  }
+  .theme-option.active{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:var(--paper);
+  }
+  .export-panel, .import-panel{
+    margin-top:4px;
+    padding-top:4px;
+  }
+  .export-panel textarea, .import-panel textarea{
+    width:100%;
+    min-height:140px;
+    padding:10px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--ink);
+    font-family:monospace;
+    font-size:11.5px;
+    line-height:1.5;
+    margin-bottom:10px;
+  }
+  .export-actions{
+    display:flex;
+    gap:8px;
+    margin-bottom:4px;
+  }
+  .export-actions button{
+    flex:1;
+    padding:10px 4px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .import-file-row{
+    margin-bottom:10px;
+  }
+  .import-file-row input[type="file"]{
+    font-family:inherit;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .msg-box{
+    padding:10px 12px;
+    font-size:12.5px;
+    border-radius:3px;
+    margin-top:6px;
+    line-height:1.5;
+  }
+  .msg-success{
+    background:var(--teal-soft);
+    color:var(--teal);
+  }
+  .msg-error{
+    background:var(--clay-soft);
+    color:var(--clay);
+  }
+  .danger-section .settings-section-title{
+    color:var(--clay);
+  }
+  .danger-btn{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--clay);
+    background:var(--paper);
+    color:var(--clay);
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .danger-confirm{
+    padding:14px;
+    background:var(--clay-soft);
+    border:1px solid var(--clay);
+  }
+  .danger-confirm p{
+    margin:0 0 12px;
+    font-size:12.5px;
+    color:var(--ink);
+    line-height:1.6;
+  }
+  .danger-confirm-actions{
+    display:flex;
+    gap:8px;
+  }
+  .danger-confirm-actions button{
+    flex:1;
+    padding:10px 4px;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    border-radius:3px;
+  }
+  .danger-yes{
+    background:var(--clay);
+    border:1px solid var(--clay);
+    color:#fff;
+  }
+  .danger-no{
+    background:var(--paper);
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+
+  .empty{
+    padding:30px 20px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+
+var DEFAULT_LOCATIONS = ["リビング","レクルーム","その他ルーム","防災リュック"];
+var GROUP_DEFAULT_LOCATIONS = {
+  g0: ["持ち歩き用"],
+  g1: ["防災リュック1","防災リュック2"],
+  g2: ["リビング","寝室","レクルーム","その他ルーム"]
+};
+var STORAGE_KEY = "bousai-goods-v2";
+
+var GROUP_ORDER = ["g0","g1","g2"];
+var GROUP_META = {
+  g0: { num:"0", label:"0次避難", accent:"var(--clay)", accentSoft:"var(--clay-soft)" },
+  g1: { num:"1", label:"1次避難", accent:"var(--amber)", accentSoft:"var(--amber-soft)" },
+  g2: { num:"2", label:"2次避難", accent:"var(--teal)", accentSoft:"var(--teal-soft)" }
+};
+var DEFAULT_DESC = {
+  g0: "0次の備えは、普段使いのカバンに最小限のグッズを入れて常に携帯する「持ち歩き用」です。",
+  g1: "1次の備えは、緊急時に即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
+  g2: "2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるようにしましょう。"
+};
+var OLD_DEFAULT_DESC_G1 = "1次の備えは、緊急時に即座に持ち出せる「避難用」です。1〜2日は行動できるようにしましょう。";
+var LOC_INPUT_EXAMPLE = {
+  g0: "車のトランク",
+  g1: "車のトランク",
+  g2: "子ども部屋"
+};
+
+var idCounter = 0;
+function newId(){
+  idCounter += 1;
+  return "item-" + Date.now() + "-" + idCounter;
+}
+
+function mkItems(names){
+  var out = [];
+  for(var i=0;i<names.length;i++){
+    out.push({ id:newId(), name:names[i], checked:false, locations:[] });
+  }
+  return out;
+}
+
+function defaultData(){
+  return {
+    activeTab: "g0",
+    contentVersion: 2,
+    groups: {
+      g0: { desc: DEFAULT_DESC.g0, locations: GROUP_DEFAULT_LOCATIONS.g0.slice(), items: mkItems(["ホイッスル・防犯ブザー","携帯ライト","モバイルバッテリー","身分証明書のコピー","お薬手帳・常備薬","マスク","小銭・現金","非常食","絆創膏","アルコール消毒"]) },
+      g1: { desc: DEFAULT_DESC.g1, locations: GROUP_DEFAULT_LOCATIONS.g1.slice(), items: mkItems(["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","タオル","ビニール袋","携帯トイレ"]) },
+      g2: { desc: DEFAULT_DESC.g2, locations: GROUP_DEFAULT_LOCATIONS.g2.slice(), items: mkItems(["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]) }
+    }
+  };
+}
+
+var THEME_KEY = "bousai-theme-pref";
+var themePref = null; // "light" | "dark" | null(=system)
+var state = null;
+var showLocSettings = false;
+var viewMode = "item";
+var showSettings = false;
+var settingsExportOpen = false;
+var settingsImportOpen = false;
+var pendingReset = false;
+var exportMessage = null;
+var importMessage = null;
+var csvExportOpen = false;
+var csvImportOpen = false;
+var csvExportMessage = null;
+var csvImportMessage = null;
+var csvImportText = "";
+var pendingCsvOverwrite = false;
+var pendingDeleteId = null;
+var pendingDeleteLoc = null;
+var editingItemId = null;
+var appEl = document.getElementById("app");
+
+function systemPrefersDark(){
+  try{
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }catch(e){
+    return false;
+  }
+}
+
+function loadThemePref(){
+  try{
+    var v = window.localStorage.getItem(THEME_KEY);
+    themePref = (v === "light" || v === "dark") ? v : null;
+  }catch(e){
+    themePref = null;
+  }
+  applyTheme();
+}
+
+function applyTheme(){
+  if(themePref){
+    document.documentElement.setAttribute("data-theme", themePref);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+}
+
+function setThemePref(pref){
+  themePref = pref;
+  try{
+    if(pref){ window.localStorage.setItem(THEME_KEY, pref); }
+    else { window.localStorage.removeItem(THEME_KEY); }
+  }catch(e){}
+  applyTheme();
+  render();
+}
+
+function escapeHtml(str){
+  var div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+function escapeAttr(str){
+  return escapeHtml(str).replace(/"/g, "&quot;");
+}
+
+function normalizeState(){
+  if(!state.groups) state.groups = {};
+  var legacyLocations = (state.locations && state.locations.length) ? state.locations.slice() : DEFAULT_LOCATIONS.slice();
+  GROUP_ORDER.forEach(function(g){
+    var grp = state.groups[g];
+    if(Array.isArray(grp)){
+      // migrate from the old shape where groups[g] was a plain items array
+      grp = { locations: legacyLocations.slice(), items: grp };
+    }
+    if(!grp) grp = { desc: DEFAULT_DESC[g], locations: GROUP_DEFAULT_LOCATIONS[g].slice(), items: [] };
+    if(typeof grp.desc !== "string" || !grp.desc.length) grp.desc = DEFAULT_DESC[g];
+    if(!grp.locations || !grp.locations.length) grp.locations = GROUP_DEFAULT_LOCATIONS[g].slice();
+    if(!grp.items) grp.items = [];
+    grp.items.forEach(function(item){
+      if(!item.locations){
+        item.locations = item.location ? [item.location] : [];
+      }
+      if(item.location !== undefined) delete item.location;
+      if(typeof item.checked !== "boolean") item.checked = false;
+    });
+    state.groups[g] = grp;
+  });
+  delete state.locations;
+
+  // one-time content updates: tracked by contentVersion so items the user
+  // deliberately deletes (or removes via CSV overwrite) don't come back on the next load
+  if((state.contentVersion || 0) < 2){
+  var g1items = state.groups.g1.items;
+  g1items.forEach(function(item){
+    if(item.name === "着替え一式"){ item.name = "着替え一式(防水袋とセット)"; }
+  });
+  var hasPaperItem = g1items.some(function(item){ return item.name.indexOf("紙類") === 0; });
+  if(!hasPaperItem){
+    var clothesIdx = -1;
+    for(var ci=0; ci<g1items.length; ci++){
+      if(g1items[ci].name.indexOf("着替え一式") === 0){ clothesIdx = ci; break; }
+    }
+    var paperItem = { id:newId(), name:"紙類(防水袋とセット)", checked:false, locations:[] };
+    if(clothesIdx === -1){ g1items.push(paperItem); }
+    else { g1items.splice(clothesIdx+1, 0, paperItem); }
+  }
+  if(state.groups.g1.desc === OLD_DEFAULT_DESC_G1){
+    state.groups.g1.desc = DEFAULT_DESC.g1;
+  }
+
+  // one-time content update: add 非常食・絆創膏・アルコール消毒 to 0次 if not already present
+  var g0items = state.groups.g0.items;
+  ["非常食","絆創膏","アルコール消毒"].forEach(function(name){
+    var exists = g0items.some(function(item){ return item.name === name; });
+    if(!exists){
+      g0items.push({ id:newId(), name:name, checked:false, locations:[] });
+    }
+  });
+  state.contentVersion = 2;
+  }
+  if(!state.activeTab || GROUP_ORDER.indexOf(state.activeTab) === -1){
+    state.activeTab = "g0";
+  }
+}
+
+// Storage is per-browser (not shared). localStorage is preferred; if the host
+// blocks it (e.g. a sandboxed preview), fall back to the host's personal
+// (non-shared) storage so data still persists on this device/account only.
+function storageGet(){
+  try{
+    var raw = window.localStorage.getItem(STORAGE_KEY);
+    return Promise.resolve(raw ? { value: raw } : null);
+  }catch(e){
+    try{
+      if(window.storage && window.storage.get){
+        return window.storage.get(STORAGE_KEY, false).catch(function(){ return null; });
+      }
+    }catch(e2){}
+    return Promise.resolve(null);
+  }
+}
+
+function storageSet(text){
+  try{
+    window.localStorage.setItem(STORAGE_KEY, text);
+    return;
+  }catch(e){
+    try{
+      if(window.storage && window.storage.set){
+        window.storage.set(STORAGE_KEY, text, false).catch(function(err){
+          console.error("save failed", err);
+        });
+      }
+    }catch(e2){
+      console.error("save failed", e2);
+    }
+  }
+}
+
+function load(){
+  var storagePromise = storageGet();
+
+  return storagePromise.then(function(res){
+    var loaded = null;
+    if(res && res.value){
+      try{ loaded = JSON.parse(res.value); }catch(e){ loaded = null; }
+    }
+    state = loaded || defaultData();
+    normalizeState();
+    render();
+    save();
+  });
+}
+
+function save(){
+  storageSet(JSON.stringify(state));
+}
+
+function switchTab(g){
+  state.activeTab = g;
+  pendingDeleteId = null;
+  pendingDeleteLoc = null;
+  editingItemId = null;
+  render();
+}
+
+function toggleCheck(g, id){
+  var items = state.groups[g].items;
+  for(var i=0;i<items.length;i++){
+    if(items[i].id === id){ items[i].checked = !items[i].checked; break; }
+  }
+  render(); save();
+}
+
+function setLocation(g, id, loc){
+  var items = state.groups[g].items;
+  for(var i=0;i<items.length;i++){
+    if(items[i].id === id){
+      var idx = items[i].locations.indexOf(loc);
+      if(idx === -1){ items[i].locations.push(loc); }
+      else { items[i].locations.splice(idx,1); }
+      break;
+    }
+  }
+  render(); save();
+}
+
+function startEditItem(id){
+  editingItemId = id;
+  render();
+  var input = document.getElementById("edit-name-" + id);
+  if(input){ input.focus(); input.select(); }
+}
+
+function saveEditItem(g, id){
+  var input = document.getElementById("edit-name-" + id);
+  if(input){
+    var name = input.value.trim();
+    if(name){
+      var items = state.groups[g].items;
+      for(var i=0;i<items.length;i++){
+        if(items[i].id === id){ items[i].name = name; break; }
+      }
+      save();
+    }
+  }
+  editingItemId = null;
+  render();
+}
+
+function handleEditItemKey(event, g, id){
+  if(event.key === "Enter"){ saveEditItem(g, id); }
+  else if(event.key === "Escape"){ editingItemId = null; render(); }
+}
+
+function requestDeleteItem(id){
+  pendingDeleteId = id;
+  render();
+}
+
+function cancelDeleteItem(){
+  pendingDeleteId = null;
+  render();
+}
+
+function deleteItem(g, id){
+  state.groups[g].items = state.groups[g].items.filter(function(item){ return item.id !== id; });
+  pendingDeleteId = null;
+  render(); save();
+}
+
+function addItem(g){
+  var input = document.getElementById("new-item-input");
+  if(!input) return;
+  var name = input.value.trim();
+  if(!name) return;
+  state.groups[g].items.push({ id:newId(), name:name, checked:false, locations:[] });
+  render(); save();
+}
+
+function handleAddItemKey(event, g){
+  if(event.key === "Enter"){ addItem(g); }
+}
+
+function updateDesc(g, value){
+  state.groups[g].desc = value;
+  save();
+}
+
+function toggleSettings(){
+  showSettings = !showSettings;
+  settingsExportOpen = false;
+  settingsImportOpen = false;
+  pendingReset = false;
+  exportMessage = null;
+  importMessage = null;
+  csvExportOpen = false;
+  csvImportOpen = false;
+  csvExportMessage = null;
+  csvImportMessage = null;
+  csvImportText = "";
+  pendingCsvOverwrite = false;
+  render();
+}
+
+function toggleExportPanel(){
+  settingsExportOpen = !settingsExportOpen;
+  exportMessage = null;
+  render();
+}
+
+function toggleImportPanel(){
+  settingsImportOpen = !settingsImportOpen;
+  importMessage = null;
+  render();
+}
+
+function copyExportText(){
+  var ta = document.getElementById("export-textarea");
+  if(!ta) return;
+  ta.focus();
+  ta.select();
+  var ok = false;
+  try{ ok = document.execCommand("copy"); }catch(e){ ok = false; }
+  exportMessage = ok
+    ? { type:"success", text:"コピーしました。" }
+    : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" };
+  render();
+}
+
+function downloadExportFile(){
+  try{
+    var json = JSON.stringify(state, null, 2);
+    var blob = new Blob([json], { type:"application/json" });
+    var url = URL.createObjectURL(blob);
+    var now = new Date();
+    var ymd = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "bousai-list-backup-" + ymd + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+    exportMessage = { type:"success", text:"ダウンロードを開始しました。失敗した場合は下のテキストをコピーしてください。" };
+  }catch(e){
+    exportMessage = { type:"error", text:"ダウンロードできませんでした。下のテキストを手動でコピーしてください。" };
+  }
+  render();
+}
+
+function applyImportedJson(text){
+  var parsed;
+  try{
+    parsed = JSON.parse(text);
+  }catch(e){
+    importMessage = { type:"error", text:"JSONの形式が正しくありません。コピーした内容を確認してください。" };
+    render();
+    return;
+  }
+  if(!parsed || typeof parsed !== "object" || !parsed.groups || !GROUP_ORDER.every(function(g){ return !!parsed.groups[g]; })){
+    importMessage = { type:"error", text:"このアプリのバックアップデータではないようです。" };
+    render();
+    return;
+  }
+  state = parsed;
+  normalizeState();
+  settingsImportOpen = false;
+  importMessage = { type:"success", text:"データを読み込みました。" };
+  render(); save();
+}
+
+function doImportFromTextarea(){
+  var ta = document.getElementById("import-textarea");
+  var text = ta ? ta.value.trim() : "";
+  if(!text){
+    importMessage = { type:"error", text:"JSONを貼り付けるか、ファイルを選択してください。" };
+    render();
+    return;
+  }
+  applyImportedJson(text);
+}
+
+function handleImportFile(event){
+  var file = event.target.files && event.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){ applyImportedJson(String(e.target.result)); };
+  reader.onerror = function(){
+    importMessage = { type:"error", text:"ファイルを読み込めませんでした。" };
+    render();
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- CSV (family sharing) ---------- */
+
+function csvCell(v){
+  var s = String(v == null ? "" : v);
+  if(/[",\r\n]/.test(s)){ s = '"' + s.replace(/"/g, '""') + '"'; }
+  return s;
+}
+
+// columns: 次, アイテム名, チェック(済/未), 保管場所(;区切り)
+// A row with an empty アイテム名 only registers a storage location (so unused locations survive a round trip).
+function buildCsvText(){
+  var rows = [["次","アイテム名","チェック","保管場所"]];
+  GROUP_ORDER.forEach(function(g){
+    var grp = state.groups[g];
+    var label = GROUP_META[g].label;
+    // location-only rows first, so the family's location order (and unused locations) survive a round trip
+    grp.locations.forEach(function(loc){
+      rows.push([label, "", "", loc]);
+    });
+    grp.items.forEach(function(item){
+      rows.push([label, item.name, item.checked ? "済" : "未", item.locations.join(";")]);
+    });
+  });
+  return rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n") + "\r\n";
+}
+
+function parseCsvRows(text){
+  text = String(text).replace(/^﻿/, "");
+  var firstLine = text.split(/\r\n|\n|\r/)[0] || "";
+  var delim = ",";
+  if(firstLine.indexOf(",") === -1 && firstLine.indexOf("\t") !== -1){ delim = "\t"; }
+  var rows = [], row = [], field = "", inQ = false, i, c;
+  for(i = 0; i < text.length; i++){
+    c = text.charAt(i);
+    if(inQ){
+      if(c === '"'){
+        if(text.charAt(i+1) === '"'){ field += '"'; i++; }
+        else { inQ = false; }
+      } else { field += c; }
+    } else if(c === '"' && field === ""){
+      inQ = true;
+    } else if(c === delim){
+      row.push(field); field = "";
+    } else if(c === "\r" || c === "\n"){
+      if(c === "\r" && text.charAt(i+1) === "\n"){ i++; }
+      row.push(field); rows.push(row); row = []; field = "";
+    } else {
+      field += c;
+    }
+  }
+  if(field !== "" || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(function(r){
+    return r.some(function(cell){ return String(cell).trim() !== ""; });
+  });
+}
+
+function parseGroupKey(cell){
+  var s = String(cell == null ? "" : cell).trim().replace(/[０-９]/g, function(ch){
+    return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+  });
+  // accepts "0", "0次", "0次避難", "g0" — but not e.g. "10" or "2024-01-01"
+  var m = s.match(/^g?([012])(?:\s*次.*)?$/i);
+  return m ? "g" + m[1] : null;
+}
+
+function parseCheckedCell(cell){
+  var s = String(cell == null ? "" : cell).trim().toLowerCase();
+  return ["済","○","◯","〇","✓","✔","1","true","yes","y","x"].indexOf(s) !== -1;
+}
+
+function splitLocations(cell){
+  var seen = {}, out = [];
+  String(cell == null ? "" : cell).split(/[;；、]/).forEach(function(p){
+    var t = p.trim();
+    if(t && !seen[t]){ seen[t] = true; out.push(t); }
+  });
+  return out;
+}
+
+function parseCsvText(text){
+  var rows = parseCsvRows(text);
+  var byGroup = {};
+  GROUP_ORDER.forEach(function(g){ byGroup[g] = { entries: [], locOrder: [], seen: false }; });
+  var skipped = 0;
+  rows.forEach(function(r, idx){
+    var g = parseGroupKey(r[0]);
+    if(!g){
+      if(idx !== 0){ skipped++; }   // first row is normally the header
+      return;
+    }
+    var grp = byGroup[g];
+    grp.seen = true;
+    var name = String(r[1] == null ? "" : r[1]).trim();
+    var locs = splitLocations(r[3]);
+    locs.forEach(function(l){ if(grp.locOrder.indexOf(l) === -1){ grp.locOrder.push(l); } });
+    if(name){
+      grp.entries.push({ name: name, checked: parseCheckedCell(r[2]), locations: locs });
+    }
+  });
+  return { byGroup: byGroup, skipped: skipped };
+}
+
+function applyCsv(text, mode){
+  var parsed = parseCsvText(text);
+  var total = 0;
+  GROUP_ORDER.forEach(function(g){ total += parsed.byGroup[g].entries.length; });
+  var anyGroup = GROUP_ORDER.some(function(g){ return parsed.byGroup[g].seen; });
+  if(!anyGroup){
+    return { ok:false, text:"取り込める行が見つかりませんでした。1列目に「0次避難」「1次避難」「2次避難」のいずれかが入った行が必要です。" };
+  }
+
+  var next = JSON.parse(JSON.stringify(state));
+  var updated = 0, added = 0, perGroup = [];
+
+  GROUP_ORDER.forEach(function(g){
+    var src = parsed.byGroup[g];
+    if(!src.seen) return;
+    var grp = next.groups[g];
+
+    if(mode === "overwrite"){
+      grp.items = src.entries.map(function(e){
+        return { id:newId(), name:e.name, checked:e.checked, locations:e.locations.slice() };
+      });
+      if(src.locOrder.length){ grp.locations = src.locOrder.slice(); }
+      perGroup.push(GROUP_META[g].label + " " + src.entries.length + "件");
+    } else {
+      src.locOrder.forEach(function(l){
+        if(grp.locations.indexOf(l) === -1){ grp.locations.push(l); }
+      });
+      src.entries.forEach(function(e){
+        var found = null;
+        for(var i = 0; i < grp.items.length; i++){
+          if(grp.items[i].name.trim() === e.name){ found = grp.items[i]; break; }
+        }
+        if(found){
+          found.checked = e.checked;
+          found.locations = e.locations.slice();
+          updated++;
+        } else {
+          grp.items.push({ id:newId(), name:e.name, checked:e.checked, locations:e.locations.slice() });
+          added++;
+        }
+      });
+    }
+  });
+
+  state = next;
+  normalizeState();
+  save();
+
+  var msg;
+  if(mode === "overwrite"){
+    msg = "CSVの内容で上書きしました(" + perGroup.join("、") + ")。";
+  } else {
+    msg = "マージしました(更新 " + updated + "件・追加 " + added + "件)。";
+  }
+  if(parsed.skipped > 0){ msg += " 認識できない行 " + parsed.skipped + "行はスキップしました。"; }
+  return { ok:true, text:msg };
+}
+
+function toggleCsvExportPanel(){
+  csvExportOpen = !csvExportOpen;
+  csvExportMessage = null;
+  render();
+}
+
+function toggleCsvImportPanel(){
+  csvImportOpen = !csvImportOpen;
+  csvImportMessage = null;
+  pendingCsvOverwrite = false;
+  render();
+}
+
+function downloadCsvFile(){
+  try{
+    var blob = new Blob(["﻿" + buildCsvText()], { type:"text/csv;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var now = new Date();
+    var ymd = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "bousai-list-" + ymd + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+    csvExportMessage = { type:"success", text:"ダウンロードを開始しました。保存できない場合は下のテキストをコピーしてください。" };
+  }catch(e){
+    csvExportMessage = { type:"error", text:"ダウンロードできませんでした。下のテキストを手動でコピーしてください。" };
+  }
+  render();
+}
+
+function copyCsvText(){
+  var ta = document.getElementById("csv-export-textarea");
+  if(!ta) return;
+  ta.focus();
+  ta.select();
+  var ok = false;
+  try{ ok = document.execCommand("copy"); }catch(e){ ok = false; }
+  csvExportMessage = ok
+    ? { type:"success", text:"コピーしました。メモやLINEなどに貼り付けて送れます。" }
+    : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" };
+  render();
+}
+
+function decodeCsvBuffer(buf){
+  try{
+    return new TextDecoder("utf-8", { fatal:true }).decode(buf);
+  }catch(e){
+    try{
+      // Excel on Japanese Windows saves plain "CSV" as Shift_JIS
+      return new TextDecoder("shift_jis").decode(buf);
+    }catch(e2){
+      return new TextDecoder("utf-8").decode(buf);
+    }
+  }
+}
+
+function handleCsvFile(event){
+  var file = event.target.files && event.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    csvImportText = decodeCsvBuffer(e.target.result);
+    pendingCsvOverwrite = false;
+    csvImportMessage = { type:"success", text:"ファイルを読み込みました。内容を確認して「マージ」か「上書き」を選んでください。" };
+    render();
+  };
+  reader.onerror = function(){
+    csvImportMessage = { type:"error", text:"ファイルを読み込めませんでした。" };
+    render();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function updateCsvText(value){
+  csvImportText = value;
+}
+
+function syncCsvTextFromTextarea(){
+  var ta = document.getElementById("csv-import-textarea");
+  if(ta){ csvImportText = ta.value; }
+}
+
+function requestCsvOverwrite(){
+  syncCsvTextFromTextarea();
+  if(!csvImportText.trim()){
+    csvImportMessage = { type:"error", text:"CSVを貼り付けるか、ファイルを選択してください。" };
+    render();
+    return;
+  }
+  pendingCsvOverwrite = true;
+  csvImportMessage = null;
+  render();
+}
+
+function cancelCsvOverwrite(){
+  pendingCsvOverwrite = false;
+  render();
+}
+
+function doCsvImport(mode){
+  syncCsvTextFromTextarea();
+  if(!csvImportText.trim()){
+    csvImportMessage = { type:"error", text:"CSVを貼り付けるか、ファイルを選択してください。" };
+    render();
+    return;
+  }
+  var result = applyCsv(csvImportText, mode);
+  pendingCsvOverwrite = false;
+  csvImportMessage = { type: result.ok ? "success" : "error", text: result.text };
+  if(result.ok){ csvImportText = ""; }
+  render();
+}
+
+function requestReset(){
+  pendingReset = true;
+  render();
+}
+
+function cancelReset(){
+  pendingReset = false;
+  render();
+}
+
+function confirmReset(){
+  state = defaultData();
+  normalizeState();
+  pendingReset = false;
+  showSettings = false;
+  render(); save();
+}
+
+function toggleViewMode(){
+  viewMode = (viewMode === "item") ? "location" : "item";
+  render();
+}
+
+function toggleLocSettings(){
+  showLocSettings = !showLocSettings;
+  pendingDeleteLoc = null;
+  render();
+}
+
+function addLocation(g){
+  var input = document.getElementById("new-loc-input");
+  if(!input) return;
+  var name = input.value.trim();
+  var locations = state.groups[g].locations;
+  if(!name || locations.indexOf(name) !== -1){ input.value = ""; return; }
+  locations.push(name);
+  render(); save();
+}
+
+function handleAddLocKey(event, g){
+  if(event.key === "Enter"){ addLocation(g); }
+}
+
+function requestDeleteLocation(g, loc){
+  pendingDeleteLoc = g + "::" + loc;
+  render();
+}
+
+function cancelDeleteLocation(){
+  pendingDeleteLoc = null;
+  render();
+}
+
+function deleteLocation(g, loc){
+  state.groups[g].locations = state.groups[g].locations.filter(function(l){ return l !== loc; });
+  state.groups[g].items.forEach(function(item){
+    item.locations = item.locations.filter(function(l){ return l !== loc; });
+  });
+  pendingDeleteLoc = null;
+  render(); save();
+}
+
+function groupProgress(g){
+  var items = state.groups[g].items;
+  var total = items.length;
+  var done = 0;
+  for(var i=0;i<items.length;i++){ if(items[i].checked) done++; }
+  return { done:done, total:total };
+}
+
+function buildOverviewHtml(){
+  var html = "";
+  GROUP_ORDER.forEach(function(key){
+    var m = GROUP_META[key];
+    var p = groupProgress(key);
+    var pct = p.total ? Math.round(p.done / p.total * 100) : 0;
+    html += ''
+      + '<div class="ov-row">'
+      + '<div class="ov-label" style="color:' + m.accent + '">' + m.label + '</div>'
+      + '<div class="ov-track"><div class="ov-fill" style="width:' + pct + '%; background:' + m.accent + '"></div></div>'
+      + '<div class="ov-count">' + p.done + '/' + p.total + '</div>'
+      + '</div>';
+  });
+  return html;
+}
+
+function buildTabsHtml(g){
+  var html = "";
+  GROUP_ORDER.forEach(function(key){
+    var m = GROUP_META[key];
+    var active = key === g;
+    var styleAttr = active ? ('--accent:' + m.accent + ';--accent-soft:' + m.accentSoft + ';') : '';
+    html += ''
+      + '<button class="tab ' + (active ? 'active' : '') + '" style="' + styleAttr + '" onclick="switchTab(\'' + key + '\')">'
+      + '<div class="stamp">' + m.num + '</div>'
+      + '<div class="tlabel">' + m.label + '</div>'
+      + '</button>';
+  });
+  return html;
+}
+
+function buildLocSettingsHtml(g, meta){
+  if(!showLocSettings) return "";
+  var locations = state.groups[g].locations;
+  var chips = "";
+  if(locations.length){
+    locations.forEach(function(loc){
+      var key = g + "::" + loc;
+      if(pendingDeleteLoc === key){
+        chips += ''
+          + '<div class="loc-chip pending">'
+          + '<span>「' + escapeHtml(loc) + '」を削除？</span>'
+          + '<button class="mini-yes" onclick="deleteLocation(&quot;' + g + '&quot;,&quot;' + escapeAttr(loc) + '&quot;)">削除</button>'
+          + '<button class="mini-no" onclick="cancelDeleteLocation()">取消</button>'
+          + '</div>';
+      } else {
+        chips += ''
+          + '<div class="loc-chip">'
+          + '<span>' + escapeHtml(loc) + '</span>'
+          + '<button onclick="requestDeleteLocation(&quot;' + g + '&quot;,&quot;' + escapeAttr(loc) + '&quot;)">✕</button>'
+          + '</div>';
+      }
+    });
+  } else {
+    chips = '<span style="font-size:12px;color:var(--ink-soft);">保管場所がありません</span>';
+  }
+  return ''
+    + '<div class="loc-settings">'
+    + '<div class="loc-settings-title">' + meta.label + 'の説明文</div>'
+    + '<textarea class="desc-textarea" id="desc-input-' + g + '" onchange="updateDesc(&quot;' + g + '&quot;, this.value)">' + escapeHtml(state.groups[g].desc) + '</textarea>'
+    + '<div class="loc-settings-title">' + meta.label + 'の保管場所</div>'
+    + '<div class="loc-chips">' + chips + '</div>'
+    + '<div class="loc-add-row">'
+    + '<input type="text" id="new-loc-input" placeholder="新しい保管場所(例:' + LOC_INPUT_EXAMPLE[g] + ')" onkeydown="handleAddLocKey(event,\'' + g + '\')">'
+    + '<button onclick="addLocation(\'' + g + '\')">追加</button>'
+    + '</div>'
+    + '</div>';
+}
+
+function buildItemsHtml(g, meta){
+  var items = state.groups[g].items;
+  var locations = state.groups[g].locations;
+  if(!items.length){
+    return '<div class="empty">まだアイテムがありません。下から追加してください。</div>';
+  }
+  var html = "";
+  items.forEach(function(item){
+    var locsHtml = "";
+    if(!locations.length){
+      locsHtml = '<span style="font-size:11.5px;color:var(--ink-soft);">保管場所が未設定です</span>';
+    }
+    locations.forEach(function(loc){
+      var active = item.locations.indexOf(loc) !== -1;
+      var styleAttr = active ? ('--accent:' + meta.accent) : '';
+      locsHtml += ''
+        + '<button class="loc-pill ' + (active ? 'active' : '') + '" style="' + styleAttr + '" onclick="setLocation(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;,&quot;' + escapeAttr(loc) + '&quot;)">'
+        + escapeHtml(loc) + '</button>';
+    });
+    var checkedClass = item.checked ? "checked" : "";
+    var checkStyle = item.checked ? ('--accent:' + meta.accent) : '';
+    var isPending = pendingDeleteId === item.id;
+    var confirmHtml = isPending ? ''
+      + '<div class="confirm-row">'
+      + '<span>削除しますか？</span>'
+      + '<button class="confirm-yes" onclick="deleteItem(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">削除する</button>'
+      + '<button class="confirm-no" onclick="cancelDeleteItem()">キャンセル</button>'
+      + '</div>' : '';
+    var nameHtml = (editingItemId === item.id)
+      ? '<input type="text" class="item-name-input" id="edit-name-' + item.id + '" value="' + escapeAttr(item.name) + '" onkeydown="handleEditItemKey(event,&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)" onblur="saveEditItem(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">'
+      : '<div class="item-name ' + checkedClass + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + escapeHtml(item.name) + '</div>';
+    var actionsHtml = (editingItemId === item.id)
+      ? ''
+      : '<button class="edit-btn" onclick="startEditItem(&quot;' + item.id + '&quot;)">✎</button><button class="del-btn" onclick="requestDeleteItem(&quot;' + item.id + '&quot;)">✕</button>';
+    html += ''
+      + '<div class="item">'
+      + '<div class="item-top">'
+      + '<div class="checkbox ' + checkedClass + '" style="' + checkStyle + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + (item.checked ? '✓' : '') + '</div>'
+      + nameHtml
+      + actionsHtml
+      + '</div>'
+      + '<div class="locations">' + locsHtml + '</div>'
+      + confirmHtml
+      + '</div>';
+  });
+  return html;
+}
+
+function buildItemsByLocationHtml(g, meta){
+  var items = state.groups[g].items;
+  var locations = state.groups[g].locations;
+
+  if(!items.length){
+    return '<div class="empty">まだアイテムがありません。「アイテムごと」の表示から追加してください。</div>';
+  }
+
+  function itemRow(item){
+    var checkedClass = item.checked ? "checked" : "";
+    var checkStyle = item.checked ? ('--accent:' + meta.accent) : '';
+    return ''
+      + '<div class="loc-group-item">'
+      + '<div class="checkbox ' + checkedClass + '" style="' + checkStyle + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + (item.checked ? '✓' : '') + '</div>'
+      + '<div class="item-name ' + checkedClass + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + escapeHtml(item.name) + '</div>'
+      + '</div>';
+  }
+
+  var html = '<div class="loc-group">';
+  if(!locations.length){
+    html += '<div class="loc-group-title">保管場所が未設定です</div>';
+  } else {
+    locations.forEach(function(loc){
+      var matched = items.filter(function(item){ return item.locations.indexOf(loc) !== -1; });
+      html += '<div class="loc-group-title">' + escapeHtml(loc) + '(' + matched.length + ')</div>';
+      if(matched.length){
+        matched.forEach(function(item){ html += itemRow(item); });
+      } else {
+        html += '<div style="padding:10px 0;font-size:12.5px;color:var(--ink-soft);">まだアイテムがありません</div>';
+      }
+    });
+  }
+
+  var unassigned = items.filter(function(item){ return !item.locations.length; });
+  if(unassigned.length){
+    html += '<div class="loc-group-title">保管場所が未設定のアイテム(' + unassigned.length + ')</div>';
+    unassigned.forEach(function(item){ html += itemRow(item); });
+  }
+  html += '</div>';
+  return html;
+}
+
+function buildMsgBoxHtml(msg){
+  if(!msg) return "";
+  return '<div class="msg-box ' + (msg.type === "error" ? "msg-error" : "msg-success") + '">' + escapeHtml(msg.text) + '</div>';
+}
+
+function buildSettingsScreenHtml(){
+  var themeRow = ''
+    + '<div class="theme-option-row">'
+    + '<button class="theme-option ' + (themePref === "light" ? "active" : "") + '" onclick="setThemePref(&quot;light&quot;)">☀ ライト</button>'
+    + '<button class="theme-option ' + (themePref === "dark" ? "active" : "") + '" onclick="setThemePref(&quot;dark&quot;)">🌙 ダーク</button>'
+    + '<button class="theme-option ' + (!themePref ? "active" : "") + '" onclick="setThemePref(null)">端末に合わせる</button>'
+    + '</div>';
+
+  var csvExportPanel = '<button class="settings-btn" onclick="toggleCsvExportPanel()">' + (csvExportOpen ? 'CSVエクスポートを閉じる' : 'リストをCSVでエクスポート') + '</button>';
+  if(csvExportOpen){
+    csvExportPanel += ''
+      + '<div class="export-panel">'
+      + '<div class="export-actions">'
+      + '<button onclick="downloadCsvFile()">CSVをダウンロード</button>'
+      + '<button onclick="copyCsvText()">テキストをコピー</button>'
+      + '</div>'
+      + '<textarea id="csv-export-textarea" readonly onclick="this.select()">' + escapeHtml(buildCsvText()) + '</textarea>'
+      + buildMsgBoxHtml(csvExportMessage)
+      + '</div>';
+  }
+
+  var csvImportPanel = '<button class="settings-btn" onclick="toggleCsvImportPanel()">' + (csvImportOpen ? 'CSVインポートを閉じる' : 'CSVからインポート') + '</button>';
+  if(csvImportOpen){
+    var csvConfirm = pendingCsvOverwrite
+      ? ('<div class="danger-confirm" style="margin-top:10px;">'
+         + '<p>CSVに含まれる次(0次・1次・2次)のアイテムと保管場所を、CSVの内容に置き換えます。CSVにないアイテムは消えます(説明文は変わりません)。よろしいですか？</p>'
+         + '<div class="danger-confirm-actions">'
+         + '<button class="danger-yes" onclick="doCsvImport(&quot;overwrite&quot;)">上書きする</button>'
+         + '<button class="danger-no" onclick="cancelCsvOverwrite()">キャンセル</button>'
+         + '</div></div>')
+      : '';
+    csvImportPanel += ''
+      + '<div class="import-panel">'
+      + '<div class="settings-section-note">'
+      + '<b>マージ</b>:同じ次・同じアイテム名はCSVの内容で更新し、新しいアイテムだけ追加します(自分のアイテムは消えません)。<br>'
+      + '<b>上書き</b>:CSVに含まれる次のリストを、CSVの内容にそろえます。'
+      + '</div>'
+      + '<div class="import-file-row"><input type="file" accept=".csv,text/csv,text/plain" onchange="handleCsvFile(event)"></div>'
+      + '<div class="settings-section-note">またはCSVのテキストをここに貼り付け:</div>'
+      + '<textarea id="csv-import-textarea" placeholder="次,アイテム名,チェック,保管場所" oninput="updateCsvText(this.value)">' + escapeHtml(csvImportText) + '</textarea>'
+      + '<div class="export-actions">'
+      + '<button onclick="doCsvImport(&quot;merge&quot;)">マージして取り込む</button>'
+      + '<button onclick="requestCsvOverwrite()">上書きして取り込む</button>'
+      + '</div>'
+      + csvConfirm
+      + buildMsgBoxHtml(csvImportMessage)
+      + '</div>';
+  }
+
+  var exportPanel = '<button class="settings-btn" onclick="toggleExportPanel()">' + (settingsExportOpen ? 'エクスポートを閉じる' : '全データをエクスポート') + '</button>';
+  if(settingsExportOpen){
+    var json = escapeHtml(JSON.stringify(state, null, 2));
+    exportPanel += ''
+      + '<div class="export-panel">'
+      + '<div class="export-actions">'
+      + '<button onclick="downloadExportFile()">ファイルをダウンロード</button>'
+      + '<button onclick="copyExportText()">テキストをコピー</button>'
+      + '</div>'
+      + '<textarea id="export-textarea" readonly onclick="this.select()">' + json + '</textarea>'
+      + buildMsgBoxHtml(exportMessage)
+      + '</div>';
+  }
+
+  var importPanel = '<button class="settings-btn" onclick="toggleImportPanel()">' + (settingsImportOpen ? 'インポートを閉じる' : 'データをインポート') + '</button>';
+  if(settingsImportOpen){
+    importPanel += ''
+      + '<div class="import-panel">'
+      + '<div class="settings-section-note">読み込むと今のデータは上書きされます。先にエクスポートしてバックアップを取っておくと安心です。</div>'
+      + '<div class="import-file-row"><input type="file" accept="application/json,.json" onchange="handleImportFile(event)"></div>'
+      + '<div class="settings-section-note">またはバックアップのJSONテキストをここに貼り付け:</div>'
+      + '<textarea id="import-textarea" placeholder="{...}"></textarea>'
+      + '<div class="export-actions"><button onclick="doImportFromTextarea()">インポート実行</button></div>'
+      + buildMsgBoxHtml(importMessage)
+      + '</div>';
+  }
+
+  var resetHtml = '';
+  if(pendingReset){
+    resetHtml = ''
+      + '<div class="danger-confirm">'
+      + '<p>全データを削除して初期状態に戻します。この操作は取り消せません。本当によろしいですか？</p>'
+      + '<div class="danger-confirm-actions">'
+      + '<button class="danger-yes" onclick="confirmReset()">初期化する</button>'
+      + '<button class="danger-no" onclick="cancelReset()">キャンセル</button>'
+      + '</div>'
+      + '</div>';
+  } else {
+    resetHtml = '<button class="danger-btn" onclick="requestReset()">全データを初期化する</button>';
+  }
+
+  return ''
+    + '<div class="header">'
+    + '<button class="back-btn" onclick="toggleSettings()">← 戻る</button>'
+    + '<h1>設定</h1>'
+    + '</div>'
+    + '<div class="settings-section">'
+    + '<div class="settings-section-title">テーマ</div>'
+    + themeRow
+    + '</div>'
+    + '<div class="settings-section">'
+    + '<div class="settings-section-title">家族と共有(CSV)</div>'
+    + '<div class="settings-section-note">このアプリのデータはこの端末のブラウザに保存されます。アイテムとチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。アイテム名が空の行は、保管場所だけを登録する行です。</div>'
+    + csvExportPanel
+    + csvImportPanel
+    + '</div>'
+    + '<div class="settings-section">'
+    + '<div class="settings-section-title">全データのバックアップ(JSON)</div>'
+    + '<div class="settings-section-note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</div>'
+    + exportPanel
+    + importPanel
+    + '</div>'
+    + '<div class="settings-section danger-section">'
+    + '<div class="settings-section-title">初期化</div>'
+    + '<div class="settings-section-note">0次・1次・2次すべてのアイテム・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</div>'
+    + resetHtml
+    + '</div>';
+}
+
+function render(){
+  if(showSettings){
+    appEl.innerHTML = buildSettingsScreenHtml();
+    return;
+  }
+
+  var g = state.activeTab;
+  var meta = GROUP_META[g];
+
+  var html = ''
+    + '<div class="header">'
+    + '<button class="settings-gear" onclick="toggleSettings()">⚙ 設定</button>'
+    + '<h1>わが家の防災リスト</h1>'
+    + '<p>0次・1次・2次の避難グッズと保管場所を管理(この端末に保存)</p>'
+    + '</div>'
+    + '<div class="overview">'
+    + buildOverviewHtml()
+    + '<button class="loc-settings-toggle" onclick="toggleLocSettings()">' + (showLocSettings ? '設定を閉じる' : meta.label + 'の説明・保管場所を編集') + '</button>'
+    + '</div>'
+    + buildLocSettingsHtml(g, meta)
+    + '<div class="tabs">' + buildTabsHtml(g) + '</div>'
+    + '<div class="group-desc" style="border-left:3px solid ' + meta.accent + '">' + escapeHtml(state.groups[g].desc).replace(/\n/g,'<br>') + '</div>'
+    + '<div class="view-toggle" style="--accent:' + meta.accent + '">'
+    + '<button class="' + (viewMode === 'item' ? 'active' : '') + '" onclick="toggleViewMode()">アイテムごと</button>'
+    + '<button class="' + (viewMode === 'location' ? 'active' : '') + '" onclick="toggleViewMode()">保管場所ごと</button>'
+    + '</div>'
+    + (viewMode === 'item'
+        ? ('<div class="items">' + buildItemsHtml(g, meta) + '</div>'
+           + '<div class="add-row">'
+           + '<input type="text" id="new-item-input" placeholder="アイテムを追加(例:携帯充電器)" onkeydown="handleAddItemKey(event,\'' + g + '\')">'
+           + '<button onclick="addItem(\'' + g + '\')">追加</button>'
+           + '</div>'
+           + '<div class="footer-note">保管場所は複数タップで選択できます(もう一度タップで解除)</div>')
+        : buildItemsByLocationHtml(g, meta))
+    ;
+
+  appEl.innerHTML = html;
+}
+
+window.switchTab = switchTab;
+window.toggleCheck = toggleCheck;
+window.setLocation = setLocation;
+window.startEditItem = startEditItem;
+window.saveEditItem = saveEditItem;
+window.handleEditItemKey = handleEditItemKey;
+window.requestDeleteItem = requestDeleteItem;
+window.cancelDeleteItem = cancelDeleteItem;
+window.deleteItem = deleteItem;
+window.addItem = addItem;
+window.handleAddItemKey = handleAddItemKey;
+window.updateDesc = updateDesc;
+window.setThemePref = setThemePref;
+window.toggleSettings = toggleSettings;
+window.toggleExportPanel = toggleExportPanel;
+window.toggleImportPanel = toggleImportPanel;
+window.copyExportText = copyExportText;
+window.downloadExportFile = downloadExportFile;
+window.doImportFromTextarea = doImportFromTextarea;
+window.handleImportFile = handleImportFile;
+window.toggleCsvExportPanel = toggleCsvExportPanel;
+window.toggleCsvImportPanel = toggleCsvImportPanel;
+window.downloadCsvFile = downloadCsvFile;
+window.copyCsvText = copyCsvText;
+window.handleCsvFile = handleCsvFile;
+window.updateCsvText = updateCsvText;
+window.requestCsvOverwrite = requestCsvOverwrite;
+window.cancelCsvOverwrite = cancelCsvOverwrite;
+window.doCsvImport = doCsvImport;
+window.requestReset = requestReset;
+window.cancelReset = cancelReset;
+window.confirmReset = confirmReset;
+window.toggleViewMode = toggleViewMode;
+window.toggleLocSettings = toggleLocSettings;
+window.addLocation = addLocation;
+window.handleAddLocKey = handleAddLocKey;
+window.requestDeleteLocation = requestDeleteLocation;
+window.cancelDeleteLocation = cancelDeleteLocation;
+window.deleteLocation = deleteLocation;
+
+loadThemePref();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("service-worker.js").catch(function(e){
+      console.error("service worker registration failed", e);
+    });
+  });
+}
+try{
+  if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); }
+}catch(e){}
+
+load().catch(function(err){
+  appEl.innerHTML = '<div class="empty">読み込み中にエラーが発生しました。ページを再読み込みしてください。</div>';
+  console.error(err);
+});
+
+})();
+</script>
+</body>
+</html>
