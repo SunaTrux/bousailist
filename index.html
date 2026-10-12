@@ -96,9 +96,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .ov-track{ flex:1; min-width:0; height:8px; background:var(--card); border:1px solid var(--line); overflow:hidden; }
   .ov-fill{ height:100%; transition:width .3s ease; }
   .ov-count{ font-size:11px; color:var(--ink-soft); width:44px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
-  .edit-ctl{ align-self:stretch; }
-  .edit-ctl .link-btn{ display:block; }
-  .edit-close{ width:100%; min-height:48px; }
+  .edit-ctl{ align-self:flex-start; max-width:100%; }
+  .edit-open, .edit-close{ min-height:48px; padding-left:18px; padding-right:18px; }
   .link-btn{
     align-self:flex-start; min-height:44px; padding:0; font-size:13px; color:var(--ink-soft);
     text-decoration:underline; text-underline-offset:3px; overflow-wrap:anywhere;
@@ -254,11 +253,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.10";
+var APP_VERSION = "1.1.11";
 var APP_VERSION_DATE = "2026-10-12";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.1.11", lines:["編集ボタンを「〇次の保管場所を編集」に、戻るボタンを「一覧に戻る」に変更しました。","保管場所の追加候補と、0次の説明文を見直しました。"] },
   { v:"1.1.10", lines:["説明・保管場所の編集リンクを、元の位置(タブの上)に戻しました。"] },
   { v:"1.1.9", lines:["更新のお知らせ表示を追加しました。","新しい版があるときは、再読み込みをすすめるお知らせが出ます。"] },
   { v:"1.1.8", lines:["説明・保管場所の編集が、説明文の下から開閉できます。"] },
@@ -278,7 +278,7 @@ var STORAGE_KEY = "bousai-goods-v2";
 var BROKEN_KEY = STORAGE_KEY + "-broken";
 var PREV_KEY = STORAGE_KEY + "-prev";
 var THEME_KEY = "bousai-theme-pref";
-var CONTENT_VERSION = 5;
+var CONTENT_VERSION = 6;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
@@ -290,13 +290,13 @@ var GROUP_META = {
   g2:{ num:"2", label:"2次の備え", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
 var DEFAULT_DESC = {
-  g0:"0次の備えは、普段の「持ち歩き用」です。外出先での災害に備えて、最低限の防災用品を決めて、携帯しましょう。",
+  g0:"0次の備えは、普段の「持ち歩き」です。外出時の災害に備えて、最低限の防災用品を携帯しましょう。",
   g1:"1次の備えは、非常時に自宅から即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
   g2:"2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるように備えましょう。"
 };
 /* 以前の初期文言(まだ編集されていなければ新しい初期文言に置き換える) */
 var PREV_DEFAULT_DESC = {
-  g0:["0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災アイテムを忘れないようにしましょう。","0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災用品を忘れないようにしましょう。"],
+  g0:["0次の備えは、普段の「持ち歩き用」です。外出先での災害に備えて、最低限の防災用品を決めて、携帯しましょう。","0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災アイテムを忘れないようにしましょう。","0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災用品を忘れないようにしましょう。"],
   g1:["1次の備えは、緊急時に即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。"],
   g2:["2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるようにしましょう。"]
 };
@@ -313,11 +313,11 @@ var DEFAULT_ITEMS = {
   g2:["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]
 };
 var LOC_SUGGEST = {
-  g0:["持ち歩き1","持ち歩き2","通勤用","お出かけ用","パパのサコッシュ","ママのポーチ"],
-  g1:["防災リュック1","防災リュック2","パパのリュック","ママのリュック","子どものリュック"],
-  g2:["リビング","寝室","レクルーム","その他ルーム","子ども部屋","車のトランク","スーツケース"]
+  g0:["通勤用","お出かけ用"],
+  g1:["非常持ち出し袋"],
+  g2:["リビング","寝室","レクルーム","その他ルーム","子ども部屋"]
 };
-var LOC_INPUT_EXAMPLE = { g0:"通勤バッグ、パパのサコッシュ、ママのポーチ", g1:"パパのリュック、ママのリュック", g2:"子ども部屋、車のトランク、スーツケース" };
+var LOC_INPUT_EXAMPLE = { g0:"防災ポーチ", g1:"家族のリュック", g2:"玄関" };
 
 /* ================= Small helpers ================= */
 var ESC_MAP = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
@@ -456,6 +456,7 @@ function migrate(st){
     }
     if(st.groups.g0.desc === OLD_DEFAULT_DESC_G0) st.groups.g0.desc = DEFAULT_DESC.g0;
   }
+  if(v < 6 && v >= 5){ if(st.groups.g0.desc === PREV_DEFAULT_DESC.g0[0]) st.groups.g0.desc = DEFAULT_DESC.g0; }
   if(v < 5){
     GROUP_ORDER.forEach(function(g){
       if(PREV_DEFAULT_DESC[g].indexOf(st.groups[g].desc) !== -1) st.groups[g].desc = DEFAULT_DESC[g];
@@ -912,9 +913,10 @@ function buildLocEditorHtml(g, meta){
     + '<div class="field-title">' + meta.label + 'の保管場所</div>'
     + '<div class="loc-chips">' + chips + '</div>'
     + suggestHtml(g, grp)
-    + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="新しい保管場所(例:' + esc(LOC_INPUT_EXAMPLE[g]) + ')" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
+    + '<div class="field-title">新しい保管場所</div>'
+    + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="例:' + esc(LOC_INPUT_EXAMPLE[g]) + '" aria-label="新しい保管場所" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
     + '<button type="button" class="btn" data-act="add-loc" data-g="' + g + '">追加</button></div>'
-    + '<button type="button" class="btn btn-ghost edit-close" style="margin-top:16px" data-act="toggle-loc-editor">編集を閉じる</button></div>';
+    + '<button type="button" class="btn btn-ghost edit-close" style="margin-top:16px" data-act="toggle-loc-editor">一覧に戻る</button></div>';
 }
 function suggestHtml(g, grp){
   var list = LOC_SUGGEST[g] || [], out = "";
@@ -983,8 +985,8 @@ function buildByLocationHtml(g, meta){
 
 function locEditControlHtml(g, meta){
   var top = showLocEditor
-    ? '<button type="button" class="btn btn-ghost edit-close" data-act="toggle-loc-editor">編集を閉じる</button>'
-    : '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + meta.label + 'の説明・保管場所を編集</button>';
+    ? '<button type="button" class="btn btn-ghost edit-close" data-act="toggle-loc-editor">一覧に戻る</button>'
+    : '<button type="button" class="btn btn-ghost edit-open" data-act="toggle-loc-editor">' + meta.num + '次の保管場所を編集</button>';
   return '<div class="edit-ctl">' + top + '</div>';
 }
 function renderMain(){
