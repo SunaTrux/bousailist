@@ -96,7 +96,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .ov-track{ flex:1; min-width:0; height:8px; background:var(--card); border:1px solid var(--line); overflow:hidden; }
   .ov-fill{ height:100%; transition:width .3s ease; }
   .ov-count{ font-size:11px; color:var(--ink-soft); width:44px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
-  .edit-ctl{ padding:4px 20px 0; }
+  .edit-ctl{ align-self:stretch; }
+  .edit-ctl .link-btn{ display:block; }
   .edit-close{ width:100%; min-height:48px; }
   .link-btn{
     align-self:flex-start; min-height:44px; padding:0; font-size:13px; color:var(--ink-soft);
@@ -253,11 +254,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.9";
+var APP_VERSION = "1.1.10";
 var APP_VERSION_DATE = "2026-10-12";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.1.10", lines:["説明・保管場所の編集リンクを、元の位置(タブの上)に戻しました。"] },
   { v:"1.1.9", lines:["更新のお知らせ表示を追加しました。","新しい版があるときは、再読み込みをすすめるお知らせが出ます。"] },
   { v:"1.1.8", lines:["説明・保管場所の編集が、説明文の下から開閉できます。"] },
   { v:"1.1.7", lines:["0次・1次・2次の説明文を見直しました(編集済みの説明文はそのままです)。"] },
@@ -983,7 +985,7 @@ function locEditControlHtml(g, meta){
   var top = showLocEditor
     ? '<button type="button" class="btn btn-ghost edit-close" data-act="toggle-loc-editor">編集を閉じる</button>'
     : '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + meta.label + 'の説明・保管場所を編集</button>';
-  return '<div class="edit-ctl">' + top + '</div>' + buildLocEditorHtml(g, meta);
+  return '<div class="edit-ctl">' + top + '</div>';
 }
 function renderMain(){
   var g = state.activeTab, meta = GROUP_META[g], grp = state.groups[g];
@@ -992,10 +994,10 @@ function renderMain(){
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
     + '<p>0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどの場所にあるか？誰が持ってるか？把握しよう。</p></div>'
-    + '<div class="overview">' + buildOverviewHtml() + '</div>'
+    + '<div class="overview">' + buildOverviewHtml() + locEditControlHtml(g, meta) + '</div>'
+    + buildLocEditorHtml(g, meta)
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
     + '<div class="group-desc" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + '</div>'
-    + locEditControlHtml(g, meta)
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
