@@ -229,6 +229,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .tag.add{ background:var(--teal); } .tag.upd{ background:var(--amber); } .tag.del{ background:var(--clay); }
   .tag.keep{ background:var(--ink-soft); }
   .danger-zone .settings-title{ color:var(--clay); }
+  .refs{ margin:0; padding-left:1.2em; font-size:14px; line-height:1.8; overflow-wrap:anywhere; }
+  .refs a{ color:var(--ink); text-decoration:underline; }
   .version{ padding:20px 20px 4px; text-align:center; font-size:13px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
   .version b{ color:var(--ink); }
 </style>
@@ -242,7 +244,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.1";
+var APP_VERSION = "1.1.2";
 var APP_VERSION_DATE = "2026-10-12";
 
 /* ================= Constants ================= */
@@ -278,7 +280,7 @@ var DEFAULT_ITEMS = {
   g1:["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","身分証明書のコピー","タオル","ビニール袋","携帯トイレ"],
   g2:["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]
 };
-var LOC_INPUT_EXAMPLE = { g0:"車のトランク", g1:"車のトランク", g2:"子ども部屋" };
+var LOC_INPUT_EXAMPLE = { g0:"通勤バッグ、パパのサコッシュ、ママのポーチ", g1:"車のトランク", g2:"子ども部屋、車のトランク、スーツケース" };
 
 /* ================= Small helpers ================= */
 var ESC_MAP = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
@@ -913,7 +915,7 @@ function renderMain(){
     + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
-    + '<p>0次・1次・2次の防災アイテムと保管場所を管理(ブラウザ保存)</p></div>'
+    + '<p>0次・1次・2次の防災アイテムと保管場所を管理</p></div>'
     + '<div class="overview">' + buildOverviewHtml()
     + '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + (showLocEditor ? "編集を閉じる" : meta.label + "の説明・保管場所を編集") + '</button></div>'
     + buildLocEditorHtml(g, meta)
@@ -1040,6 +1042,8 @@ function buildSettingsHtml(){
     + restore
     + '<div class="settings-section danger-zone"><h2 class="settings-title">初期化</h2>'
     + '<p class="note">0次・1次・2次すべてのアイテム・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset + '</div>'
+    + '<div class="settings-section"><h2 class="settings-title">参考にしたもの</h2>'
+    + '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li></ul></div>'
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
