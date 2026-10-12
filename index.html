@@ -84,6 +84,10 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     flex-shrink:0; display:flex; align-items:center; gap:6px; min-height:44px; padding:0 14px;
     border:1px solid var(--line); background:var(--card); border-radius:22px; font-size:13px; font-weight:700;
   }
+  .notice{ display:flex; align-items:flex-start; gap:8px; padding:10px 8px 10px 20px; font-size:14px; line-height:1.6; background:var(--card); border-bottom:1px solid var(--line); }
+  .notice-body{ flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }
+  .notice .btn{ flex-shrink:0; }
+  .notice-x{ flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
   .banner{ margin:0; padding:10px 20px; font-size:13px; background:var(--clay-soft); border-bottom:1px solid var(--clay); }
 
   .overview{ padding:16px 20px 8px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
@@ -249,8 +253,23 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.8";
+var APP_VERSION = "1.1.9";
 var APP_VERSION_DATE = "2026-10-12";
+var SEEN_KEY = "bousai-last-seen-version";
+/* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
+var RELEASE_NOTES = [
+  { v:"1.1.9", lines:["更新のお知らせ表示を追加しました。","新しい版があるときは、再読み込みをすすめるお知らせが出ます。"] },
+  { v:"1.1.8", lines:["説明・保管場所の編集が、説明文の下から開閉できます。"] },
+  { v:"1.1.7", lines:["0次・1次・2次の説明文を見直しました(編集済みの説明文はそのままです)。"] },
+  { v:"1.1.6", lines:["「アイテム」「グッズ」を「防災用品」に統一しました。CSVの見出しは「品名」です。"] },
+  { v:"1.1.5", lines:["「〇次避難」を「〇次の備え」に変更しました。"] },
+  { v:"1.1.0", lines:["左スワイプで削除できます。保管場所は「持ち歩き1・2」に。","CSVの文字化け対策と、取り込み前の確認画面を追加しました。"] }
+];
+function cmpVer(a, b){
+  var x = String(a).split("."), y = String(b).split(".");
+  for(var i = 0; i < 3; i++){ var d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0); if(d) return d < 0 ? -1 : 1; }
+  return 0;
+}
 
 /* ================= Constants ================= */
 var STORAGE_KEY = "bousai-goods-v2";
@@ -496,6 +515,25 @@ function replaceState(next, label){
   save();
 }
 
+var updateNotes = null;      // 表示する更新内容(閉じたら null)
+var swUpdated = false;       // 新しい版を取得済み → 再読み込みをすすめる
+function prepareUpdateNotice(hadData){
+  var last = lsGet(SEEN_KEY);
+  if(!last){ if(hadData) last = "1.0.0"; else { lsSet(SEEN_KEY, APP_VERSION); return; } }
+  if(cmpVer(last, APP_VERSION) >= 0) return;
+  var shown = RELEASE_NOTES.filter(function(n){ return cmpVer(n.v, last) > 0 && cmpVer(n.v, APP_VERSION) <= 0; }).slice(0, 3);
+  if(shown.length) updateNotes = shown; else lsSet(SEEN_KEY, APP_VERSION);
+}
+function noticesHtml(){
+  var h = "";
+  if(swUpdated) h += '<div class="notice" role="status"><div class="notice-body">新しいバージョンがあります。</div><button type="button" class="btn" data-act="reload-app">再読み込み</button></div>';
+  if(updateNotes){
+    h += '<div class="notice" role="status"><div class="notice-body"><b>v' + esc(APP_VERSION) + ' にアップデートしました</b>';
+    updateNotes.forEach(function(n){ n.lines.forEach(function(l){ h += '<div>・' + esc(l) + '</div>'; }); });
+    h += '</div><button type="button" class="notice-x" data-act="dismiss-update" aria-label="お知らせを閉じる">' + ICON_X + '</button></div>';
+  }
+  return h;
+}
 function load(){
   return storageGet().then(function(res){
     var loaded = null;
@@ -505,6 +543,7 @@ function load(){
     }
     state = loaded || defaultData();
     migrate(state);
+    prepareUpdateNotice(!!(res && res.value));
     loadPrev();
     render();
     save();
@@ -1085,7 +1124,7 @@ function buildSettingsHtml(){
 
 function render(){
   if(!state) return;
-  appEl.innerHTML = showSettings ? buildSettingsHtml() : renderMain();
+  appEl.innerHTML = noticesHtml() + (showSettings ? buildSettingsHtml() : renderMain());
 }
 
 /* ================= Actions ================= */
@@ -1182,6 +1221,8 @@ var ACTIONS = {
     if(!name || findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS) return;
     grp.locations.push(name); render(); save();
   },
+  "dismiss-update": function(){ updateNotes = null; lsSet(SEEN_KEY, APP_VERSION); render(); },
+  "reload-app": function(){ try{ window.location.reload(); }catch(e){} },
   "req-del-loc": function(t){ pendingDeleteLoc = getGroup(t) + ":" + parseInt(t.getAttribute("data-li"), 10); render(); },
   "cancel-del-loc": function(){ pendingDeleteLoc = null; render(); },
   "do-del-loc": function(t){
@@ -1384,6 +1425,8 @@ load().catch(function(err){
 });
 
 if("serviceWorker" in navigator){
+  var hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", function(){ if(hadController && !swUpdated){ swUpdated = true; render(); } });
   window.addEventListener("load", function(){
     navigator.serviceWorker.register("service-worker.js").catch(function(e){ console.error("service worker registration failed", e); });
   });
