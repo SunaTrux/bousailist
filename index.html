@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <meta name="description" content="0次・1次・2次避難の防災グッズと保管場所を管理するチェックリスト">
-<meta name="theme-color" content="#FAF6EE" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1B2227" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="meta-theme-color" content="#FAF6EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="防災リスト">
@@ -13,1844 +13,1324 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>わが家の防災リスト</title>
+<script>
+/* Apply a manually chosen theme before first paint (avoids a light/dark flash). */
+try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="dark"){document.documentElement.setAttribute("data-theme",__t);}}catch(e){}
+</script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
-
+  /* ---------- Theme tokens ----------
+     color-scheme is declared (meta + CSS) so browsers with their own "auto dark" / "force dark"
+     (Brave, Chrome, Samsung Internet...) leave the page alone and native controls match the theme. */
   :root{
-    --paper: #FAF6EE;
-    --card: #F2EDE0;
-    --ink: #22303C;
-    --ink-soft: #5B6B75;
-    --line: #DCD3C0;
-    --clay: #B5563C;
-    --clay-soft: #EFDCD4;
-    --amber: #C98A2B;
-    --amber-soft: #F1E3C7;
-    --teal: #3F7565;
-    --teal-soft: #DCE7DF;
+    color-scheme: light dark;
+    --paper:#FAF6EE; --card:#F2EDE0; --ink:#22303C; --ink-soft:#56666F; --line:#D6CDB9;
+    --clay:#B5563C; --clay-soft:#EFDCD4;
+    --amber:#9C6710; --amber-soft:#F1E3C7;
+    --teal:#3A6F5F; --teal-soft:#DCE7DF;
+    --on-accent:#FFFFFF;
   }
-
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --paper: #1B2227;
-      --card: #222B31;
-      --ink: #EDE7DA;
-      --ink-soft: #93A2AA;
-      --line: #39454C;
-      --clay: #DD8468;
-      --clay-soft: #3C2B27;
-      --amber: #E3AE5C;
-      --amber-soft: #3B3123;
-      --teal: #6BAE98;
-      --teal-soft: #223330;
+      --paper:#1B2227; --card:#222B31; --ink:#EDE7DA; --ink-soft:#9AA9B1; --line:#39454C;
+      --clay:#E08A6E; --clay-soft:#3C2B27;
+      --amber:#E3AE5C; --amber-soft:#3B3123;
+      --teal:#6BAE98; --teal-soft:#223330;
+      --on-accent:#14191D;
     }
   }
-
+  :root[data-theme="light"]{ color-scheme: light; }
   :root[data-theme="dark"]{
-    --paper: #1B2227;
-    --card: #222B31;
-    --ink: #EDE7DA;
-    --ink-soft: #93A2AA;
-    --line: #39454C;
-    --clay: #DD8468;
-    --clay-soft: #3C2B27;
-    --amber: #E3AE5C;
-    --amber-soft: #3B3123;
-    --teal: #6BAE98;
-    --teal-soft: #223330;
+    color-scheme: dark;
+    --paper:#1B2227; --card:#222B31; --ink:#EDE7DA; --ink-soft:#9AA9B1; --line:#39454C;
+    --clay:#E08A6E; --clay-soft:#3C2B27;
+    --amber:#E3AE5C; --amber-soft:#3B3123;
+    --teal:#6BAE98; --teal-soft:#223330;
+    --on-accent:#14191D;
   }
 
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--paper);}
-  body{transition:background-color .2s ease;}
+  /* ---------- Base ---------- */
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--paper); }
   body{
-    font-family:'Noto Sans JP', sans-serif;
-    color:var(--ink);
-    -webkit-font-smoothing:antialiased;
+    margin:0; padding:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,"Segoe UI",Roboto,sans-serif;
+    line-height:1.5; overflow-x:hidden; -webkit-font-smoothing:antialiased;
   }
   #app{
-    max-width:480px;
-    margin:0 auto;
-    background:var(--paper);
-    min-height:100vh;
-    padding-bottom:40px;
+    width:100%; max-width:480px; margin:0 auto; background:var(--paper);
+    min-height:100vh; min-height:100dvh; padding-bottom:48px; overflow-x:hidden;
   }
-
-  .header{
-    padding:28px 20px 18px;
-    border-bottom:1px solid var(--line);
-    position:relative;
-  }
-  .theme-toggle, .settings-gear{
-    position:absolute;
-    top:24px;
-    right:20px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding:7px 12px;
-    border:1px solid var(--line);
-    background:var(--card);
-    color:var(--ink);
-    font-family:inherit;
-    font-size:11.5px;
-    font-weight:700;
-    border-radius:20px;
-    cursor:pointer;
-  }
-  .header h1{
-    font-size:22px;
-    font-weight:900;
-    margin:0 0 4px;
-    letter-spacing:0.02em;
-  }
-  .header p{
-    margin:0;
-    font-size:13px;
-    color:var(--ink-soft);
-  }
-
-  .overview{
-    padding:16px 20px;
-    border-bottom:1px solid var(--line);
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-  .ov-row{
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  .ov-label{
-    font-size:12px;
-    font-weight:700;
-    width:52px;
-    flex-shrink:0;
-  }
-  .ov-track{
-    flex:1;
-    height:8px;
-    background:var(--card);
-    border:1px solid var(--line);
-    position:relative;
-    overflow:hidden;
-  }
-  .ov-fill{
-    height:100%;
-    transition:width .3s ease;
-  }
-  .ov-count{
-    font-size:11px;
-    color:var(--ink-soft);
-    width:42px;
-    text-align:right;
-    flex-shrink:0;
-    font-variant-numeric:tabular-nums;
-  }
-  .loc-settings-toggle{
-    background:none;
-    border:none;
-    font-family:inherit;
-    font-size:12px;
-    color:var(--ink-soft);
-    text-decoration:underline;
-    text-underline-offset:2px;
-    cursor:pointer;
-    padding:0;
-    align-self:flex-start;
-  }
-
-  .loc-settings{
-    padding:16px 20px;
-    border-bottom:1px solid var(--line);
-    background:var(--card);
-  }
-  .loc-settings-title{
-    font-size:12px;
-    font-weight:700;
-    color:var(--ink-soft);
-    margin-bottom:10px;
-  }
-  .desc-textarea{
-    width:100%;
-    min-height:64px;
-    padding:9px 10px;
-    border:1px solid var(--line);
-    background:var(--paper);
-    font-family:inherit;
-    font-size:13px;
-    color:var(--ink);
-    line-height:1.5;
-    resize:vertical;
-    margin-bottom:16px;
-  }
-  .desc-textarea:focus{outline:2px solid var(--ink);outline-offset:-1px;}
-  .loc-chips{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-bottom:12px;
-  }
-  .loc-chip{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    font-size:12.5px;
-    padding:6px 6px 6px 12px;
-    border:1px solid var(--line);
-    background:var(--paper);
-    border-radius:3px;
-  }
-  .loc-chip button{
-    background:none;
-    border:none;
-    color:var(--ink-soft);
-    cursor:pointer;
-    font-size:13px;
-    padding:0 4px;
-    line-height:1;
-  }
-  .loc-chip.pending{
-    padding:6px 6px 6px 12px;
-    gap:8px;
-  }
-  .loc-chip.pending span{
-    color:var(--ink-soft);
-  }
-  .loc-chip .mini-yes{
-    font-family:inherit;
-    font-size:11.5px;
-    font-weight:700;
-    padding:5px 10px;
-    border-radius:3px;
-    cursor:pointer;
-    background:var(--clay);
-    border:1px solid var(--clay);
-    color:#fff;
-  }
-  .loc-chip .mini-no{
-    font-family:inherit;
-    font-size:11.5px;
-    font-weight:700;
-    padding:5px 10px;
-    border-radius:3px;
-    cursor:pointer;
-    background:var(--paper);
-    border:1px solid var(--line);
-    color:var(--ink);
-  }
-  .loc-add-row{
-    display:flex;
-    gap:8px;
-  }
-  .loc-add-row input{
-    flex:1;
-    padding:9px 10px;
-    border:1px solid var(--line);
-    background:var(--paper);
-    font-family:inherit;
-    font-size:13px;
-    color:var(--ink);
-  }
-  .loc-add-row button{
-    padding:9px 14px;
-    border:1px solid var(--ink);
-    background:var(--ink);
-    color:#fff;
-    font-family:inherit;
-    font-size:12.5px;
-    font-weight:700;
-    cursor:pointer;
-    flex-shrink:0;
-  }
-
-  .tabs{
-    display:flex;
-    border-bottom:1px solid var(--line);
-  }
-  .tab{
-    flex:1;
-    padding:14px 4px 12px;
-    text-align:center;
-    background:none;
-    border:none;
-    font-family:inherit;
-    cursor:pointer;
-    position:relative;
-    color:var(--ink-soft);
-  }
-  .tab .stamp{
-    width:30px;height:30px;
-    border-radius:50%;
-    border:2px solid currentColor;
-    display:flex;align-items:center;justify-content:center;
-    font-weight:900;
-    font-size:14px;
-    margin:0 auto 4px;
-  }
-  .tab .tlabel{
-    font-size:11px;
-    font-weight:700;
-  }
-  .tab.active{color:var(--ink);}
-  .tab.active::after{
-    content:'';
-    position:absolute;
-    left:0;right:0;bottom:-1px;
-    height:2px;
-    background:var(--accent, var(--ink));
-  }
-  .tab.active .stamp{
-    background:var(--accent-soft, var(--card));
-    border-color:var(--accent, var(--ink));
-  }
-
-  .group-desc{
-    padding:16px 20px;
-    font-size:13px;
-    color:var(--ink-soft);
-    line-height:1.6;
-    border-bottom:1px solid var(--line);
-    background:var(--card);
-  }
-  .group-desc b{color:var(--ink);}
-
-  .items{
-    padding:4px 20px 0;
-  }
-  .item{
-    padding:14px 0;
-    border-bottom:1px solid var(--line);
-  }
-  .item-top{
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-  }
-  .checkbox{
-    width:22px;height:22px;
-    flex-shrink:0;
-    border:2px solid var(--ink-soft);
-    background:var(--paper);
-    cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    margin-top:1px;
-  }
-  .checkbox.checked{
-    background:var(--accent, var(--teal));
-    border-color:var(--accent, var(--teal));
-    color:#fff;
-    font-size:14px;
-    font-weight:900;
-  }
-  .item-name{
-    flex:1;
-    font-size:14.5px;
-    font-weight:500;
-    line-height:1.4;
-    padding-top:1px;
-    cursor:pointer;
+  button{
+    -webkit-appearance:none; appearance:none; background:none; border:0; padding:0; margin:0;
+    font:inherit; color:inherit; cursor:pointer; touch-action:manipulation; text-align:inherit;
     -webkit-tap-highlight-color:transparent;
   }
-  .item-name.checked{
-    color:var(--ink-soft);
-    text-decoration:line-through;
-    text-decoration-color:var(--line);
+  button:active{ opacity:.7; }
+  button:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+  /* 16px keeps iOS Safari from zooming the page when a field is focused (a cause of "cut off on the right") */
+  input[type="text"],textarea{
+    -webkit-appearance:none; appearance:none; border-radius:0; font:inherit; font-size:16px; color:var(--ink);
+    background:var(--paper); border:1px solid var(--line); padding:10px 12px; min-width:0; max-width:100%;
   }
-  .del-btn{
-    background:none;border:none;
-    color:var(--ink-soft);
-    font-size:16px;
-    cursor:pointer;
-    padding:0 2px;
-    flex-shrink:0;
-    opacity:0.6;
+  textarea{ width:100%; display:block; }
+  input[type="file"]{ max-width:100%; font-size:14px; color:var(--ink-soft); }
+
+  /* ---------- Header / overview ---------- */
+  .header{ padding:24px 20px 16px; border-bottom:1px solid var(--line); }
+  .header-top{ display:flex; align-items:center; gap:12px; }
+  .header h1{ flex:1; min-width:0; font-size:22px; font-weight:900; margin:0; letter-spacing:.02em; overflow-wrap:anywhere; }
+  .header p{ margin:6px 0 0; font-size:13px; color:var(--ink-soft); }
+  .gear-btn{
+    flex-shrink:0; display:flex; align-items:center; gap:6px; min-height:44px; padding:0 14px;
+    border:1px solid var(--line); background:var(--card); border-radius:22px; font-size:13px; font-weight:700;
   }
-  .edit-btn{
-    background:none;border:none;
-    color:var(--ink-soft);
-    font-size:13px;
-    cursor:pointer;
-    padding:0 4px;
-    flex-shrink:0;
-    opacity:0.6;
+  .banner{ margin:0; padding:10px 20px; font-size:13px; background:var(--clay-soft); border-bottom:1px solid var(--clay); }
+
+  .overview{ padding:16px 20px 8px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+  .ov-row{ display:flex; align-items:center; gap:10px; }
+  .ov-label{ font-size:12px; font-weight:700; width:60px; flex-shrink:0; }
+  .ov-track{ flex:1; min-width:0; height:8px; background:var(--card); border:1px solid var(--line); overflow:hidden; }
+  .ov-fill{ height:100%; transition:width .3s ease; }
+  .ov-count{ font-size:11px; color:var(--ink-soft); width:44px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
+  .link-btn{
+    align-self:flex-start; min-height:44px; padding:0; font-size:13px; color:var(--ink-soft);
+    text-decoration:underline; text-underline-offset:3px; overflow-wrap:anywhere;
   }
-  .item-name-input{
-    flex:1;
-    font-family:inherit;
-    font-size:14.5px;
-    font-weight:500;
-    padding:4px 6px;
-    border:1px solid var(--ink-soft);
-    background:var(--paper);
-    color:var(--ink);
+
+  /* ---------- Shared small controls ---------- */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 16px;
+    border:1px solid var(--ink); background:var(--ink); color:var(--paper); font-size:14px; font-weight:700; border-radius:4px;
   }
-  .locations{
-    display:flex;
-    flex-wrap:wrap;
-    gap:6px;
-    margin:10px 0 0 32px;
+  .btn-accent{ border-color:var(--accent,var(--ink)); background:var(--accent,var(--ink)); color:var(--on-accent); }
+  .btn-danger{ border-color:var(--clay); background:var(--clay); color:var(--on-accent); }
+  .btn-ghost{ border-color:var(--line); background:var(--paper); color:var(--ink); }
+  .btn[disabled]{ opacity:.45; pointer-events:none; }
+  .btn-row{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
+  .btn-row .btn{ flex:1 1 140px; }
+  .icon-btn{
+    flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+    border-radius:10px; color:var(--ink-soft);
   }
+  .icon-btn svg{ display:block; }
+
+  /* ---------- Per-group editor ---------- */
+  .loc-settings{ padding:16px 20px; border-bottom:1px solid var(--line); background:var(--card); }
+  .field-title{ font-size:12px; font-weight:700; color:var(--ink-soft); margin:0 0 8px; }
+  .desc-textarea{ min-height:84px; line-height:1.5; resize:vertical; margin-bottom:16px; }
+  .loc-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .loc-chip{
+    display:flex; align-items:center; gap:4px; max-width:100%; min-height:44px; padding:0 4px 0 12px;
+    border:1px solid var(--line); background:var(--paper); border-radius:6px; font-size:14px;
+  }
+  .loc-chip > span{ min-width:0; overflow-wrap:anywhere; }
+  .loc-chip .chip-x{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
+  .loc-chip.pending{ padding:6px 8px 6px 12px; flex-wrap:wrap; }
+  .add-line{ display:flex; gap:8px; }
+  .add-line input{ flex:1 1 auto; min-width:0; }
+  .add-line .btn{ flex-shrink:0; }
+
+  /* ---------- Tabs / description / view toggle ---------- */
+  .tabs{ display:flex; border-bottom:1px solid var(--line); }
+  .tab{ flex:1; min-width:0; padding:12px 4px 10px; text-align:center; position:relative; color:var(--ink-soft); }
+  .tab .stamp{
+    width:32px; height:32px; border-radius:50%; border:2px solid currentColor; margin:0 auto 4px;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px;
+  }
+  .tab .tlabel{ font-size:12px; font-weight:700; }
+  .tab.active{ color:var(--ink); }
+  .tab.active::after{ content:''; position:absolute; left:0; right:0; bottom:-1px; height:3px; background:var(--accent,var(--ink)); }
+  .tab.active .stamp{ background:var(--accent-soft,var(--card)); border-color:var(--accent,var(--ink)); }
+  .group-desc{
+    padding:16px 20px; font-size:14px; color:var(--ink-soft); line-height:1.7; background:var(--card);
+    border-bottom:1px solid var(--line); border-left:4px solid var(--accent,var(--ink)); overflow-wrap:anywhere;
+  }
+  .view-toggle{ display:flex; border-bottom:1px solid var(--line); }
+  .view-toggle button{ flex:1; min-height:44px; text-align:center; background:var(--card); font-size:13px; font-weight:700; color:var(--ink-soft); }
+  .view-toggle button.active{ background:var(--paper); color:var(--ink); box-shadow:inset 0 -3px 0 var(--accent,var(--ink)); }
+
+  /* ---------- Items ---------- */
+  .items{ padding:0 20px; }
+  .item{ border-bottom:1px solid var(--line); }
+  .swipe-wrap{ position:relative; overflow:hidden; }
+  .swipe-del{
+    position:absolute; top:0; right:0; bottom:0; width:88px; display:flex; align-items:center; justify-content:center;
+    background:var(--clay); color:var(--on-accent); font-size:15px; font-weight:700; text-align:center;
+  }
+  .swipe-content{
+    position:relative; background:var(--paper); padding:6px 0 12px; touch-action:pan-y; transform:translateX(0);
+    transition:transform .2s ease; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  }
+  .swipe-content.dragging{ transition:none; }
+  .swipe-content.open{ transform:translateX(-88px); }
+  .item-top{ display:flex; align-items:center; gap:2px; min-height:48px; }
+  .check-btn{ flex-shrink:0; width:44px; height:44px; margin-left:-9px; display:flex; align-items:center; justify-content:center; }
+  .checkbox{
+    width:26px; height:26px; border:2px solid var(--ink-soft); background:var(--paper); border-radius:5px;
+    display:flex; align-items:center; justify-content:center; color:var(--on-accent);
+  }
+  .checkbox.checked{ background:var(--accent,var(--teal)); border-color:var(--accent,var(--teal)); }
+  .checkbox svg{ display:block; }
+  .item-name{ flex:1; min-width:0; padding:8px 4px; font-size:16px; font-weight:500; line-height:1.4; cursor:pointer; overflow-wrap:anywhere; }
+  .item-name.checked{ color:var(--ink-soft); text-decoration:line-through; text-decoration-color:var(--ink-soft); }
+  .edit-input{ flex:1 1 auto; min-width:0; }
+  .locations{ display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0 35px; }
   .loc-pill{
-    font-size:11.5px;
-    padding:5px 10px;
-    border:1px solid var(--line);
-    background:var(--paper);
-    color:var(--ink-soft);
-    border-radius:3px;
-    cursor:pointer;
-    font-family:inherit;
+    min-height:36px; padding:0 12px; border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+    border-radius:18px; font-size:13px; max-width:100%; overflow-wrap:anywhere; text-align:center;
   }
-  .loc-pill.active{
-    background:var(--accent, var(--ink));
-    border-color:var(--accent, var(--ink));
-    color:#fff;
-    font-weight:700;
-  }
-
+  .loc-pill.active{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent); font-weight:700; }
+  .hint{ margin:2px 0 0 35px; font-size:12.5px; color:var(--ink-soft); }
   .confirm-row{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    margin:10px 0 0 32px;
-    font-size:12.5px;
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0 0 35px; padding:10px 12px;
+    background:var(--clay-soft); border:1px solid var(--clay); border-radius:6px; font-size:14px;
   }
-  .confirm-row span{
-    color:var(--ink-soft);
-  }
-  .confirm-row button{
-    font-family:inherit;
-    font-size:12px;
-    font-weight:700;
-    padding:6px 12px;
-    border-radius:3px;
-    cursor:pointer;
-  }
-  .confirm-yes{
-    background:var(--clay);
-    border:1px solid var(--clay);
-    color:#fff;
-  }
-  .confirm-no{
-    background:var(--paper);
-    border:1px solid var(--line);
-    color:var(--ink);
-  }
+  .confirm-row > span{ flex:1 1 100%; overflow-wrap:anywhere; }
+  .confirm-row .btn{ flex:1 1 120px; }
 
-  .add-row{
-    display:flex;
-    gap:8px;
-    padding:16px 20px 24px;
-  }
-  .add-row input{
-    flex:1;
-    padding:10px 12px;
-    border:1px solid var(--line);
-    background:var(--card);
-    font-family:inherit;
-    font-size:13.5px;
-    color:var(--ink);
-  }
-  .add-row input:focus{outline:2px solid var(--accent, var(--ink));outline-offset:-1px;}
-  .add-row button{
-    padding:10px 16px;
-    border:1px solid var(--accent, var(--ink));
-    background:var(--accent, var(--ink));
-    color:#fff;
-    font-family:inherit;
-    font-size:13px;
-    font-weight:700;
-    cursor:pointer;
-    flex-shrink:0;
-  }
+  .add-row{ display:flex; gap:8px; padding:16px 20px 8px; }
+  .add-row input{ flex:1 1 auto; min-width:0; }
+  .add-row .btn{ flex-shrink:0; }
+  .footer-note{ padding:8px 20px 4px; font-size:12px; color:var(--ink-soft); text-align:center; }
+  .empty{ padding:28px 20px; text-align:center; color:var(--ink-soft); font-size:14px; }
 
-  .footer-note{
-    padding:10px 20px 4px;
-    font-size:11px;
-    color:var(--ink-soft);
-    text-align:center;
-  }
+  .loc-group{ padding:0 20px 16px; }
+  .loc-group-title{ font-size:13px; font-weight:700; color:var(--ink-soft); padding:16px 0 8px; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+  .loc-group-item{ display:flex; align-items:center; gap:2px; min-height:48px; border-bottom:1px solid var(--line); }
 
-  .view-toggle{
-    display:flex;
-    border-bottom:1px solid var(--line);
-  }
-  .view-toggle button{
-    flex:1;
-    padding:10px 4px;
-    text-align:center;
-    background:var(--card);
-    border:none;
-    font-family:inherit;
-    font-size:12.5px;
-    font-weight:700;
-    color:var(--ink-soft);
-    cursor:pointer;
-  }
-  .view-toggle button.active{
-    background:var(--paper);
-    color:var(--ink);
-    box-shadow:inset 0 -2px 0 var(--accent, var(--ink));
-  }
-
-  .loc-group{
-    padding:4px 20px 18px;
-  }
-  .loc-group-title{
-    font-size:12.5px;
-    font-weight:700;
-    color:var(--ink-soft);
-    padding:14px 0 8px;
-    border-bottom:1px solid var(--line);
-    margin-bottom:2px;
-  }
-  .loc-group-item{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 0;
-    border-bottom:1px solid var(--line);
-  }
-  .loc-group-item .item-name{
-    padding-top:0;
-  }
-
-  .back-btn{
-    background:none;
-    border:none;
-    font-family:inherit;
-    font-size:13px;
-    font-weight:700;
-    color:var(--ink-soft);
-    cursor:pointer;
-    padding:0;
-    margin-bottom:14px;
-  }
-  .settings-section{
-    padding:20px;
-    border-bottom:1px solid var(--line);
-  }
-  .settings-section-title{
-    font-size:13px;
-    font-weight:900;
-    margin-bottom:12px;
-  }
-  .settings-section-note{
-    font-size:12px;
-    color:var(--ink-soft);
-    line-height:1.6;
-    margin:-4px 0 12px;
-  }
+  /* ---------- Settings ---------- */
+  .back-btn{ min-height:44px; padding:0; font-size:14px; font-weight:700; color:var(--ink-soft); }
+  .settings-section{ padding:20px; border-bottom:1px solid var(--line); }
+  .settings-title{ font-size:14px; font-weight:900; margin:0 0 10px; }
+  .note{ font-size:13px; color:var(--ink-soft); line-height:1.7; margin:0 0 12px; overflow-wrap:anywhere; }
   .settings-btn{
-    display:block;
-    width:100%;
-    text-align:left;
-    padding:12px 14px;
-    border:1px solid var(--line);
-    background:var(--card);
-    color:var(--ink);
-    font-family:inherit;
-    font-size:13.5px;
-    font-weight:700;
-    cursor:pointer;
-    margin-bottom:10px;
+    display:block; width:100%; min-height:48px; padding:0 14px; margin-bottom:10px; text-align:left;
+    border:1px solid var(--line); background:var(--card); font-size:15px; font-weight:700; border-radius:4px;
   }
-  .theme-option-row{
-    display:flex;
-    gap:8px;
-    margin-bottom:4px;
+  .seg{ display:flex; gap:8px; }
+  .seg button{
+    flex:1; min-height:46px; padding:0 4px; text-align:center; border:1px solid var(--line); background:var(--card);
+    color:var(--ink-soft); font-size:13px; font-weight:700; border-radius:6px;
   }
-  .theme-option{
-    flex:1;
-    padding:10px 4px;
-    text-align:center;
-    border:1px solid var(--line);
-    background:var(--card);
-    color:var(--ink-soft);
-    font-family:inherit;
-    font-size:12.5px;
-    font-weight:700;
-    cursor:pointer;
-    border-radius:4px;
-  }
-  .theme-option.active{
-    background:var(--ink);
-    border-color:var(--ink);
-    color:var(--paper);
-  }
-  .export-panel, .import-panel{
-    margin-top:4px;
-    padding-top:4px;
-  }
-  .export-panel textarea, .import-panel textarea{
-    width:100%;
-    min-height:140px;
-    padding:10px;
-    border:1px solid var(--line);
-    background:var(--paper);
-    color:var(--ink);
-    font-family:monospace;
-    font-size:11.5px;
-    line-height:1.5;
-    margin-bottom:10px;
-  }
-  .export-actions{
-    display:flex;
-    gap:8px;
-    margin-bottom:4px;
-  }
-  .export-actions button{
-    flex:1;
-    padding:10px 4px;
-    border:1px solid var(--ink);
-    background:var(--ink);
-    color:var(--paper);
-    font-family:inherit;
-    font-size:12.5px;
-    font-weight:700;
-    cursor:pointer;
-  }
-  .import-file-row{
-    margin-bottom:10px;
-  }
-  .import-file-row input[type="file"]{
-    font-family:inherit;
-    font-size:12.5px;
-    color:var(--ink-soft);
-  }
-  .msg-box{
-    padding:10px 12px;
-    font-size:12.5px;
-    border-radius:3px;
-    margin-top:6px;
-    line-height:1.5;
-  }
-  .msg-success{
-    background:var(--teal-soft);
-    color:var(--teal);
-  }
-  .msg-error{
-    background:var(--clay-soft);
-    color:var(--clay);
-  }
-  .danger-section .settings-section-title{
-    color:var(--clay);
-  }
-  .danger-btn{
-    width:100%;
-    padding:12px 14px;
-    border:1px solid var(--clay);
-    background:var(--paper);
-    color:var(--clay);
-    font-family:inherit;
-    font-size:13.5px;
-    font-weight:700;
-    cursor:pointer;
-  }
-  .danger-confirm{
-    padding:14px;
-    background:var(--clay-soft);
-    border:1px solid var(--clay);
-  }
-  .danger-confirm p{
-    margin:0 0 12px;
-    font-size:12.5px;
-    color:var(--ink);
-    line-height:1.6;
-  }
-  .danger-confirm-actions{
-    display:flex;
-    gap:8px;
-  }
-  .danger-confirm-actions button{
-    flex:1;
-    padding:10px 4px;
-    font-family:inherit;
-    font-size:12.5px;
-    font-weight:700;
-    cursor:pointer;
-    border-radius:3px;
-  }
-  .danger-yes{
-    background:var(--clay);
-    border:1px solid var(--clay);
-    color:#fff;
-  }
-  .danger-no{
-    background:var(--paper);
-    border:1px solid var(--line);
-    color:var(--ink);
-  }
-
-  .empty{
-    padding:30px 20px;
-    text-align:center;
-    color:var(--ink-soft);
-    font-size:13px;
-  }
+  .seg button.active{ background:var(--ink); border-color:var(--ink); color:var(--paper); }
+  .panel{ margin:0 0 14px; }
+  .code-box{ min-height:140px; max-height:260px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; line-height:1.5; white-space:pre; overflow:auto; resize:vertical; margin-bottom:10px; }
+  .msg{ padding:10px 12px; margin:8px 0; font-size:13px; line-height:1.6; border-radius:4px; background:var(--teal-soft); border-left:4px solid var(--teal); overflow-wrap:anywhere; }
+  .msg.error{ background:var(--clay-soft); border-left-color:var(--clay); }
+  .msg.warn{ background:var(--amber-soft); border-left-color:var(--amber); }
+  .preview{ margin:12px 0; border:1px solid var(--line); border-radius:6px; background:var(--card); overflow:hidden; }
+  .preview h3{ margin:0; padding:12px 14px; font-size:14px; border-bottom:1px solid var(--line); }
+  .pv-group{ padding:12px 14px; border-bottom:1px solid var(--line); font-size:13.5px; overflow-wrap:anywhere; }
+  .pv-group:last-child{ border-bottom:0; }
+  .pv-head{ font-weight:900; margin-bottom:6px; }
+  .pv-head small{ font-weight:500; color:var(--ink-soft); margin-left:6px; }
+  .pv-line{ margin:4px 0 0; line-height:1.6; }
+  .tag{ display:inline-block; min-width:3.2em; margin-right:6px; padding:0 6px; font-size:12px; font-weight:700; text-align:center; border-radius:3px; color:var(--on-accent); }
+  .tag.add{ background:var(--teal); } .tag.upd{ background:var(--amber); } .tag.del{ background:var(--clay); }
+  .tag.keep{ background:var(--ink-soft); }
+  .danger-zone .settings-title{ color:var(--clay); }
+  .version{ padding:20px 20px 4px; text-align:center; font-size:13px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .version b{ color:var(--ink); }
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app"><noscript><p style="padding:20px">このアプリを使うにはJavaScriptを有効にしてください。</p></noscript></div>
 
 <script>
 (function(){
+"use strict";
 
-var DEFAULT_LOCATIONS = ["リビング","レクルーム","その他ルーム","防災リュック"];
-var GROUP_DEFAULT_LOCATIONS = {
-  g0: ["持ち歩き用"],
-  g1: ["防災リュック1","防災リュック2"],
-  g2: ["リビング","寝室","レクルーム","その他ルーム"]
-};
+/* ================= Version =================
+   Bump on every release. Keep service-worker.js CACHE_NAME in step. */
+var APP_VERSION = "1.1.0";
+var APP_VERSION_DATE = "2026-10-12";
+
+/* ================= Constants ================= */
 var STORAGE_KEY = "bousai-goods-v2";
+var BROKEN_KEY = STORAGE_KEY + "-broken";
+var PREV_KEY = STORAGE_KEY + "-prev";
+var THEME_KEY = "bousai-theme-pref";
+var CONTENT_VERSION = 3;
+var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
+var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
+var OPEN_W = 88;
 
 var GROUP_ORDER = ["g0","g1","g2"];
 var GROUP_META = {
-  g0: { num:"0", label:"0次避難", accent:"var(--clay)", accentSoft:"var(--clay-soft)" },
-  g1: { num:"1", label:"1次避難", accent:"var(--amber)", accentSoft:"var(--amber-soft)" },
-  g2: { num:"2", label:"2次避難", accent:"var(--teal)", accentSoft:"var(--teal-soft)" }
+  g0:{ num:"0", label:"0次避難", accent:"var(--clay)",  soft:"var(--clay-soft)" },
+  g1:{ num:"1", label:"1次避難", accent:"var(--amber)", soft:"var(--amber-soft)" },
+  g2:{ num:"2", label:"2次避難", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
 var DEFAULT_DESC = {
-  g0: "0次の備えは、普段使いのカバンに最小限のグッズを入れて常に携帯する「持ち歩き用」です。",
-  g1: "1次の備えは、緊急時に即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
-  g2: "2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるようにしましょう。"
+  g0:"0次の備えは、普段使いのカバンに最小限のグッズを入れて常に携帯する「持ち歩き用」です。",
+  g1:"1次の備えは、緊急時に即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
+  g2:"2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるようにしましょう。"
 };
 var OLD_DEFAULT_DESC_G1 = "1次の備えは、緊急時に即座に持ち出せる「避難用」です。1〜2日は行動できるようにしましょう。";
-var LOC_INPUT_EXAMPLE = {
-  g0: "車のトランク",
-  g1: "車のトランク",
-  g2: "子ども部屋"
+var DEFAULT_LOCATIONS = {
+  g0:["持ち歩き1","持ち歩き2"],
+  g1:["防災リュック1","防災リュック2"],
+  g2:["リビング","寝室","レクルーム","その他ルーム"]
 };
+var DEFAULT_ITEMS = {
+  g0:["ホイッスル・防犯ブザー","携帯ライト","モバイルバッテリー","身分証明書のコピー","お薬手帳・常備薬","マスク","小銭・現金","非常食","絆創膏","アルコール消毒"],
+  g1:["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","タオル","ビニール袋","携帯トイレ"],
+  g2:["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]
+};
+var LOC_INPUT_EXAMPLE = { g0:"車のトランク", g1:"車のトランク", g2:"子ども部屋" };
 
+/* ================= Small helpers ================= */
+var ESC_MAP = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return ESC_MAP[c]; }); }
+function hasOwn(o, k){ return Object.prototype.hasOwnProperty.call(o, k); }
+function isPlainObject(v){ return Object.prototype.toString.call(v) === "[object Object]"; }
+function dict(){ return Object.create(null); }
+function clampStr(s, max){ var a = Array.from(s); return a.length > max ? a.slice(0, max).join("") : s; }
+/* single-line text: control characters / odd whitespace become spaces */
+function cleanLine(v, max){
+  if(typeof v !== "string") return "";
+  return clampStr(v.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\uFEFF]+/g, " ").replace(/\s+/g, " ").trim(), max);
+}
+function cleanText(v, max){
+  if(typeof v !== "string") return "";
+  return clampStr(v.replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F\u2028\u2029\uFEFF]+/g, "").trim(), max);
+}
+/* matching key: tolerant of full/half width, case and spacing differences */
+function keyOf(s){ return String(s).normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase(); }
 var idCounter = 0;
 function newId(){
   idCounter += 1;
-  return "item-" + Date.now() + "-" + idCounter;
+  return "i" + Date.now().toString(36) + idCounter.toString(36) + Math.floor(Math.random() * 46656).toString(36);
+}
+function pad2(n){ return (n < 10 ? "0" : "") + n; }
+function ymd(d){ return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()); }
+function fmtTime(ms){ var d = new Date(ms); return pad2(d.getMonth() + 1) + "/" + pad2(d.getDate()) + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
+
+/* ================= State: build / sanitize / migrate ================= */
+function defaultData(){
+  var groups = {};
+  GROUP_ORDER.forEach(function(g){
+    groups[g] = {
+      desc: DEFAULT_DESC[g],
+      locations: DEFAULT_LOCATIONS[g].slice(),
+      items: DEFAULT_ITEMS[g].map(function(n){ return { id:newId(), name:n, checked:false, locations:[] }; })
+    };
+  });
+  return { activeTab:"g0", contentVersion:CONTENT_VERSION, groups:groups };
 }
 
-function mkItems(names){
-  var out = [];
-  for(var i=0;i<names.length;i++){
-    out.push({ id:newId(), name:names[i], checked:false, locations:[] });
-  }
+function cleanLocationList(arr){
+  var out = [], seen = dict();
+  if(!Array.isArray(arr)) return out;
+  arr.forEach(function(l){
+    var s = cleanLine(l, MAX_LOC_NAME), k = keyOf(s);
+    if(s && !seen[k] && out.length < MAX_LOCATIONS){ seen[k] = true; out.push(s); }
+  });
   return out;
 }
 
-function defaultData(){
-  return {
-    activeTab: "g0",
-    contentVersion: 2,
-    groups: {
-      g0: { desc: DEFAULT_DESC.g0, locations: GROUP_DEFAULT_LOCATIONS.g0.slice(), items: mkItems(["ホイッスル・防犯ブザー","携帯ライト","モバイルバッテリー","身分証明書のコピー","お薬手帳・常備薬","マスク","小銭・現金","非常食","絆創膏","アルコール消毒"]) },
-      g1: { desc: DEFAULT_DESC.g1, locations: GROUP_DEFAULT_LOCATIONS.g1.slice(), items: mkItems(["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","タオル","ビニール袋","携帯トイレ"]) },
-      g2: { desc: DEFAULT_DESC.g2, locations: GROUP_DEFAULT_LOCATIONS.g2.slice(), items: mkItems(["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]) }
-    }
-  };
-}
+/* Builds a clean state from untrusted input (saved data, imported JSON, CSV result).
+   Only whitelisted fields are copied, so nothing odd can reach the page. Returns null if it isn't ours. */
+function sanitizeState(raw){
+  if(!isPlainObject(raw) || !isPlainObject(raw.groups)) return null;
+  if(!GROUP_ORDER.some(function(g){ return hasOwn(raw.groups, g); })) return null;
+  var legacyLocs = Array.isArray(raw.locations) ? raw.locations : null;
+  var usedIds = dict();
+  var cv = (typeof raw.contentVersion === "number" && isFinite(raw.contentVersion)) ? Math.max(0, Math.min(99, Math.floor(raw.contentVersion))) : 0;
+  var out = { activeTab: GROUP_ORDER.indexOf(raw.activeTab) !== -1 ? raw.activeTab : "g0", contentVersion: cv, groups:{} };
 
-var THEME_KEY = "bousai-theme-pref";
-var themePref = null; // "light" | "dark" | null(=system)
-var state = null;
-var showLocSettings = false;
-var viewMode = "item";
-var showSettings = false;
-var settingsExportOpen = false;
-var settingsImportOpen = false;
-var pendingReset = false;
-var exportMessage = null;
-var importMessage = null;
-var csvExportOpen = false;
-var csvImportOpen = false;
-var csvExportMessage = null;
-var csvImportMessage = null;
-var csvImportText = "";
-var pendingCsvOverwrite = false;
-var pendingDeleteId = null;
-var pendingDeleteLoc = null;
-var editingItemId = null;
-var appEl = document.getElementById("app");
-
-function systemPrefersDark(){
-  try{
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  }catch(e){
-    return false;
-  }
-}
-
-function loadThemePref(){
-  try{
-    var v = window.localStorage.getItem(THEME_KEY);
-    themePref = (v === "light" || v === "dark") ? v : null;
-  }catch(e){
-    themePref = null;
-  }
-  applyTheme();
-}
-
-function applyTheme(){
-  if(themePref){
-    document.documentElement.setAttribute("data-theme", themePref);
-  } else {
-    document.documentElement.removeAttribute("data-theme");
-  }
-}
-
-function setThemePref(pref){
-  themePref = pref;
-  try{
-    if(pref){ window.localStorage.setItem(THEME_KEY, pref); }
-    else { window.localStorage.removeItem(THEME_KEY); }
-  }catch(e){}
-  applyTheme();
-  render();
-}
-
-function escapeHtml(str){
-  var div = document.createElement("div");
-  div.textContent = str == null ? "" : String(str);
-  return div.innerHTML;
-}
-
-function escapeAttr(str){
-  return escapeHtml(str).replace(/"/g, "&quot;");
-}
-
-function normalizeState(){
-  if(!state.groups) state.groups = {};
-  var legacyLocations = (state.locations && state.locations.length) ? state.locations.slice() : DEFAULT_LOCATIONS.slice();
   GROUP_ORDER.forEach(function(g){
-    var grp = state.groups[g];
-    if(Array.isArray(grp)){
-      // migrate from the old shape where groups[g] was a plain items array
-      grp = { locations: legacyLocations.slice(), items: grp };
-    }
-    if(!grp) grp = { desc: DEFAULT_DESC[g], locations: GROUP_DEFAULT_LOCATIONS[g].slice(), items: [] };
-    if(typeof grp.desc !== "string" || !grp.desc.length) grp.desc = DEFAULT_DESC[g];
-    if(!grp.locations || !grp.locations.length) grp.locations = GROUP_DEFAULT_LOCATIONS[g].slice();
-    if(!grp.items) grp.items = [];
-    grp.items.forEach(function(item){
-      if(!item.locations){
-        item.locations = item.location ? [item.location] : [];
-      }
-      if(item.location !== undefined) delete item.location;
-      if(typeof item.checked !== "boolean") item.checked = false;
+    var src = hasOwn(raw.groups, g) ? raw.groups[g] : undefined;
+    var rawItems = [], rawLocs = null, rawDesc;
+    if(Array.isArray(src)){ rawItems = src; rawLocs = legacyLocs; }                       // very old shape
+    else if(isPlainObject(src)){ rawItems = Array.isArray(src.items) ? src.items : []; rawLocs = src.locations; rawDesc = src.desc; }
+    var locations = Array.isArray(rawLocs) ? cleanLocationList(rawLocs) : DEFAULT_LOCATIONS[g].slice();
+    var desc = cleanText(rawDesc, MAX_DESC) || DEFAULT_DESC[g];
+    var items = [];
+    rawItems.forEach(function(it){
+      if(items.length >= MAX_ITEMS || !isPlainObject(it)) return;
+      var name = cleanLine(it.name, MAX_NAME);
+      if(!name) return;
+      var wanted = Array.isArray(it.locations) ? cleanLocationList(it.locations) : (typeof it.location === "string" ? cleanLocationList([it.location]) : []);
+      var locs = [];
+      wanted.forEach(function(w){
+        var k = keyOf(w), found = null;
+        for(var i = 0; i < locations.length; i++){ if(keyOf(locations[i]) === k){ found = locations[i]; break; } }
+        if(!found && locations.length < MAX_LOCATIONS){ locations.push(w); found = w; }
+        if(found && locs.indexOf(found) === -1) locs.push(found);
+      });
+      var id = (typeof it.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(it.id) && !usedIds[it.id]) ? it.id : newId();
+      usedIds[id] = true;
+      items.push({ id:id, name:name, checked:it.checked === true, locations:locs });
     });
-    state.groups[g] = grp;
+    out.groups[g] = { desc:desc, locations:locations, items:items };
   });
-  delete state.locations;
-
-  // one-time content updates: tracked by contentVersion so items the user
-  // deliberately deletes (or removes via CSV overwrite) don't come back on the next load
-  if((state.contentVersion || 0) < 2){
-  var g1items = state.groups.g1.items;
-  g1items.forEach(function(item){
-    if(item.name === "着替え一式"){ item.name = "着替え一式(防水袋とセット)"; }
-  });
-  var hasPaperItem = g1items.some(function(item){ return item.name.indexOf("紙類") === 0; });
-  if(!hasPaperItem){
-    var clothesIdx = -1;
-    for(var ci=0; ci<g1items.length; ci++){
-      if(g1items[ci].name.indexOf("着替え一式") === 0){ clothesIdx = ci; break; }
-    }
-    var paperItem = { id:newId(), name:"紙類(防水袋とセット)", checked:false, locations:[] };
-    if(clothesIdx === -1){ g1items.push(paperItem); }
-    else { g1items.splice(clothesIdx+1, 0, paperItem); }
-  }
-  if(state.groups.g1.desc === OLD_DEFAULT_DESC_G1){
-    state.groups.g1.desc = DEFAULT_DESC.g1;
-  }
-
-  // one-time content update: add 非常食・絆創膏・アルコール消毒 to 0次 if not already present
-  var g0items = state.groups.g0.items;
-  ["非常食","絆創膏","アルコール消毒"].forEach(function(name){
-    var exists = g0items.some(function(item){ return item.name === name; });
-    if(!exists){
-      g0items.push({ id:newId(), name:name, checked:false, locations:[] });
-    }
-  });
-  state.contentVersion = 2;
-  }
-  if(!state.activeTab || GROUP_ORDER.indexOf(state.activeTab) === -1){
-    state.activeTab = "g0";
-  }
+  return out;
 }
 
-// Storage is per-browser (not shared). localStorage is preferred; if the host
-// blocks it (e.g. a sandboxed preview), fall back to the host's personal
-// (non-shared) storage so data still persists on this device/account only.
+function findLoc(list, name){ var k = keyOf(name); for(var i = 0; i < list.length; i++){ if(keyOf(list[i]) === k) return i; } return -1; }
+
+/* One-time content updates, tracked by contentVersion so items a user deleted never come back. */
+function migrate(st){
+  var v = st.contentVersion || 0;
+  if(v < 2){
+    var g1 = st.groups.g1.items;
+    g1.forEach(function(it){ if(it.name === "着替え一式"){ it.name = "着替え一式(防水袋とセット)"; } });
+    if(!g1.some(function(it){ return it.name.indexOf("紙類") === 0; })){
+      var ci = -1;
+      for(var i = 0; i < g1.length; i++){ if(g1[i].name.indexOf("着替え一式") === 0){ ci = i; break; } }
+      var paper = { id:newId(), name:"紙類(防水袋とセット)", checked:false, locations:[] };
+      if(ci === -1) g1.push(paper); else g1.splice(ci + 1, 0, paper);
+    }
+    if(st.groups.g1.desc === OLD_DEFAULT_DESC_G1) st.groups.g1.desc = DEFAULT_DESC.g1;
+    var g0 = st.groups.g0.items;
+    ["非常食","絆創膏","アルコール消毒"].forEach(function(n){
+      if(!g0.some(function(it){ return it.name === n; })) g0.push({ id:newId(), name:n, checked:false, locations:[] });
+    });
+  }
+  if(v < 3){
+    // 0次の保管場所「持ち歩き用」→「持ち歩き1」+「持ち歩き2」
+    var grp = st.groups.g0, idx = findLoc(grp.locations, "持ち歩き用");
+    if(idx !== -1){
+      var has1 = findLoc(grp.locations, "持ち歩き1") !== -1;
+      if(has1){ grp.locations.splice(idx, 1); } else { grp.locations[idx] = "持ち歩き1"; }
+      grp.items.forEach(function(it){
+        var out = [];
+        it.locations.forEach(function(l){ var n = keyOf(l) === keyOf("持ち歩き用") ? "持ち歩き1" : l; if(out.indexOf(n) === -1) out.push(n); });
+        it.locations = out;
+      });
+      if(findLoc(grp.locations, "持ち歩き2") === -1 && grp.locations.length < MAX_LOCATIONS){
+        var at = findLoc(grp.locations, "持ち歩き1");
+        grp.locations.splice(at === -1 ? grp.locations.length : at + 1, 0, "持ち歩き2");
+      }
+    }
+  }
+  st.contentVersion = CONTENT_VERSION;
+}
+
+/* ================= Persistence ================= */
+var state = null;
+var prevSnap = null;       // {label, at, text} — state just before the last import / reset
+var saveFailed = false;
+
+function lsGet(k){ try{ return window.localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k, v){ try{ window.localStorage.setItem(k, v); return true; }catch(e){ return false; } }
+function lsDel(k){ try{ window.localStorage.removeItem(k); }catch(e){} }
+
 function storageGet(){
   try{
     var raw = window.localStorage.getItem(STORAGE_KEY);
-    return Promise.resolve(raw ? { value: raw } : null);
+    return Promise.resolve(raw ? { value:raw } : null);
   }catch(e){
     try{
-      if(window.storage && window.storage.get){
-        return window.storage.get(STORAGE_KEY, false).catch(function(){ return null; });
-      }
+      if(window.storage && window.storage.get){ return window.storage.get(STORAGE_KEY, false).catch(function(){ return null; }); }
     }catch(e2){}
     return Promise.resolve(null);
   }
 }
-
 function storageSet(text){
-  try{
-    window.localStorage.setItem(STORAGE_KEY, text);
-    return;
-  }catch(e){
+  var ok = false;
+  try{ window.localStorage.setItem(STORAGE_KEY, text); ok = true; }
+  catch(e){
     try{
-      if(window.storage && window.storage.set){
-        window.storage.set(STORAGE_KEY, text, false).catch(function(err){
-          console.error("save failed", err);
-        });
-      }
-    }catch(e2){
-      console.error("save failed", e2);
-    }
+      if(window.storage && window.storage.set){ window.storage.set(STORAGE_KEY, text, false).catch(function(){}); ok = true; }
+    }catch(e2){}
   }
+  var was = saveFailed;
+  saveFailed = !ok;
+  if(was !== saveFailed && state) render();
+}
+function save(){ storageSet(JSON.stringify(state)); }
+
+function rememberPrev(label){
+  prevSnap = { label:label, at:Date.now(), text:JSON.stringify(state) };
+  lsSet(PREV_KEY, JSON.stringify(prevSnap));
+}
+function loadPrev(){
+  var raw = lsGet(PREV_KEY);
+  if(!raw) return;
+  try{
+    var p = JSON.parse(raw);
+    if(isPlainObject(p) && typeof p.text === "string" && typeof p.label === "string" && typeof p.at === "number") prevSnap = { label:cleanLine(p.label, 60), at:p.at, text:p.text };
+  }catch(e){}
+}
+function replaceState(next, label){
+  rememberPrev(label);
+  state = next;
+  openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null;
+  save();
 }
 
 function load(){
-  var storagePromise = storageGet();
-
-  return storagePromise.then(function(res){
+  return storageGet().then(function(res){
     var loaded = null;
     if(res && res.value){
-      try{ loaded = JSON.parse(res.value); }catch(e){ loaded = null; }
+      try{ loaded = sanitizeState(JSON.parse(res.value)); }catch(e){ loaded = null; }
+      if(!loaded) lsSet(BROKEN_KEY, res.value);          // keep unreadable data instead of silently overwriting it
     }
     state = loaded || defaultData();
-    normalizeState();
+    migrate(state);
+    loadPrev();
     render();
     save();
   });
 }
 
-function save(){
-  storageSet(JSON.stringify(state));
+/* ================= Theme ================= */
+var themePref = null;   // "light" | "dark" | null (= follow the device)
+function systemPrefersDark(){ try{ return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); }catch(e){ return false; } }
+function effectiveDark(){ return themePref ? themePref === "dark" : systemPrefersDark(); }
+function applyTheme(){
+  var root = document.documentElement;
+  if(themePref) root.setAttribute("data-theme", themePref); else root.removeAttribute("data-theme");
+  var meta = document.getElementById("meta-theme-color");
+  if(meta) meta.setAttribute("content", effectiveDark() ? "#1B2227" : "#FAF6EE");
 }
-
-function switchTab(g){
-  state.activeTab = g;
-  pendingDeleteId = null;
-  pendingDeleteLoc = null;
-  editingItemId = null;
-  render();
+function loadThemePref(){ var v = lsGet(THEME_KEY); themePref = (v === "light" || v === "dark") ? v : null; applyTheme(); }
+function setThemePref(p){
+  themePref = (p === "light" || p === "dark") ? p : null;
+  if(themePref) lsSet(THEME_KEY, themePref); else lsDel(THEME_KEY);
+  applyTheme(); render();
 }
-
-function toggleCheck(g, id){
-  var items = state.groups[g].items;
-  for(var i=0;i<items.length;i++){
-    if(items[i].id === id){ items[i].checked = !items[i].checked; break; }
-  }
-  render(); save();
-}
-
-function setLocation(g, id, loc){
-  var items = state.groups[g].items;
-  for(var i=0;i<items.length;i++){
-    if(items[i].id === id){
-      var idx = items[i].locations.indexOf(loc);
-      if(idx === -1){ items[i].locations.push(loc); }
-      else { items[i].locations.splice(idx,1); }
-      break;
-    }
-  }
-  render(); save();
-}
-
-function startEditItem(id){
-  editingItemId = id;
-  render();
-  var input = document.getElementById("edit-name-" + id);
-  if(input){ input.focus(); input.select(); }
-}
-
-function saveEditItem(g, id){
-  var input = document.getElementById("edit-name-" + id);
-  if(input){
-    var name = input.value.trim();
-    if(name){
-      var items = state.groups[g].items;
-      for(var i=0;i<items.length;i++){
-        if(items[i].id === id){ items[i].name = name; break; }
-      }
-      save();
-    }
-  }
-  editingItemId = null;
-  render();
-}
-
-function handleEditItemKey(event, g, id){
-  if(event.key === "Enter"){ saveEditItem(g, id); }
-  else if(event.key === "Escape"){ editingItemId = null; render(); }
-}
-
-function requestDeleteItem(id){
-  pendingDeleteId = id;
-  render();
-}
-
-function cancelDeleteItem(){
-  pendingDeleteId = null;
-  render();
-}
-
-function deleteItem(g, id){
-  state.groups[g].items = state.groups[g].items.filter(function(item){ return item.id !== id; });
-  pendingDeleteId = null;
-  render(); save();
-}
-
-function addItem(g){
-  var input = document.getElementById("new-item-input");
-  if(!input) return;
-  var name = input.value.trim();
-  if(!name) return;
-  state.groups[g].items.push({ id:newId(), name:name, checked:false, locations:[] });
-  render(); save();
-}
-
-function handleAddItemKey(event, g){
-  if(event.key === "Enter"){ addItem(g); }
-}
-
-function updateDesc(g, value){
-  state.groups[g].desc = value;
-  save();
-}
-
-function toggleSettings(){
-  showSettings = !showSettings;
-  settingsExportOpen = false;
-  settingsImportOpen = false;
-  pendingReset = false;
-  exportMessage = null;
-  importMessage = null;
-  csvExportOpen = false;
-  csvImportOpen = false;
-  csvExportMessage = null;
-  csvImportMessage = null;
-  csvImportText = "";
-  pendingCsvOverwrite = false;
-  render();
-}
-
-function toggleExportPanel(){
-  settingsExportOpen = !settingsExportOpen;
-  exportMessage = null;
-  render();
-}
-
-function toggleImportPanel(){
-  settingsImportOpen = !settingsImportOpen;
-  importMessage = null;
-  render();
-}
-
-function copyExportText(){
-  var ta = document.getElementById("export-textarea");
-  if(!ta) return;
-  ta.focus();
-  ta.select();
-  var ok = false;
-  try{ ok = document.execCommand("copy"); }catch(e){ ok = false; }
-  exportMessage = ok
-    ? { type:"success", text:"コピーしました。" }
-    : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" };
-  render();
-}
-
-function downloadExportFile(){
+(function watchSystemTheme(){
   try{
-    var json = JSON.stringify(state, null, 2);
-    var blob = new Blob([json], { type:"application/json" });
-    var url = URL.createObjectURL(blob);
-    var now = new Date();
-    var ymd = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "bousai-list-backup-" + ymd + ".json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
-    exportMessage = { type:"success", text:"ダウンロードを開始しました。失敗した場合は下のテキストをコピーしてください。" };
-  }catch(e){
-    exportMessage = { type:"error", text:"ダウンロードできませんでした。下のテキストを手動でコピーしてください。" };
-  }
-  render();
-}
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var h = function(){ applyTheme(); if(state && !themePref) render(); };
+    if(mq.addEventListener) mq.addEventListener("change", h); else if(mq.addListener) mq.addListener(h);
+  }catch(e){}
+})();
 
-function applyImportedJson(text){
-  var parsed;
-  try{
-    parsed = JSON.parse(text);
-  }catch(e){
-    importMessage = { type:"error", text:"JSONの形式が正しくありません。コピーした内容を確認してください。" };
-    render();
-    return;
-  }
-  if(!parsed || typeof parsed !== "object" || !parsed.groups || !GROUP_ORDER.every(function(g){ return !!parsed.groups[g]; })){
-    importMessage = { type:"error", text:"このアプリのバックアップデータではないようです。" };
-    render();
-    return;
-  }
-  state = parsed;
-  normalizeState();
-  settingsImportOpen = false;
-  importMessage = { type:"success", text:"データを読み込みました。" };
-  render(); save();
-}
-
-function doImportFromTextarea(){
-  var ta = document.getElementById("import-textarea");
-  var text = ta ? ta.value.trim() : "";
-  if(!text){
-    importMessage = { type:"error", text:"JSONを貼り付けるか、ファイルを選択してください。" };
-    render();
-    return;
-  }
-  applyImportedJson(text);
-}
-
-function handleImportFile(event){
-  var file = event.target.files && event.target.files[0];
-  if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e){ applyImportedJson(String(e.target.result)); };
-  reader.onerror = function(){
-    importMessage = { type:"error", text:"ファイルを読み込めませんでした。" };
-    render();
-  };
-  reader.readAsText(file);
-}
-
-/* ---------- CSV (family sharing) ---------- */
-
+/* ================= CSV: parse / build ================= */
 function csvCell(v){
   var s = String(v == null ? "" : v);
-  if(/[",\r\n]/.test(s)){ s = '"' + s.replace(/"/g, '""') + '"'; }
+  if(/[",\r\n]/.test(s) || /^\s|\s$/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
-
-// columns: 次, アイテム名, チェック(済/未), 保管場所(;区切り)
-// A row with an empty アイテム名 only registers a storage location (so unused locations survive a round trip).
+/* columns: 次, アイテム名, チェック(済/未), 保管場所(;区切り). A row with an empty アイテム名 registers a location only. */
 function buildCsvText(){
   var rows = [["次","アイテム名","チェック","保管場所"]];
   GROUP_ORDER.forEach(function(g){
-    var grp = state.groups[g];
-    var label = GROUP_META[g].label;
-    // location-only rows first, so the family's location order (and unused locations) survive a round trip
-    grp.locations.forEach(function(loc){
-      rows.push([label, "", "", loc]);
-    });
-    grp.items.forEach(function(item){
-      rows.push([label, item.name, item.checked ? "済" : "未", item.locations.join(";")]);
-    });
+    var grp = state.groups[g], label = GROUP_META[g].label;
+    grp.locations.forEach(function(loc){ rows.push([label, "", "", loc]); });   // locations first: keeps their order
+    grp.items.forEach(function(it){ rows.push([label, it.name, it.checked ? "済" : "未", it.locations.join(";")]); });
   });
   return rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n") + "\r\n";
 }
 
 function parseCsvRows(text){
-  text = String(text).replace(/^﻿/, "");
+  text = String(text).replace(/^\uFEFF/, "");
   var firstLine = text.split(/\r\n|\n|\r/)[0] || "";
   var delim = ",";
-  if(firstLine.indexOf(",") === -1 && firstLine.indexOf("\t") !== -1){ delim = "\t"; }
+  if(firstLine.indexOf(",") === -1){
+    if(firstLine.indexOf("\t") !== -1) delim = "\t";
+    else if(firstLine.indexOf(";") !== -1 && /^[^;]*;[^;]*;/.test(firstLine) && !/[0-9]次/.test(firstLine.split(";")[0] + "")) delim = ";";
+  }
   var rows = [], row = [], field = "", inQ = false, i, c;
   for(i = 0; i < text.length; i++){
     c = text.charAt(i);
     if(inQ){
-      if(c === '"'){
-        if(text.charAt(i+1) === '"'){ field += '"'; i++; }
-        else { inQ = false; }
-      } else { field += c; }
-    } else if(c === '"' && field === ""){
-      inQ = true;
-    } else if(c === delim){
-      row.push(field); field = "";
-    } else if(c === "\r" || c === "\n"){
-      if(c === "\r" && text.charAt(i+1) === "\n"){ i++; }
+      if(c === '"'){ if(text.charAt(i + 1) === '"'){ field += '"'; i++; } else { inQ = false; } }
+      else { field += c; }
+    } else if(c === '"' && field === ""){ inQ = true; }
+    else if(c === delim){ row.push(field); field = ""; }
+    else if(c === "\r" || c === "\n"){
+      if(c === "\r" && text.charAt(i + 1) === "\n") i++;
       row.push(field); rows.push(row); row = []; field = "";
-    } else {
-      field += c;
-    }
+    } else { field += c; }
   }
   if(field !== "" || row.length){ row.push(field); rows.push(row); }
-  return rows.filter(function(r){
-    return r.some(function(cell){ return String(cell).trim() !== ""; });
-  });
+  return rows.filter(function(r){ return r.some(function(cell){ return String(cell).trim() !== ""; }); });
 }
 
 function parseGroupKey(cell){
-  var s = String(cell == null ? "" : cell).trim().replace(/[０-９]/g, function(ch){
-    return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
-  });
-  // accepts "0", "0次", "0次避難", "g0" — but not e.g. "10" or "2024-01-01"
-  var m = s.match(/^g?([012])(?:\s*次.*)?$/i);
-  return m ? "g" + m[1] : null;
+  var m = keyOf(cell == null ? "" : cell).match(/^(?:g([012])|([012])\s*次.*)$/);
+  return m ? "g" + (m[1] || m[2]) : null;
 }
-
+var TRUE_WORDS = ["済","済み","○","◯","〇","✓","✔","☑","1","true","yes","y","x","はい","完了","チェック済"];
+var FALSE_WORDS = ["","未","未済","未完了","×","✕","☐","0","false","no","n","いいえ","-","ー"];
 function parseCheckedCell(cell){
-  var s = String(cell == null ? "" : cell).trim().toLowerCase();
-  return ["済","○","◯","〇","✓","✔","1","true","yes","y","x"].indexOf(s) !== -1;
+  var k = keyOf(cell == null ? "" : cell);
+  if(TRUE_WORDS.indexOf(k) !== -1) return true;
+  if(FALSE_WORDS.indexOf(k) !== -1) return false;
+  return null;   // unknown word
 }
-
 function splitLocations(cell){
-  var seen = {}, out = [];
-  String(cell == null ? "" : cell).split(/[;；、]/).forEach(function(p){
-    var t = p.trim();
-    if(t && !seen[t]){ seen[t] = true; out.push(t); }
+  var seen = dict(), out = [];
+  String(cell == null ? "" : cell).split(/[;；、|]/).forEach(function(p){
+    var t = cleanLine(p, MAX_LOC_NAME), k = keyOf(t);
+    if(t && !seen[k]){ seen[k] = true; out.push(t); }
   });
   return out;
 }
 
-function parseCsvText(text){
+var HEADER_WORDS = {
+  group:["次","次数","避難","次避難","group"],
+  name:["アイテム名","アイテム","品名","名前","name","item"],
+  check:["チェック","チェック状態","状態","準備","check","done"],
+  loc:["保管場所","場所","保管","location"]
+};
+function detectColumns(rows){
+  var first = rows[0] || [];
+  if(parseGroupKey(first[0])){
+    return { headerRow:false, group:0, name:1, check:2, loc:3,
+             hasCheck:rows.some(function(r){ return r.length > 2; }), hasLoc:rows.some(function(r){ return r.length > 3; }) };
+  }
+  var map = { group:-1, name:-1, check:-1, loc:-1 };
+  first.forEach(function(cell, i){
+    var k = keyOf(cell);
+    ["group","name","check","loc"].forEach(function(f){ if(map[f] === -1 && HEADER_WORDS[f].indexOf(k) !== -1) map[f] = i; });
+  });
+  if(map.group !== -1 && map.name !== -1){
+    return { headerRow:true, group:map.group, name:map.name, check:map.check, loc:map.loc, hasCheck:map.check !== -1, hasLoc:map.loc !== -1 };
+  }
+  // unknown first row: the file does not look like ours
+  return { unknown:true, headerRow:true, group:0, name:1, check:2, loc:3,
+           hasCheck:rows.some(function(r){ return r.length > 2; }), hasLoc:rows.some(function(r){ return r.length > 3; }) };
+}
+
+/* ---- text decoding (file bytes -> string) ---- */
+function decodeTextBuffer(buf){
+  var u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  if(u8.length >= 3 && u8[0] === 0xEF && u8[1] === 0xBB && u8[2] === 0xBF) return { text:new TextDecoder("utf-8").decode(u8.subarray(3)), enc:"UTF-8" };
+  if(u8.length >= 2 && u8[0] === 0xFF && u8[1] === 0xFE) return { text:new TextDecoder("utf-16le").decode(u8.subarray(2)), enc:"UTF-16" };
+  if(u8.length >= 2 && u8[0] === 0xFE && u8[1] === 0xFF) return { text:new TextDecoder("utf-16be").decode(u8.subarray(2)), enc:"UTF-16" };
+  try{ return { text:new TextDecoder("utf-8", { fatal:true }).decode(u8), enc:"UTF-8" }; }catch(e){}
+  var cands = [["shift_jis","Shift_JIS"],["euc-jp","EUC-JP"]];
+  for(var i = 0; i < cands.length; i++){
+    try{
+      var t = new TextDecoder(cands[i][0]).decode(u8);
+      if(t.indexOf("�") === -1) return { text:t, enc:cands[i][1] };
+    }catch(e2){}
+  }
+  return { text:new TextDecoder("utf-8").decode(u8), enc:"不明", garbled:true };
+}
+
+/* ---- CSV import plan: computes exactly what would change, without touching state ---- */
+function sameLocSet(a, b){
+  if(a.length !== b.length) return false;
+  var ka = a.map(keyOf).sort(), kb = b.map(keyOf).sort();
+  for(var i = 0; i < ka.length; i++){ if(ka[i] !== kb[i]) return false; }
+  return true;
+}
+function ensureLocation(grp, name, added){
+  var at = findLoc(grp.locations, name);
+  if(at !== -1) return grp.locations[at];
+  if(grp.locations.length >= MAX_LOCATIONS) return null;
+  grp.locations.push(name);
+  if(added) added.push(name);
+  return name;
+}
+function checkWord(b){ return b ? "済" : "未"; }
+
+function planCsvImport(text, mode, cur){
+  cur = cur || state;
+  var plan = { kind:"csv", mode:mode, ok:false, fatal:[], warnings:[], groups:[], skipped:[], totals:{ added:0, updated:0, removed:0, unchanged:0 }, changed:false, next:null };
+  text = String(text == null ? "" : text).replace(/^\uFEFF/, "");
+  if(!text.trim()){ plan.fatal.push("CSVの内容が空です。ファイルを選ぶか、CSVのテキストを貼り付けてください。"); return plan; }
+  if(text.length > MAX_CSV_CHARS){ plan.fatal.push("データが大きすぎます(上限 約100万文字)。"); return plan; }
+  if(text.indexOf("\u0000") !== -1){ plan.fatal.push("CSVファイルではないようです(Excelファイル .xlsx などは読み込めません。CSVで保存し直してください)。"); return plan; }
+  if(text.indexOf("�") !== -1){ plan.fatal.push("文字化けしている部分があります。文字コードが合っていない可能性があります。Excelなら「CSV UTF-8(コンマ区切り)」で保存し直してください。"); return plan; }
+  var t0 = text.trim().charAt(0);
+  if(t0 === "{" || t0 === "["){
+    try{ JSON.parse(text); plan.fatal.push("これはJSONバックアップです。CSVではありません。「全データのバックアップ(JSON)」の「データをインポート」から取り込んでください。"); return plan; }catch(e){}
+  }
   var rows = parseCsvRows(text);
-  var byGroup = {};
-  GROUP_ORDER.forEach(function(g){ byGroup[g] = { entries: [], locOrder: [], seen: false }; });
-  var skipped = 0;
-  rows.forEach(function(r, idx){
-    var g = parseGroupKey(r[0]);
+  if(rows.length > MAX_CSV_ROWS){ plan.fatal.push("行数が多すぎます(上限 " + MAX_CSV_ROWS + "行)。"); return plan; }
+  if(!rows.length){ plan.fatal.push("取り込める行がありません。"); return plan; }
+
+  var cols = detectColumns(rows);
+  if(cols.unknown){ plan.fatal.push("このCSVは形式が違うようです。1行目に「次・アイテム名・チェック・保管場所」の見出しが必要です(このアプリから書き出したCSVをご利用ください)。"); return plan; }
+  var per = {};
+  GROUP_ORDER.forEach(function(g){ per[g] = { present:false, entries:[], byKey:dict(), locOrder:[], locSeen:dict() }; });
+  var unknownChecks = dict(), dupCount = 0, truncated = 0;
+  function cellAt(r, i){ return i >= 0 && i < r.length ? r[i] : ""; }
+
+  rows.forEach(function(r, i){
+    if(i === 0 && cols.headerRow) return;
+    var g = parseGroupKey(cellAt(r, cols.group));
     if(!g){
-      if(idx !== 0){ skipped++; }   // first row is normally the header
+      plan.skipped.push({ row:i + 1, reason:"「次」の列が 0次・1次・2次 のどれでもありません(" + clampStr(String(cellAt(r, cols.group)).trim(), 12) + ")" });
       return;
     }
-    var grp = byGroup[g];
-    grp.seen = true;
-    var name = String(r[1] == null ? "" : r[1]).trim();
-    var locs = splitLocations(r[3]);
-    locs.forEach(function(l){ if(grp.locOrder.indexOf(l) === -1){ grp.locOrder.push(l); } });
-    if(name){
-      grp.entries.push({ name: name, checked: parseCheckedCell(r[2]), locations: locs });
+    var p = per[g];
+    var rawName = String(cellAt(r, cols.name));
+    var name = cleanLine(rawName, MAX_NAME);
+    if(Array.from(rawName.trim()).length > MAX_NAME) truncated++;
+    var locs = cols.hasLoc ? splitLocations(cellAt(r, cols.loc)) : [];
+    locs.forEach(function(l){ var k = keyOf(l); if(!p.locSeen[k]){ p.locSeen[k] = true; p.locOrder.push(l); } });
+    if(locs.length) p.present = true;
+    if(!name) return;
+    p.present = true;
+    var chk = false;
+    if(cols.hasCheck){
+      var parsed = parseCheckedCell(cellAt(r, cols.check));
+      if(parsed === null){ unknownChecks[String(cellAt(r, cols.check)).trim()] = true; parsed = false; }
+      chk = parsed;
     }
+    var key = keyOf(name);
+    var entry = { name:name, checked:chk, locs:locs };
+    if(p.byKey[key]){ dupCount++; p.entries[p.byKey[key].idx] = entry; entry.idx = p.byKey[key].idx; p.byKey[key] = entry; }
+    else { entry.idx = p.entries.length; p.entries.push(entry); p.byKey[key] = entry; }
   });
-  return { byGroup: byGroup, skipped: skipped };
-}
 
-function applyCsv(text, mode){
-  var parsed = parseCsvText(text);
-  var total = 0;
-  GROUP_ORDER.forEach(function(g){ total += parsed.byGroup[g].entries.length; });
-  var anyGroup = GROUP_ORDER.some(function(g){ return parsed.byGroup[g].seen; });
-  if(!anyGroup){
-    return { ok:false, text:"取り込める行が見つかりませんでした。1列目に「0次避難」「1次避難」「2次避難」のいずれかが入った行が必要です。" };
+  if(!GROUP_ORDER.some(function(g){ return per[g].present; })){
+    plan.fatal.push("取り込める行が見つかりませんでした。1列目に「0次避難」「1次避難」「2次避難」のどれかが入った行が必要です。");
+    if(plan.skipped.length) plan.fatal.push("認識できなかった行: " + plan.skipped.length + "行");
+    return plan;
+  }
+  var totalEntries = 0;
+  GROUP_ORDER.forEach(function(g){ totalEntries += per[g].entries.length; });
+  if(mode === "overwrite" && totalEntries === 0){
+    plan.fatal.push("アイテムが1件もないCSVで「上書き」すると、リストが空になってしまいます。取り込みを中止しました。");
+    return plan;
   }
 
-  var next = JSON.parse(JSON.stringify(state));
-  var updated = 0, added = 0, perGroup = [];
-
+  var next = JSON.parse(JSON.stringify(cur));
   GROUP_ORDER.forEach(function(g){
-    var src = parsed.byGroup[g];
-    if(!src.seen) return;
+    var p = per[g], info = { g:g, label:GROUP_META[g].label, present:p.present, added:[], updated:[], removed:[], unchanged:0, locAdded:[], locRemoved:[], capped:0 };
+    plan.groups.push(info);
+    if(!p.present) return;
     var grp = next.groups[g];
+    var before = cur.groups[g].locations.slice();
+    var curByKey = dict();
+    grp.items.forEach(function(it){ var k = keyOf(it.name); if(!curByKey[k]) curByKey[k] = it; });
 
+    if(mode === "overwrite" && p.locOrder.length){ grp.locations = []; }
+    p.locOrder.forEach(function(l){ ensureLocation(grp, l, null); });
+
+    var newItems = [];
+    p.entries.forEach(function(e){
+      var existing = curByKey[keyOf(e.name)];
+      var resolved = [];
+      e.locs.forEach(function(l){ var r = ensureLocation(grp, l, null); if(r && resolved.indexOf(r) === -1) resolved.push(r); });
+      if(existing){
+        var changes = [];
+        var newChecked = cols.hasCheck ? e.checked : existing.checked;
+        var newLocs = cols.hasLoc ? resolved : existing.locations.slice();
+        if(newChecked !== existing.checked) changes.push("チェック " + checkWord(existing.checked) + "→" + checkWord(newChecked));
+        if(!sameLocSet(existing.locations, newLocs)) changes.push("保管場所 " + (existing.locations.join("・") || "なし") + "→" + (newLocs.join("・") || "なし"));
+        if(changes.length) info.updated.push({ name:existing.name, changes:changes }); else info.unchanged++;
+        existing.checked = newChecked;
+        existing.locations = newLocs.filter(function(l){ return findLoc(grp.locations, l) !== -1; });
+        if(mode === "overwrite") newItems.push(existing);
+      } else {
+        if(grp.items.length + (mode === "overwrite" ? newItems.length : 0) >= MAX_ITEMS){ info.capped++; return; }
+        var it = { id:newId(), name:e.name, checked:cols.hasCheck ? e.checked : false, locations:resolved };
+        info.added.push(e.name);
+        if(mode === "overwrite") newItems.push(it); else grp.items.push(it);
+      }
+    });
     if(mode === "overwrite"){
-      grp.items = src.entries.map(function(e){
-        return { id:newId(), name:e.name, checked:e.checked, locations:e.locations.slice() };
-      });
-      if(src.locOrder.length){ grp.locations = src.locOrder.slice(); }
-      perGroup.push(GROUP_META[g].label + " " + src.entries.length + "件");
-    } else {
-      src.locOrder.forEach(function(l){
-        if(grp.locations.indexOf(l) === -1){ grp.locations.push(l); }
-      });
-      src.entries.forEach(function(e){
-        var found = null;
-        for(var i = 0; i < grp.items.length; i++){
-          if(grp.items[i].name.trim() === e.name){ found = grp.items[i]; break; }
-        }
-        if(found){
-          found.checked = e.checked;
-          found.locations = e.locations.slice();
-          updated++;
-        } else {
-          grp.items.push({ id:newId(), name:e.name, checked:e.checked, locations:e.locations.slice() });
-          added++;
-        }
-      });
+      var keep = dict();
+      newItems.forEach(function(it){ keep[it.id] = true; });
+      cur.groups[g].items.forEach(function(it){ if(!keep[it.id] && !isSameRef(newItems, it)) info.removed.push(it.name); });
+      grp.items = newItems;
     }
+    info.locAdded = grp.locations.filter(function(l){ return findLoc(before, l) === -1; });
+    info.locRemoved = before.filter(function(l){ return findLoc(grp.locations, l) === -1; });
+    plan.totals.added += info.added.length; plan.totals.updated += info.updated.length;
+    plan.totals.removed += info.removed.length; plan.totals.unchanged += info.unchanged;
+    if(info.added.length || info.updated.length || info.removed.length || info.locAdded.length || info.locRemoved.length) plan.changed = true;
   });
+  function isSameRef(list, it){ return list.some(function(x){ return x.id === it.id; }); }
 
-  state = next;
-  normalizeState();
-  save();
-
-  var msg;
-  if(mode === "overwrite"){
-    msg = "CSVの内容で上書きしました(" + perGroup.join("、") + ")。";
-  } else {
-    msg = "マージしました(更新 " + updated + "件・追加 " + added + "件)。";
+  if(plan.skipped.length){
+    var ex = plan.skipped.slice(0, 3).map(function(s){ return s.row + "行目"; }).join("、");
+    plan.warnings.push("認識できない行を " + plan.skipped.length + "行 スキップします(" + ex + (plan.skipped.length > 3 ? " など" : "") + ")。");
   }
-  if(parsed.skipped > 0){ msg += " 認識できない行 " + parsed.skipped + "行はスキップしました。"; }
-  return { ok:true, text:msg };
+  if(dupCount) plan.warnings.push("同じ次の中に同じ名前の行が重複しています(" + dupCount + "件)。最後の行の内容を使います。");
+  if(truncated) plan.warnings.push("長すぎるアイテム名を " + truncated + "件、" + MAX_NAME + "文字に切り詰めます。");
+  var unk = Object.keys(unknownChecks);
+  if(unk.length) plan.warnings.push("チェック列に認識できない値があります(" + unk.slice(0, 3).map(function(u){ return "「" + clampStr(u, 8) + "」"; }).join("") + ")。未チェックとして扱います。");
+  if(!cols.hasLoc) plan.warnings.push("保管場所の列がないため、保管場所は変更しません。");
+  if(!cols.hasCheck) plan.warnings.push("チェックの列がないため、チェック状態は変更しません。");
+  plan.groups.forEach(function(gi){ if(gi.capped) plan.warnings.push(gi.label + ": 1つの次に登録できるのは " + MAX_ITEMS + "件までのため、" + gi.capped + "件は追加しません。"); });
+
+  var clean = sanitizeState(next);
+  if(!clean){ plan.fatal.push("取り込み結果を作れませんでした(内部エラー)。"); return plan; }
+  clean.activeTab = cur.activeTab;
+  plan.next = clean;
+  plan.ok = true;
+  return plan;
 }
 
-function toggleCsvExportPanel(){
-  csvExportOpen = !csvExportOpen;
-  csvExportMessage = null;
-  render();
+/* ---- JSON import plan ---- */
+function planJsonImport(text, cur){
+  cur = cur || state;
+  var plan = { kind:"json", ok:false, fatal:[], warnings:[], counts:null, next:null };
+  text = String(text == null ? "" : text).replace(/^\uFEFF/, "");
+  if(!text.trim()){ plan.fatal.push("JSONの内容が空です。ファイルを選ぶか、テキストを貼り付けてください。"); return plan; }
+  if(text.length > MAX_JSON_CHARS){ plan.fatal.push("データが大きすぎます。"); return plan; }
+  if(text.indexOf("�") !== -1){ plan.fatal.push("文字化けしている部分があります。バックアップ時のファイルをそのまま選んでください。"); return plan; }
+  if(text.trim().charAt(0) !== "{"){ plan.fatal.push("JSONバックアップではないようです。CSVの場合は「家族と共有(CSV)」の「CSVからインポート」を使ってください。"); return plan; }
+  var parsed;
+  try{ parsed = JSON.parse(text); }catch(e){ plan.fatal.push("JSONの形式が正しくありません(途中で切れている可能性があります)。"); return plan; }
+  var next = sanitizeState(parsed);
+  if(!next){ plan.fatal.push("このアプリのバックアップデータではないようです。"); return plan; }
+  migrate(next);
+  next.activeTab = cur.activeTab;
+  plan.counts = GROUP_ORDER.map(function(g){ return { label:GROUP_META[g].label, now:cur.groups[g].items.length, after:next.groups[g].items.length, locs:next.groups[g].locations.length }; });
+  plan.next = next;
+  plan.ok = true;
+  return plan;
 }
 
-function toggleCsvImportPanel(){
-  csvImportOpen = !csvImportOpen;
-  csvImportMessage = null;
-  pendingCsvOverwrite = false;
-  render();
+/* ================= UI state ================= */
+var viewMode = "item";
+var showLocEditor = false;
+var showSettings = false;
+var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
+var pendingReset = false, pendingRestore = false;
+var panels = { csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
+var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
+var json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
+var appEl = document.getElementById("app");
+
+function resetSettingsUi(){
+  panels = { csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
+  csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
+  json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
+  pendingReset = false; pendingRestore = false;
 }
 
-function downloadCsvFile(){
-  try{
-    var blob = new Blob(["﻿" + buildCsvText()], { type:"text/csv;charset=utf-8" });
-    var url = URL.createObjectURL(blob);
-    var now = new Date();
-    var ymd = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "bousai-list-" + ymd + ".csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
-    csvExportMessage = { type:"success", text:"ダウンロードを開始しました。保存できない場合は下のテキストをコピーしてください。" };
-  }catch(e){
-    csvExportMessage = { type:"error", text:"ダウンロードできませんでした。下のテキストを手動でコピーしてください。" };
-  }
-  render();
-}
+/* ================= Rendering ================= */
+var ICON_EDIT = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" stroke="currentColor" stroke-width="2"/></svg>';
+var ICON_X = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
+var ICON_OK = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+var ICON_TICK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 
-function copyCsvText(){
-  var ta = document.getElementById("csv-export-textarea");
-  if(!ta) return;
-  ta.focus();
-  ta.select();
-  var ok = false;
-  try{ ok = document.execCommand("copy"); }catch(e){ ok = false; }
-  csvExportMessage = ok
-    ? { type:"success", text:"コピーしました。メモやLINEなどに貼り付けて送れます。" }
-    : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" };
-  render();
-}
-
-function decodeCsvBuffer(buf){
-  try{
-    return new TextDecoder("utf-8", { fatal:true }).decode(buf);
-  }catch(e){
-    try{
-      // Excel on Japanese Windows saves plain "CSV" as Shift_JIS
-      return new TextDecoder("shift_jis").decode(buf);
-    }catch(e2){
-      return new TextDecoder("utf-8").decode(buf);
-    }
-  }
-}
-
-function handleCsvFile(event){
-  var file = event.target.files && event.target.files[0];
-  if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e){
-    csvImportText = decodeCsvBuffer(e.target.result);
-    pendingCsvOverwrite = false;
-    csvImportMessage = { type:"success", text:"ファイルを読み込みました。内容を確認して「マージ」か「上書き」を選んでください。" };
-    render();
-  };
-  reader.onerror = function(){
-    csvImportMessage = { type:"error", text:"ファイルを読み込めませんでした。" };
-    render();
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function updateCsvText(value){
-  csvImportText = value;
-}
-
-function syncCsvTextFromTextarea(){
-  var ta = document.getElementById("csv-import-textarea");
-  if(ta){ csvImportText = ta.value; }
-}
-
-function requestCsvOverwrite(){
-  syncCsvTextFromTextarea();
-  if(!csvImportText.trim()){
-    csvImportMessage = { type:"error", text:"CSVを貼り付けるか、ファイルを選択してください。" };
-    render();
-    return;
-  }
-  pendingCsvOverwrite = true;
-  csvImportMessage = null;
-  render();
-}
-
-function cancelCsvOverwrite(){
-  pendingCsvOverwrite = false;
-  render();
-}
-
-function doCsvImport(mode){
-  syncCsvTextFromTextarea();
-  if(!csvImportText.trim()){
-    csvImportMessage = { type:"error", text:"CSVを貼り付けるか、ファイルを選択してください。" };
-    render();
-    return;
-  }
-  var result = applyCsv(csvImportText, mode);
-  pendingCsvOverwrite = false;
-  csvImportMessage = { type: result.ok ? "success" : "error", text: result.text };
-  if(result.ok){ csvImportText = ""; }
-  render();
-}
-
-function requestReset(){
-  pendingReset = true;
-  render();
-}
-
-function cancelReset(){
-  pendingReset = false;
-  render();
-}
-
-function confirmReset(){
-  state = defaultData();
-  normalizeState();
-  pendingReset = false;
-  showSettings = false;
-  render(); save();
-}
-
-function toggleViewMode(){
-  viewMode = (viewMode === "item") ? "location" : "item";
-  render();
-}
-
-function toggleLocSettings(){
-  showLocSettings = !showLocSettings;
-  pendingDeleteLoc = null;
-  render();
-}
-
-function addLocation(g){
-  var input = document.getElementById("new-loc-input");
-  if(!input) return;
-  var name = input.value.trim();
-  var locations = state.groups[g].locations;
-  if(!name || locations.indexOf(name) !== -1){ input.value = ""; return; }
-  locations.push(name);
-  render(); save();
-}
-
-function handleAddLocKey(event, g){
-  if(event.key === "Enter"){ addLocation(g); }
-}
-
-function requestDeleteLocation(g, loc){
-  pendingDeleteLoc = g + "::" + loc;
-  render();
-}
-
-function cancelDeleteLocation(){
-  pendingDeleteLoc = null;
-  render();
-}
-
-function deleteLocation(g, loc){
-  state.groups[g].locations = state.groups[g].locations.filter(function(l){ return l !== loc; });
-  state.groups[g].items.forEach(function(item){
-    item.locations = item.locations.filter(function(l){ return l !== loc; });
-  });
-  pendingDeleteLoc = null;
-  render(); save();
-}
-
-function groupProgress(g){
-  var items = state.groups[g].items;
-  var total = items.length;
-  var done = 0;
-  for(var i=0;i<items.length;i++){ if(items[i].checked) done++; }
-  return { done:done, total:total };
-}
+function accentStyle(meta){ return "--accent:" + meta.accent + ";--accent-soft:" + meta.soft + ";"; }
+function msgHtml(m){ return m ? '<div class="msg ' + (m.type === "error" ? "error" : m.type === "warn" ? "warn" : "") + '" role="status">' + esc(m.text) + '</div>' : ""; }
 
 function buildOverviewHtml(){
-  var html = "";
-  GROUP_ORDER.forEach(function(key){
-    var m = GROUP_META[key];
-    var p = groupProgress(key);
-    var pct = p.total ? Math.round(p.done / p.total * 100) : 0;
-    html += ''
-      + '<div class="ov-row">'
-      + '<div class="ov-label" style="color:' + m.accent + '">' + m.label + '</div>'
-      + '<div class="ov-track"><div class="ov-fill" style="width:' + pct + '%; background:' + m.accent + '"></div></div>'
-      + '<div class="ov-count">' + p.done + '/' + p.total + '</div>'
-      + '</div>';
-  });
-  return html;
+  return GROUP_ORDER.map(function(g){
+    var m = GROUP_META[g], items = state.groups[g].items, done = 0;
+    items.forEach(function(it){ if(it.checked) done++; });
+    var pct = items.length ? Math.round(done / items.length * 100) : 0;
+    return '<div class="ov-row"><div class="ov-label" style="color:' + m.accent + '">' + m.label + '</div>'
+      + '<div class="ov-track"><div class="ov-fill" style="width:' + pct + '%;background:' + m.accent + '"></div></div>'
+      + '<div class="ov-count">' + done + '/' + items.length + '</div></div>';
+  }).join("");
 }
-
-function buildTabsHtml(g){
-  var html = "";
-  GROUP_ORDER.forEach(function(key){
-    var m = GROUP_META[key];
-    var active = key === g;
-    var styleAttr = active ? ('--accent:' + m.accent + ';--accent-soft:' + m.accentSoft + ';') : '';
-    html += ''
-      + '<button class="tab ' + (active ? 'active' : '') + '" style="' + styleAttr + '" onclick="switchTab(\'' + key + '\')">'
-      + '<div class="stamp">' + m.num + '</div>'
-      + '<div class="tlabel">' + m.label + '</div>'
-      + '</button>';
-  });
-  return html;
+function buildTabsHtml(){
+  return GROUP_ORDER.map(function(g){
+    var m = GROUP_META[g], on = g === state.activeTab;
+    return '<button type="button" class="tab' + (on ? " active" : "") + '" style="' + (on ? accentStyle(m) : "") + '" data-act="tab" data-g="' + g + '"'
+      + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + m.num + '</div><div class="tlabel">' + m.label + '</div></button>';
+  }).join("");
 }
-
-function buildLocSettingsHtml(g, meta){
-  if(!showLocSettings) return "";
-  var locations = state.groups[g].locations;
-  var chips = "";
-  if(locations.length){
-    locations.forEach(function(loc){
-      var key = g + "::" + loc;
-      if(pendingDeleteLoc === key){
-        chips += ''
-          + '<div class="loc-chip pending">'
-          + '<span>「' + escapeHtml(loc) + '」を削除？</span>'
-          + '<button class="mini-yes" onclick="deleteLocation(&quot;' + g + '&quot;,&quot;' + escapeAttr(loc) + '&quot;)">削除</button>'
-          + '<button class="mini-no" onclick="cancelDeleteLocation()">取消</button>'
-          + '</div>';
-      } else {
-        chips += ''
-          + '<div class="loc-chip">'
-          + '<span>' + escapeHtml(loc) + '</span>'
-          + '<button onclick="requestDeleteLocation(&quot;' + g + '&quot;,&quot;' + escapeAttr(loc) + '&quot;)">✕</button>'
-          + '</div>';
-      }
-    });
-  } else {
-    chips = '<span style="font-size:12px;color:var(--ink-soft);">保管場所がありません</span>';
-  }
-  return ''
-    + '<div class="loc-settings">'
-    + '<div class="loc-settings-title">' + meta.label + 'の説明文</div>'
-    + '<textarea class="desc-textarea" id="desc-input-' + g + '" onchange="updateDesc(&quot;' + g + '&quot;, this.value)">' + escapeHtml(state.groups[g].desc) + '</textarea>'
-    + '<div class="loc-settings-title">' + meta.label + 'の保管場所</div>'
-    + '<div class="loc-chips">' + chips + '</div>'
-    + '<div class="loc-add-row">'
-    + '<input type="text" id="new-loc-input" placeholder="新しい保管場所(例:' + LOC_INPUT_EXAMPLE[g] + ')" onkeydown="handleAddLocKey(event,\'' + g + '\')">'
-    + '<button onclick="addLocation(\'' + g + '\')">追加</button>'
-    + '</div>'
-    + '</div>';
-}
-
-function buildItemsHtml(g, meta){
-  var items = state.groups[g].items;
-  var locations = state.groups[g].locations;
-  if(!items.length){
-    return '<div class="empty">まだアイテムがありません。下から追加してください。</div>';
-  }
-  var html = "";
-  items.forEach(function(item){
-    var locsHtml = "";
-    if(!locations.length){
-      locsHtml = '<span style="font-size:11.5px;color:var(--ink-soft);">保管場所が未設定です</span>';
+function buildLocEditorHtml(g, meta){
+  if(!showLocEditor) return "";
+  var grp = state.groups[g];
+  var chips = grp.locations.length ? grp.locations.map(function(loc, i){
+    if(pendingDeleteLoc === g + ":" + i){
+      return '<div class="loc-chip pending"><span>「' + esc(loc) + '」を削除？</span>'
+        + '<button type="button" class="btn btn-danger" data-act="do-del-loc" data-g="' + g + '" data-li="' + i + '">削除</button>'
+        + '<button type="button" class="btn btn-ghost" data-act="cancel-del-loc">取消</button></div>';
     }
-    locations.forEach(function(loc){
-      var active = item.locations.indexOf(loc) !== -1;
-      var styleAttr = active ? ('--accent:' + meta.accent) : '';
-      locsHtml += ''
-        + '<button class="loc-pill ' + (active ? 'active' : '') + '" style="' + styleAttr + '" onclick="setLocation(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;,&quot;' + escapeAttr(loc) + '&quot;)">'
-        + escapeHtml(loc) + '</button>';
-    });
-    var checkedClass = item.checked ? "checked" : "";
-    var checkStyle = item.checked ? ('--accent:' + meta.accent) : '';
-    var isPending = pendingDeleteId === item.id;
-    var confirmHtml = isPending ? ''
-      + '<div class="confirm-row">'
-      + '<span>削除しますか？</span>'
-      + '<button class="confirm-yes" onclick="deleteItem(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">削除する</button>'
-      + '<button class="confirm-no" onclick="cancelDeleteItem()">キャンセル</button>'
-      + '</div>' : '';
-    var nameHtml = (editingItemId === item.id)
-      ? '<input type="text" class="item-name-input" id="edit-name-' + item.id + '" value="' + escapeAttr(item.name) + '" onkeydown="handleEditItemKey(event,&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)" onblur="saveEditItem(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">'
-      : '<div class="item-name ' + checkedClass + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + escapeHtml(item.name) + '</div>';
-    var actionsHtml = (editingItemId === item.id)
-      ? ''
-      : '<button class="edit-btn" onclick="startEditItem(&quot;' + item.id + '&quot;)">✎</button><button class="del-btn" onclick="requestDeleteItem(&quot;' + item.id + '&quot;)">✕</button>';
-    html += ''
-      + '<div class="item">'
-      + '<div class="item-top">'
-      + '<div class="checkbox ' + checkedClass + '" style="' + checkStyle + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + (item.checked ? '✓' : '') + '</div>'
-      + nameHtml
-      + actionsHtml
-      + '</div>'
-      + '<div class="locations">' + locsHtml + '</div>'
-      + confirmHtml
-      + '</div>';
-  });
-  return html;
+    return '<div class="loc-chip"><span>' + esc(loc) + '</span><button type="button" class="chip-x" data-act="req-del-loc" data-g="' + g + '" data-li="' + i + '" aria-label="' + esc(loc) + 'を削除">' + ICON_X + '</button></div>';
+  }).join("") : '<span class="note">保管場所がありません</span>';
+  return '<div class="loc-settings">'
+    + '<div class="field-title">' + meta.label + 'の説明文</div>'
+    + '<textarea class="desc-textarea" maxlength="' + MAX_DESC + '" data-change="desc" data-g="' + g + '">' + esc(grp.desc) + '</textarea>'
+    + '<div class="field-title">' + meta.label + 'の保管場所</div>'
+    + '<div class="loc-chips">' + chips + '</div>'
+    + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="新しい保管場所(例:' + esc(LOC_INPUT_EXAMPLE[g]) + ')" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
+    + '<button type="button" class="btn" data-act="add-loc" data-g="' + g + '">追加</button></div></div>';
 }
-
-function buildItemsByLocationHtml(g, meta){
-  var items = state.groups[g].items;
-  var locations = state.groups[g].locations;
-
-  if(!items.length){
-    return '<div class="empty">まだアイテムがありません。「アイテムごと」の表示から追加してください。</div>';
+function buildItemRow(g, meta, item, locations){
+  var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = openSwipeId === item.id && !editing;
+  var id = esc(item.id), checked = item.checked;
+  var top;
+  if(editing){
+    top = '<div class="item-top">'
+      + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="アイテム名">'
+      + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
+      + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
+  } else {
+    top = '<div class="item-top">'
+      + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + checked + '" aria-label="' + esc(item.name) + 'のチェック">'
+      + '<span class="checkbox' + (checked ? " checked" : "") + '" style="' + (checked ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></button>'
+      + '<div class="item-name' + (checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(item.name) + '</div>'
+      + '<button type="button" class="icon-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
+      + '<button type="button" class="icon-btn" data-act="req-del" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を削除">' + ICON_X + '</button></div>';
   }
-
-  function itemRow(item){
-    var checkedClass = item.checked ? "checked" : "";
-    var checkStyle = item.checked ? ('--accent:' + meta.accent) : '';
-    return ''
-      + '<div class="loc-group-item">'
-      + '<div class="checkbox ' + checkedClass + '" style="' + checkStyle + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + (item.checked ? '✓' : '') + '</div>'
-      + '<div class="item-name ' + checkedClass + '" onclick="toggleCheck(&quot;' + g + '&quot;,&quot;' + item.id + '&quot;)">' + escapeHtml(item.name) + '</div>'
-      + '</div>';
+  var pills = locations.length ? locations.map(function(loc, i){
+    var on = item.locations.indexOf(loc) !== -1;
+    return '<button type="button" class="loc-pill' + (on ? " active" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + esc(loc) + '</button>';
+  }).join("") : '';
+  var confirm = pending ? '<div class="confirm-row" role="alert"><span>「' + esc(item.name) + '」を削除しますか？</span>'
+    + '<button type="button" class="btn btn-danger" data-act="do-del" data-g="' + g + '" data-id="' + id + '">削除する</button>'
+    + '<button type="button" class="btn btn-ghost" data-act="cancel-del">キャンセル</button></div>' : '';
+  return '<div class="item"><div class="swipe-wrap">'
+    + '<button type="button" class="swipe-del" data-act="swipe-del" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">削除</button>'
+    + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
+    + top
+    + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「説明・保管場所を編集」で追加できます)</div>')
+    + confirm + '</div></div></div>';
+}
+function buildItemsHtml(g, meta){
+  var grp = state.groups[g];
+  if(!grp.items.length) return '<div class="empty">まだアイテムがありません。下から追加してください。</div>';
+  return grp.items.map(function(it){ return buildItemRow(g, meta, it, grp.locations); }).join("");
+}
+function buildByLocationHtml(g, meta){
+  var grp = state.groups[g];
+  if(!grp.items.length) return '<div class="empty">まだアイテムがありません。「アイテムごと」から追加できます。</div>';
+  function row(it){
+    var c = it.checked, id = esc(it.id);
+    return '<div class="loc-group-item">'
+      + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
+      + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(it.name) + '</div></div>';
   }
-
   var html = '<div class="loc-group">';
-  if(!locations.length){
-    html += '<div class="loc-group-title">保管場所が未設定です</div>';
-  } else {
-    locations.forEach(function(loc){
-      var matched = items.filter(function(item){ return item.locations.indexOf(loc) !== -1; });
-      html += '<div class="loc-group-title">' + escapeHtml(loc) + '(' + matched.length + ')</div>';
-      if(matched.length){
-        matched.forEach(function(item){ html += itemRow(item); });
-      } else {
-        html += '<div style="padding:10px 0;font-size:12.5px;color:var(--ink-soft);">まだアイテムがありません</div>';
-      }
-    });
-  }
+  if(!grp.locations.length) html += '<div class="loc-group-title">保管場所が未設定です</div>';
+  grp.locations.forEach(function(loc){
+    var matched = grp.items.filter(function(it){ return it.locations.indexOf(loc) !== -1; });
+    html += '<div class="loc-group-title">' + esc(loc) + '(' + matched.length + ')</div>';
+    html += matched.length ? matched.map(row).join("") : '<div class="note" style="padding:10px 0;margin:0">まだアイテムがありません</div>';
+  });
+  var none = grp.items.filter(function(it){ return !it.locations.length; });
+  if(none.length) html += '<div class="loc-group-title">保管場所が未設定のアイテム(' + none.length + ')</div>' + none.map(row).join("");
+  return html + '</div>';
+}
 
-  var unassigned = items.filter(function(item){ return !item.locations.length; });
-  if(unassigned.length){
-    html += '<div class="loc-group-title">保管場所が未設定のアイテム(' + unassigned.length + ')</div>';
-    unassigned.forEach(function(item){ html += itemRow(item); });
+function renderMain(){
+  var g = state.activeTab, meta = GROUP_META[g], grp = state.groups[g];
+  var html = ''
+    + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
+    + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
+    + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
+    + '<p>0次・1次・2次の避難グッズと保管場所を管理(この端末に保存)</p></div>'
+    + '<div class="overview">' + buildOverviewHtml()
+    + '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + (showLocEditor ? "編集を閉じる" : meta.label + "の説明・保管場所を編集") + '</button></div>'
+    + buildLocEditorHtml(g, meta)
+    + '<div class="tabs">' + buildTabsHtml() + '</div>'
+    + '<div class="group-desc" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + '</div>'
+    + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
+    + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">アイテムごと</button>'
+    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
+  if(viewMode === "item"){
+    html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
+      + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="アイテムを追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
+      + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
+      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>アイテムを左にスワイプすると削除ボタンが出ます</div>';
+  } else {
+    html += '<div style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
-  html += '</div>';
   return html;
 }
 
-function buildMsgBoxHtml(msg){
-  if(!msg) return "";
-  return '<div class="msg-box ' + (msg.type === "error" ? "msg-error" : "msg-success") + '">' + escapeHtml(msg.text) + '</div>';
+/* ---- import preview ---- */
+function listNames(names, max){
+  var shown = names.slice(0, max).map(function(n){ return "「" + esc(n) + "」"; }).join("");
+  return shown + (names.length > max ? " ほか" + (names.length - max) + "件" : "");
+}
+function buildCsvPreviewHtml(plan){
+  var html = '';
+  plan.fatal.forEach(function(f){ html += '<div class="msg error" role="alert">' + esc(f) + '</div>'; });
+  if(!plan.ok) return html;
+  var over = plan.mode === "overwrite";
+  html += '<div class="preview"><h3>取り込みの確認:' + (over ? "上書き" : "マージ") + '</h3>';
+  plan.groups.forEach(function(gi){
+    html += '<div class="pv-group"><div class="pv-head">' + gi.label;
+    if(!gi.present){ html += '<small>CSVに含まれていないので変更しません</small></div></div>'; return; }
+    html += '<small>追加 ' + gi.added.length + '・更新 ' + gi.updated.length + '・変更なし ' + gi.unchanged + (over ? '・削除 ' + gi.removed.length : '') + '</small></div>';
+    if(gi.added.length) html += '<div class="pv-line"><span class="tag add">追加</span>' + listNames(gi.added, 8) + '</div>';
+    if(gi.updated.length) html += '<div class="pv-line"><span class="tag upd">更新</span>' + gi.updated.slice(0, 8).map(function(u){ return "「" + esc(u.name) + "」(" + esc(u.changes.join("、")) + ")"; }).join(" ") + (gi.updated.length > 8 ? " ほか" + (gi.updated.length - 8) + "件" : "") + '</div>';
+    if(gi.removed.length) html += '<div class="pv-line"><span class="tag del">削除</span>' + listNames(gi.removed, 8) + '</div>';
+    if(gi.locAdded.length) html += '<div class="pv-line"><span class="tag add">場所+</span>' + gi.locAdded.map(esc).join("、") + '</div>';
+    if(gi.locRemoved.length) html += '<div class="pv-line"><span class="tag del">場所−</span>' + gi.locRemoved.map(esc).join("、") + '</div>';
+    if(!gi.added.length && !gi.updated.length && !gi.removed.length && !gi.locAdded.length && !gi.locRemoved.length) html += '<div class="pv-line"><span class="tag keep">変更なし</span></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  plan.warnings.forEach(function(w){ html += '<div class="msg warn">' + esc(w) + '</div>'; });
+  if(over && plan.totals.removed) html += '<div class="msg error">CSVにない ' + plan.totals.removed + '件のアイテムが削除されます。取り込み後も「直前の状態に戻す」で元に戻せます。</div>';
+  else html += '<div class="msg">取り込み後も、設定の「直前の状態に戻す」で元に戻せます。</div>';
+  if(!plan.changed) html += '<div class="msg warn">現在のリストとの違いがないため、取り込む内容はありません。</div>';
+  else html += '<div class="btn-row"><button type="button" class="btn ' + (over ? "btn-danger" : "") + '" data-act="csv-apply">この内容で取り込む</button><button type="button" class="btn btn-ghost" data-act="csv-clear">やめる</button></div>';
+  return html;
+}
+function buildJsonPreviewHtml(plan){
+  var html = '';
+  plan.fatal.forEach(function(f){ html += '<div class="msg error" role="alert">' + esc(f) + '</div>'; });
+  if(!plan.ok) return html;
+  html += '<div class="preview"><h3>取り込みの確認:全データを置き換え</h3>';
+  plan.counts.forEach(function(c){
+    html += '<div class="pv-group"><div class="pv-head">' + c.label + '<small>アイテム ' + c.now + '件 → ' + c.after + '件・保管場所 ' + c.locs + 'か所</small></div></div>';
+  });
+  html += '</div><div class="msg error">今のデータ(説明文・保管場所・チェック状態を含む全部)がバックアップの内容に置き換わります。取り込み後も「直前の状態に戻す」で元に戻せます。</div>'
+    + '<div class="btn-row"><button type="button" class="btn btn-danger" data-act="json-apply">この内容で置き換える</button><button type="button" class="btn btn-ghost" data-act="json-clear">やめる</button></div>';
+  return html;
 }
 
-function buildSettingsScreenHtml(){
-  var themeRow = ''
-    + '<div class="theme-option-row">'
-    + '<button class="theme-option ' + (themePref === "light" ? "active" : "") + '" onclick="setThemePref(&quot;light&quot;)">☀ ライト</button>'
-    + '<button class="theme-option ' + (themePref === "dark" ? "active" : "") + '" onclick="setThemePref(&quot;dark&quot;)">🌙 ダーク</button>'
-    + '<button class="theme-option ' + (!themePref ? "active" : "") + '" onclick="setThemePref(null)">端末に合わせる</button>'
-    + '</div>';
+function buildSettingsHtml(){
+  var seg = ['light', 'dark', null].map(function(v){
+    var label = v === "light" ? "☀ ライト" : v === "dark" ? "🌙 ダーク" : "端末に合わせる";
+    return '<button type="button" class="' + ((themePref === v) ? "active" : "") + '" data-act="theme" data-theme="' + (v || "auto") + '">' + label + '</button>';
+  }).join("");
 
-  var csvExportPanel = '<button class="settings-btn" onclick="toggleCsvExportPanel()">' + (csvExportOpen ? 'CSVエクスポートを閉じる' : 'リストをCSVでエクスポート') + '</button>';
-  if(csvExportOpen){
-    csvExportPanel += ''
-      + '<div class="export-panel">'
-      + '<div class="export-actions">'
-      + '<button onclick="downloadCsvFile()">CSVをダウンロード</button>'
-      + '<button onclick="copyCsvText()">テキストをコピー</button>'
-      + '</div>'
-      + '<textarea id="csv-export-textarea" readonly onclick="this.select()">' + escapeHtml(buildCsvText()) + '</textarea>'
-      + buildMsgBoxHtml(csvExportMessage)
-      + '</div>';
+  var csvExport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvExport">' + (panels.csvExport ? "CSVエクスポートを閉じる" : "リストをCSVでエクスポート") + '</button>';
+  if(panels.csvExport){
+    csvExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="csv-download">CSVをダウンロード</button><button type="button" class="btn btn-ghost" data-act="csv-copy">テキストをコピー</button></div>'
+      + '<textarea class="code-box" id="csv-export-text" readonly aria-label="CSVの内容">' + esc(buildCsvText()) + '</textarea>' + msgHtml(csv.exportMsg) + '</div>';
+  }
+  var csvImport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvImport">' + (panels.csvImport ? "CSVインポートを閉じる" : "CSVからインポート") + '</button>';
+  if(panels.csvImport){
+    csvImport += '<div class="panel">'
+      + '<p class="note">取り込む前に、何がどう変わるかを必ず表示します(確認してから取り込めます)。<br><b>マージ</b>:同じ次・同じアイテム名は更新し、新しいものだけ追加します。自分のアイテムは消えません。<br><b>上書き</b>:CSVに含まれる次のリストを、CSVの内容にそろえます(CSVにないアイテムは削除)。</p>'
+      + '<div class="seg" style="margin-bottom:12px"><button type="button" class="' + (csv.mode === "merge" ? "active" : "") + '" data-act="csv-mode" data-mode="merge">マージ(おすすめ)</button><button type="button" class="' + (csv.mode === "overwrite" ? "active" : "") + '" data-act="csv-mode" data-mode="overwrite">上書き</button></div>'
+      + '<p class="field-title">CSVファイルを選ぶ</p><input type="file" accept=".csv,.txt,text/csv,text/plain" data-change="csv-file" style="margin-bottom:12px">'
+      + (csv.file ? '<p class="note">読み込んだファイル: ' + esc(csv.file) + '(文字コード: ' + esc(csv.enc) + ')</p>' : '')
+      + '<p class="field-title">またはCSVのテキストを貼り付け</p>'
+      + '<textarea class="code-box" id="csv-import-text" data-input="csv-text" placeholder="次,アイテム名,チェック,保管場所" aria-label="CSVのテキスト">' + esc(csv.text) + '</textarea>'
+      + '<div class="btn-row"><button type="button" class="btn" data-act="csv-preview">内容を確認する</button></div>'
+      + '<div id="csv-preview">' + (csv.plan ? buildCsvPreviewHtml(csv.plan) : "") + '</div>' + msgHtml(csv.msg) + '</div>';
+  }
+  var jsonExport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonExport">' + (panels.jsonExport ? "エクスポートを閉じる" : "全データをエクスポート") + '</button>';
+  if(panels.jsonExport){
+    jsonExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="json-download">ファイルをダウンロード</button><button type="button" class="btn btn-ghost" data-act="json-copy">テキストをコピー</button></div>'
+      + '<textarea class="code-box" id="json-export-text" readonly aria-label="バックアップの内容">' + esc(JSON.stringify(state, null, 2)) + '</textarea>' + msgHtml(json.exportMsg) + '</div>';
+  }
+  var jsonImport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonImport">' + (panels.jsonImport ? "インポートを閉じる" : "データをインポート") + '</button>';
+  if(panels.jsonImport){
+    jsonImport += '<div class="panel"><p class="note">バックアップ(JSON)の内容で、全データを置き換えます。取り込む前に変化を確認できます。</p>'
+      + '<p class="field-title">バックアップファイルを選ぶ</p><input type="file" accept=".json,application/json,text/plain" data-change="json-file" style="margin-bottom:12px">'
+      + (json.file ? '<p class="note">読み込んだファイル: ' + esc(json.file) + '(文字コード: ' + esc(json.enc) + ')</p>' : '')
+      + '<p class="field-title">またはテキストを貼り付け</p>'
+      + '<textarea class="code-box" id="json-import-text" data-input="json-text" placeholder="{...}" aria-label="バックアップのテキスト">' + esc(json.text) + '</textarea>'
+      + '<div class="btn-row"><button type="button" class="btn" data-act="json-preview">内容を確認する</button></div>'
+      + '<div id="json-preview">' + (json.plan ? buildJsonPreviewHtml(json.plan) : "") + '</div>' + msgHtml(json.msg) + '</div>';
   }
 
-  var csvImportPanel = '<button class="settings-btn" onclick="toggleCsvImportPanel()">' + (csvImportOpen ? 'CSVインポートを閉じる' : 'CSVからインポート') + '</button>';
-  if(csvImportOpen){
-    var csvConfirm = pendingCsvOverwrite
-      ? ('<div class="danger-confirm" style="margin-top:10px;">'
-         + '<p>CSVに含まれる次(0次・1次・2次)のアイテムと保管場所を、CSVの内容に置き換えます。CSVにないアイテムは消えます(説明文は変わりません)。よろしいですか？</p>'
-         + '<div class="danger-confirm-actions">'
-         + '<button class="danger-yes" onclick="doCsvImport(&quot;overwrite&quot;)">上書きする</button>'
-         + '<button class="danger-no" onclick="cancelCsvOverwrite()">キャンセル</button>'
-         + '</div></div>')
-      : '';
-    csvImportPanel += ''
-      + '<div class="import-panel">'
-      + '<div class="settings-section-note">'
-      + '<b>マージ</b>:同じ次・同じアイテム名はCSVの内容で更新し、新しいアイテムだけ追加します(自分のアイテムは消えません)。<br>'
-      + '<b>上書き</b>:CSVに含まれる次のリストを、CSVの内容にそろえます。'
-      + '</div>'
-      + '<div class="import-file-row"><input type="file" accept=".csv,text/csv,text/plain" onchange="handleCsvFile(event)"></div>'
-      + '<div class="settings-section-note">またはCSVのテキストをここに貼り付け:</div>'
-      + '<textarea id="csv-import-textarea" placeholder="次,アイテム名,チェック,保管場所" oninput="updateCsvText(this.value)">' + escapeHtml(csvImportText) + '</textarea>'
-      + '<div class="export-actions">'
-      + '<button onclick="doCsvImport(&quot;merge&quot;)">マージして取り込む</button>'
-      + '<button onclick="requestCsvOverwrite()">上書きして取り込む</button>'
-      + '</div>'
-      + csvConfirm
-      + buildMsgBoxHtml(csvImportMessage)
+  var restore = '';
+  if(prevSnap){
+    restore = '<div class="settings-section"><h2 class="settings-title">直前の状態に戻す</h2>'
+      + '<p class="note">「' + esc(prevSnap.label) + '」の直前(' + fmtTime(prevSnap.at) + ')の状態に戻せます。今の状態は元に戻されます。</p>'
+      + (pendingRestore
+        ? '<div class="confirm-row" style="margin-left:0" role="alert"><span>戻すと、その後の変更は失われます。よろしいですか？</span><button type="button" class="btn btn-danger" data-act="do-restore">戻す</button><button type="button" class="btn btn-ghost" data-act="cancel-restore">キャンセル</button></div>'
+        : '<button type="button" class="settings-btn" data-act="req-restore">直前の状態に戻す</button>')
       + '</div>';
   }
+  var reset = pendingReset
+    ? '<div class="confirm-row" style="margin-left:0" role="alert"><span>全データを削除して初期状態に戻します。本当によろしいですか？(直前の状態に戻す機能で元に戻せます)</span><button type="button" class="btn btn-danger" data-act="do-reset">初期化する</button><button type="button" class="btn btn-ghost" data-act="cancel-reset">キャンセル</button></div>'
+    : '<button type="button" class="btn btn-ghost" style="width:100%;border-color:var(--clay);color:var(--clay)" data-act="req-reset">全データを初期化する</button>';
 
-  var exportPanel = '<button class="settings-btn" onclick="toggleExportPanel()">' + (settingsExportOpen ? 'エクスポートを閉じる' : '全データをエクスポート') + '</button>';
-  if(settingsExportOpen){
-    var json = escapeHtml(JSON.stringify(state, null, 2));
-    exportPanel += ''
-      + '<div class="export-panel">'
-      + '<div class="export-actions">'
-      + '<button onclick="downloadExportFile()">ファイルをダウンロード</button>'
-      + '<button onclick="copyExportText()">テキストをコピー</button>'
-      + '</div>'
-      + '<textarea id="export-textarea" readonly onclick="this.select()">' + json + '</textarea>'
-      + buildMsgBoxHtml(exportMessage)
-      + '</div>';
-  }
-
-  var importPanel = '<button class="settings-btn" onclick="toggleImportPanel()">' + (settingsImportOpen ? 'インポートを閉じる' : 'データをインポート') + '</button>';
-  if(settingsImportOpen){
-    importPanel += ''
-      + '<div class="import-panel">'
-      + '<div class="settings-section-note">読み込むと今のデータは上書きされます。先にエクスポートしてバックアップを取っておくと安心です。</div>'
-      + '<div class="import-file-row"><input type="file" accept="application/json,.json" onchange="handleImportFile(event)"></div>'
-      + '<div class="settings-section-note">またはバックアップのJSONテキストをここに貼り付け:</div>'
-      + '<textarea id="import-textarea" placeholder="{...}"></textarea>'
-      + '<div class="export-actions"><button onclick="doImportFromTextarea()">インポート実行</button></div>'
-      + buildMsgBoxHtml(importMessage)
-      + '</div>';
-  }
-
-  var resetHtml = '';
-  if(pendingReset){
-    resetHtml = ''
-      + '<div class="danger-confirm">'
-      + '<p>全データを削除して初期状態に戻します。この操作は取り消せません。本当によろしいですか？</p>'
-      + '<div class="danger-confirm-actions">'
-      + '<button class="danger-yes" onclick="confirmReset()">初期化する</button>'
-      + '<button class="danger-no" onclick="cancelReset()">キャンセル</button>'
-      + '</div>'
-      + '</div>';
-  } else {
-    resetHtml = '<button class="danger-btn" onclick="requestReset()">全データを初期化する</button>';
-  }
-
-  return ''
-    + '<div class="header">'
-    + '<button class="back-btn" onclick="toggleSettings()">← 戻る</button>'
-    + '<h1>設定</h1>'
-    + '</div>'
-    + '<div class="settings-section">'
-    + '<div class="settings-section-title">テーマ</div>'
-    + themeRow
-    + '</div>'
-    + '<div class="settings-section">'
-    + '<div class="settings-section-title">家族と共有(CSV)</div>'
-    + '<div class="settings-section-note">このアプリのデータはこの端末のブラウザに保存されます。アイテムとチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。アイテム名が空の行は、保管場所だけを登録する行です。</div>'
-    + csvExportPanel
-    + csvImportPanel
-    + '</div>'
-    + '<div class="settings-section">'
-    + '<div class="settings-section-title">全データのバックアップ(JSON)</div>'
-    + '<div class="settings-section-note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</div>'
-    + exportPanel
-    + importPanel
-    + '</div>'
-    + '<div class="settings-section danger-section">'
-    + '<div class="settings-section-title">初期化</div>'
-    + '<div class="settings-section-note">0次・1次・2次すべてのアイテム・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</div>'
-    + resetHtml
-    + '</div>';
+  return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
+    + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
+    + '<div class="settings-section"><h2 class="settings-title">テーマ</h2><div class="seg">' + seg + '</div></div>'
+    + '<div class="settings-section"><h2 class="settings-title">家族と共有(CSV)</h2>'
+    + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。アイテムとチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。アイテム名が空の行は、保管場所だけを登録する行です。</p>'
+    + csvExport + csvImport + '</div>'
+    + '<div class="settings-section"><h2 class="settings-title">全データのバックアップ(JSON)</h2>'
+    + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport + '</div>'
+    + restore
+    + '<div class="settings-section danger-zone"><h2 class="settings-title">初期化</h2>'
+    + '<p class="note">0次・1次・2次すべてのアイテム・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset + '</div>'
+    + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
 function render(){
-  if(showSettings){
-    appEl.innerHTML = buildSettingsScreenHtml();
-    return;
-  }
-
-  var g = state.activeTab;
-  var meta = GROUP_META[g];
-
-  var html = ''
-    + '<div class="header">'
-    + '<button class="settings-gear" onclick="toggleSettings()">⚙ 設定</button>'
-    + '<h1>わが家の防災リスト</h1>'
-    + '<p>0次・1次・2次の避難グッズと保管場所を管理(この端末に保存)</p>'
-    + '</div>'
-    + '<div class="overview">'
-    + buildOverviewHtml()
-    + '<button class="loc-settings-toggle" onclick="toggleLocSettings()">' + (showLocSettings ? '設定を閉じる' : meta.label + 'の説明・保管場所を編集') + '</button>'
-    + '</div>'
-    + buildLocSettingsHtml(g, meta)
-    + '<div class="tabs">' + buildTabsHtml(g) + '</div>'
-    + '<div class="group-desc" style="border-left:3px solid ' + meta.accent + '">' + escapeHtml(state.groups[g].desc).replace(/\n/g,'<br>') + '</div>'
-    + '<div class="view-toggle" style="--accent:' + meta.accent + '">'
-    + '<button class="' + (viewMode === 'item' ? 'active' : '') + '" onclick="toggleViewMode()">アイテムごと</button>'
-    + '<button class="' + (viewMode === 'location' ? 'active' : '') + '" onclick="toggleViewMode()">保管場所ごと</button>'
-    + '</div>'
-    + (viewMode === 'item'
-        ? ('<div class="items">' + buildItemsHtml(g, meta) + '</div>'
-           + '<div class="add-row">'
-           + '<input type="text" id="new-item-input" placeholder="アイテムを追加(例:携帯充電器)" onkeydown="handleAddItemKey(event,\'' + g + '\')">'
-           + '<button onclick="addItem(\'' + g + '\')">追加</button>'
-           + '</div>'
-           + '<div class="footer-note">保管場所は複数タップで選択できます(もう一度タップで解除)</div>')
-        : buildItemsByLocationHtml(g, meta))
-    ;
-
-  appEl.innerHTML = html;
+  if(!state) return;
+  appEl.innerHTML = showSettings ? buildSettingsHtml() : renderMain();
 }
 
-window.switchTab = switchTab;
-window.toggleCheck = toggleCheck;
-window.setLocation = setLocation;
-window.startEditItem = startEditItem;
-window.saveEditItem = saveEditItem;
-window.handleEditItemKey = handleEditItemKey;
-window.requestDeleteItem = requestDeleteItem;
-window.cancelDeleteItem = cancelDeleteItem;
-window.deleteItem = deleteItem;
-window.addItem = addItem;
-window.handleAddItemKey = handleAddItemKey;
-window.updateDesc = updateDesc;
-window.setThemePref = setThemePref;
-window.toggleSettings = toggleSettings;
-window.toggleExportPanel = toggleExportPanel;
-window.toggleImportPanel = toggleImportPanel;
-window.copyExportText = copyExportText;
-window.downloadExportFile = downloadExportFile;
-window.doImportFromTextarea = doImportFromTextarea;
-window.handleImportFile = handleImportFile;
-window.toggleCsvExportPanel = toggleCsvExportPanel;
-window.toggleCsvImportPanel = toggleCsvImportPanel;
-window.downloadCsvFile = downloadCsvFile;
-window.copyCsvText = copyCsvText;
-window.handleCsvFile = handleCsvFile;
-window.updateCsvText = updateCsvText;
-window.requestCsvOverwrite = requestCsvOverwrite;
-window.cancelCsvOverwrite = cancelCsvOverwrite;
-window.doCsvImport = doCsvImport;
-window.requestReset = requestReset;
-window.cancelReset = cancelReset;
-window.confirmReset = confirmReset;
-window.toggleViewMode = toggleViewMode;
-window.toggleLocSettings = toggleLocSettings;
-window.addLocation = addLocation;
-window.handleAddLocKey = handleAddLocKey;
-window.requestDeleteLocation = requestDeleteLocation;
-window.cancelDeleteLocation = cancelDeleteLocation;
-window.deleteLocation = deleteLocation;
+/* ================= Actions ================= */
+function getGroup(t){
+  var g = t.getAttribute("data-g");
+  return GROUP_ORDER.indexOf(g) !== -1 ? g : state.activeTab;
+}
+function findItem(g, id){
+  var items = state.groups[g].items;
+  for(var i = 0; i < items.length; i++){ if(items[i].id === id) return items[i]; }
+  return null;
+}
+function clearTransient(){ openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
+function downloadFile(text, filename, mime, withBom){
+  var blob = new Blob([(withBom ? "\uFEFF" : "") + text], { type:mime });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = filename; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+}
+function copyFrom(id){
+  var ta = document.getElementById(id);
+  if(!ta) return false;
+  ta.focus(); ta.select();
+  try{ ta.setSelectionRange(0, ta.value.length); }catch(e){}
+  var ok = false;
+  try{ ok = document.execCommand("copy"); }catch(e2){ ok = false; }
+  return ok;
+}
+function focusId(id){ var el = document.getElementById(id); if(el){ try{ el.focus(); }catch(e){} } }
+function scrollToId(id){ var el = document.getElementById(id); if(el && el.scrollIntoView){ try{ el.scrollIntoView({ block:"nearest" }); }catch(e){} } }
+
+function computeCsvPlan(){ var p = planCsvImport(csv.text, csv.mode, state); if(csv.garbled){ p.ok = false; p.next = null; p.fatal.unshift("文字コードを判別できず、文字化けしています。Excelなら「CSV UTF-8(コンマ区切り)」で保存し直してください。"); } return p; }
+function computeJsonPlan(){ var p = planJsonImport(json.text, state); if(json.garbled){ p.ok = false; p.next = null; p.fatal.unshift("文字コードを判別できず、文字化けしています。"); } return p; }
+
+function readFileInto(file, target, after){
+  if(file.size > MAX_FILE_BYTES){ target.msg = { type:"error", text:"ファイルが大きすぎます(上限 3MB)。" }; render(); return; }
+  var reader = new FileReader();
+  reader.onload = function(){
+    var dec = decodeTextBuffer(new Uint8Array(reader.result));
+    target.text = dec.text; target.enc = dec.enc; target.garbled = !!dec.garbled; target.file = file.name; target.msg = null;
+    after();
+  };
+  reader.onerror = function(){ target.msg = { type:"error", text:"ファイルを読み込めませんでした。" }; render(); };
+  reader.readAsArrayBuffer(file);
+}
+
+var ACTIONS = {
+  "tab": function(t){ state.activeTab = getGroup(t); clearTransient(); showLocEditor = false; render(); save(); },
+  "view": function(t){ viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item"; clearTransient(); render(); },
+  "toggle-loc-editor": function(){ showLocEditor = !showLocEditor; pendingDeleteLoc = null; render(); },
+  "toggle-check": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.checked = !it.checked; render(); save(); },
+  "toggle-loc": function(t){
+    var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
+    var li = parseInt(t.getAttribute("data-li"), 10);
+    if(!it || !(li >= 0 && li < grp.locations.length)) return;
+    var loc = grp.locations[li], at = it.locations.indexOf(loc);
+    if(at === -1) it.locations.push(loc); else it.locations.splice(at, 1);
+    render(); save();
+  },
+  "add-item": function(t){
+    var g = getGroup(t), input = document.getElementById("new-item-input");
+    var name = input ? cleanLine(input.value, MAX_NAME) : "";
+    if(!name || state.groups[g].items.length >= MAX_ITEMS) return;
+    state.groups[g].items.push({ id:newId(), name:name, checked:false, locations:[] });
+    render(); save(); focusId("new-item-input");
+  },
+  "start-edit": function(t){ clearTransient(); editingItemId = t.getAttribute("data-id"); render(); focusId("edit-name-input"); var el = document.getElementById("edit-name-input"); if(el && el.select) el.select(); },
+  "save-edit": function(t){
+    var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), input = document.getElementById("edit-name-input");
+    var name = input ? cleanLine(input.value, MAX_NAME) : "";
+    if(it && name) it.name = name;
+    editingItemId = null; render(); save();
+  },
+  "cancel-edit": function(){ editingItemId = null; render(); },
+  "req-del": function(t){ clearTransient(); pendingDeleteId = t.getAttribute("data-id"); render(); },
+  "swipe-del": function(t){ clearTransient(); pendingDeleteId = t.getAttribute("data-id"); render(); },
+  "cancel-del": function(){ pendingDeleteId = null; render(); },
+  "do-del": function(t){
+    var g = getGroup(t), id = t.getAttribute("data-id");
+    state.groups[g].items = state.groups[g].items.filter(function(it){ return it.id !== id; });
+    pendingDeleteId = null; render(); save();
+  },
+  "add-loc": function(t){
+    var g = getGroup(t), input = document.getElementById("new-loc-input"), grp = state.groups[g];
+    var name = input ? cleanLine(input.value, MAX_LOC_NAME) : "";
+    if(!name || findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS){ if(input) input.value = ""; return; }
+    grp.locations.push(name); render(); save(); focusId("new-loc-input");
+  },
+  "req-del-loc": function(t){ pendingDeleteLoc = getGroup(t) + ":" + parseInt(t.getAttribute("data-li"), 10); render(); },
+  "cancel-del-loc": function(){ pendingDeleteLoc = null; render(); },
+  "do-del-loc": function(t){
+    var g = getGroup(t), grp = state.groups[g], li = parseInt(t.getAttribute("data-li"), 10);
+    if(!(li >= 0 && li < grp.locations.length)) return;
+    var loc = grp.locations[li];
+    grp.locations.splice(li, 1);
+    grp.items.forEach(function(it){ it.locations = it.locations.filter(function(l){ return l !== loc; }); });
+    pendingDeleteLoc = null; render(); save();
+  },
+
+  "open-settings": function(){ clearTransient(); resetSettingsUi(); showSettings = true; render(); window.scrollTo(0, 0); },
+  "close-settings": function(){ showSettings = false; resetSettingsUi(); render(); window.scrollTo(0, 0); },
+  "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
+  "panel": function(t){ var p = t.getAttribute("data-p"); if(hasOwn(panels, p)){ panels[p] = !panels[p]; if(p === "csvExport") csv.exportMsg = null; if(p === "jsonExport") json.exportMsg = null; render(); } },
+
+  "csv-download": function(){
+    try{ downloadFile(buildCsvText(), "防災リスト_" + ymd(new Date()) + ".csv", "text/csv;charset=utf-8", true); csv.exportMsg = { type:"ok", text:"ダウンロードを開始しました(文字コード: UTF-8・BOM付き。Excelでも文字化けしません)。保存できない場合は「テキストをコピー」を使ってください。" }; }
+    catch(e){ csv.exportMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」を使ってください。" }; }
+    render();
+  },
+  "csv-copy": function(){ csv.exportMsg = copyFrom("csv-export-text") ? { type:"ok", text:"コピーしました。メモやLINEなどに貼り付けて送れます。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
+  "csv-mode": function(t){ csv.mode = t.getAttribute("data-mode") === "overwrite" ? "overwrite" : "merge"; csv.msg = null; if(csv.text.trim()) csv.plan = computeCsvPlan(); render(); scrollToId("csv-preview"); },
+  "csv-preview": function(){ csv.msg = null; var ta = document.getElementById("csv-import-text"); if(ta) csv.text = ta.value; csv.garbled = false; csv.plan = computeCsvPlan(); render(); scrollToId("csv-preview"); },
+  "csv-clear": function(){ csv.plan = null; csv.text = ""; csv.file = ""; csv.enc = ""; csv.garbled = false; csv.msg = null; render(); },
+  "csv-apply": function(){
+    var ta = document.getElementById("csv-import-text"); if(ta) csv.text = ta.value;
+    var plan = computeCsvPlan();                       // recomputed against the current data
+    csv.plan = plan;
+    if(!plan.ok || !plan.changed){ render(); return; }
+    replaceState(plan.next, "CSV取り込み(" + (csv.mode === "overwrite" ? "上書き" : "マージ") + ")");
+    var tt = plan.totals;
+    csv.msg = { type:"ok", text:"取り込みました(追加 " + tt.added + "・更新 " + tt.updated + (csv.mode === "overwrite" ? "・削除 " + tt.removed : "") + ")。" };
+    csv.text = ""; csv.file = ""; csv.enc = ""; csv.plan = null;
+    render();
+  },
+
+  "json-download": function(){
+    try{ downloadFile(JSON.stringify(state, null, 2), "防災リスト_バックアップ_" + ymd(new Date()) + ".json", "application/json;charset=utf-8", false); json.exportMsg = { type:"ok", text:"ダウンロードを開始しました。保存できない場合は「テキストをコピー」を使ってください。" }; }
+    catch(e){ json.exportMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」を使ってください。" }; }
+    render();
+  },
+  "json-copy": function(){ json.exportMsg = copyFrom("json-export-text") ? { type:"ok", text:"コピーしました。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
+  "json-preview": function(){ json.msg = null; var ta = document.getElementById("json-import-text"); if(ta) json.text = ta.value; json.garbled = false; json.plan = computeJsonPlan(); render(); scrollToId("json-preview"); },
+  "json-clear": function(){ json.plan = null; json.text = ""; json.file = ""; json.enc = ""; json.garbled = false; json.msg = null; render(); },
+  "json-apply": function(){
+    var ta = document.getElementById("json-import-text"); if(ta) json.text = ta.value;
+    var plan = computeJsonPlan(); json.plan = plan;
+    if(!plan.ok){ render(); return; }
+    replaceState(plan.next, "JSONバックアップの取り込み");
+    json.msg = { type:"ok", text:"バックアップの内容に置き換えました。" };
+    json.text = ""; json.file = ""; json.enc = ""; json.plan = null;
+    render();
+  },
+
+  "req-restore": function(){ pendingRestore = true; render(); },
+  "cancel-restore": function(){ pendingRestore = false; render(); },
+  "do-restore": function(){
+    var restored = null;
+    try{ restored = prevSnap ? sanitizeState(JSON.parse(prevSnap.text)) : null; }catch(e){ restored = null; }
+    pendingRestore = false;
+    if(!restored){ prevSnap = null; lsDel(PREV_KEY); render(); return; }
+    migrate(restored);
+    state = restored; prevSnap = null; lsDel(PREV_KEY); clearTransient(); save();
+    csv.msg = null; json.msg = null; render();
+  },
+  "req-reset": function(){ pendingReset = true; render(); },
+  "cancel-reset": function(){ pendingReset = false; render(); },
+  "do-reset": function(){
+    rememberPrev("全データの初期化");
+    state = defaultData(); migrate(state); clearTransient(); pendingReset = false; save(); render();
+  }
+};
+
+/* ---- delegated events ---- */
+appEl.addEventListener("click", function(e){
+  var target = e.target;
+  if(!target || !target.closest) return;
+  var content = target.closest(".swipe-content");
+  if(openSwipeId && content && content.getAttribute("data-swipe-id") === openSwipeId && !target.closest(".swipe-del")){ closeSwipe(); return; }  // tap on an open row just closes it
+  var t = target.closest("[data-act]");
+  if(!t || !appEl.contains(t)) return;
+  var fn = ACTIONS[t.getAttribute("data-act")];
+  if(fn) fn(t, e);
+});
+appEl.addEventListener("keydown", function(e){
+  var t = e.target;
+  if(!t || !t.getAttribute) return;
+  if(e.key === "Enter" && !e.isComposing && t.getAttribute("data-enter")){
+    e.preventDefault();
+    var fn = ACTIONS[t.getAttribute("data-enter")];
+    if(fn) fn(t, e);
+  } else if(e.key === "Escape" && editingItemId){
+    editingItemId = null; render();
+  }
+});
+appEl.addEventListener("input", function(e){
+  var t = e.target;
+  if(!t || !t.getAttribute) return;
+  var kind = t.getAttribute("data-input");
+  if(kind === "csv-text"){ csv.text = t.value; csv.file = ""; csv.garbled = false; csv.plan = null; var pv = document.getElementById("csv-preview"); if(pv) pv.innerHTML = ""; }
+  else if(kind === "json-text"){ json.text = t.value; json.file = ""; json.garbled = false; json.plan = null; var pj = document.getElementById("json-preview"); if(pj) pj.innerHTML = ""; }
+});
+appEl.addEventListener("change", function(e){
+  var t = e.target;
+  if(!t || !t.getAttribute) return;
+  var kind = t.getAttribute("data-change");
+  if(kind === "desc"){
+    var g = getGroup(t);
+    state.groups[g].desc = cleanText(t.value, MAX_DESC) || DEFAULT_DESC[g];
+    save();
+  } else if(kind === "csv-file" && t.files && t.files[0]){
+    readFileInto(t.files[0], csv, function(){ csv.plan = computeCsvPlan(); render(); scrollToId("csv-preview"); });
+  } else if(kind === "json-file" && t.files && t.files[0]){
+    readFileInto(t.files[0], json, function(){ json.plan = computeJsonPlan(); render(); scrollToId("json-preview"); });
+  }
+});
+
+/* ---- swipe to delete ---- */
+var swipe = null;
+function swipeEls(id){
+  var list = appEl.querySelectorAll(".swipe-content");
+  for(var i = 0; i < list.length; i++){
+    if(list[i].getAttribute("data-swipe-id") === id){
+      var btn = list[i].parentNode.querySelector(".swipe-del");
+      return { content:list[i], btn:btn };
+    }
+  }
+  return null;
+}
+function setSwipeOpen(id, open){
+  var els = swipeEls(id);
+  if(!els) return;
+  els.content.classList.remove("dragging");
+  els.content.style.transform = "";
+  if(open) els.content.classList.add("open"); else els.content.classList.remove("open");
+  if(els.btn){ els.btn.setAttribute("tabindex", open ? "0" : "-1"); els.btn.setAttribute("aria-hidden", open ? "false" : "true"); }
+}
+function closeSwipe(){
+  if(!openSwipeId) return;
+  var id = openSwipeId; openSwipeId = null;
+  setSwipeOpen(id, false);
+}
+function swipeOffset(sw, x){ return Math.max(-OPEN_W - 24, Math.min(0, sw.base + (x - sw.x0))); }
+
+appEl.addEventListener("pointerdown", function(e){
+  if(e.pointerType === "mouse" && e.button !== 0) return;
+  var target = e.target;
+  if(!target || !target.closest) return;
+  var content = target.closest(".swipe-content");
+  var onDel = !!target.closest(".swipe-del");
+  if(openSwipeId && !onDel && (!content || content.getAttribute("data-swipe-id") !== openSwipeId)) closeSwipe();
+  if(!content || onDel || content.getAttribute("data-noswipe") || target.closest("input,textarea")) return;
+  var id = content.getAttribute("data-swipe-id");
+  swipe = { id:id, el:content, pid:e.pointerId, x0:e.clientX, y0:e.clientY, base:(openSwipeId === id ? -OPEN_W : 0), dragging:false, off:0 };
+});
+appEl.addEventListener("pointermove", function(e){
+  if(!swipe || e.pointerId !== swipe.pid) return;
+  var dx = e.clientX - swipe.x0, dy = e.clientY - swipe.y0;
+  if(!swipe.dragging){
+    if(Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)){ swipe = null; return; }       // vertical scroll wins
+    if(Math.abs(dx) <= 8 || Math.abs(dx) <= Math.abs(dy)) return;
+    swipe.dragging = true;
+    try{ swipe.el.setPointerCapture(e.pointerId); }catch(err){}
+    swipe.el.classList.add("dragging");
+  }
+  swipe.off = swipeOffset(swipe, e.clientX);
+  swipe.el.style.transform = "translateX(" + swipe.off + "px)";
+});
+function finishSwipe(e){
+  if(!swipe || e.pointerId !== swipe.pid) return;
+  var sw = swipe; swipe = null;
+  if(!sw.dragging) return;
+  try{ sw.el.releasePointerCapture(e.pointerId); }catch(err){}
+  var open = sw.off < -OPEN_W * 0.45;
+  if(open){
+    if(openSwipeId && openSwipeId !== sw.id) closeSwipe();
+    openSwipeId = sw.id; setSwipeOpen(sw.id, true);
+  } else {
+    if(openSwipeId === sw.id) openSwipeId = null;
+    setSwipeOpen(sw.id, false);
+  }
+}
+appEl.addEventListener("pointerup", finishSwipe);
+appEl.addEventListener("pointercancel", finishSwipe);
+
+/* ================= Boot ================= */
+window.BousaiApp = {
+  version:APP_VERSION, versionDate:APP_VERSION_DATE,
+  sanitizeState:sanitizeState, planCsvImport:planCsvImport, planJsonImport:planJsonImport,
+  buildCsvText:buildCsvText, parseCsvRows:parseCsvRows, decodeTextBuffer:decodeTextBuffer,
+  migrate:migrate, defaultData:defaultData,
+  getState:function(){ return state; }
+};
 
 loadThemePref();
-
-if("serviceWorker" in navigator){
-  window.addEventListener("load", function(){
-    navigator.serviceWorker.register("service-worker.js").catch(function(e){
-      console.error("service worker registration failed", e);
-    });
-  });
-}
-try{
-  if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); }
-}catch(e){}
-
 load().catch(function(err){
   appEl.innerHTML = '<div class="empty">読み込み中にエラーが発生しました。ページを再読み込みしてください。</div>';
   console.error(err);
 });
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("service-worker.js").catch(function(e){ console.error("service worker registration failed", e); });
+  });
+}
+try{ if(navigator.storage && navigator.storage.persist){ navigator.storage.persist(); } }catch(e){}
 
 })();
 </script>
