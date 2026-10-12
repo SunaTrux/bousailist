@@ -242,7 +242,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.0";
+var APP_VERSION = "1.1.1";
 var APP_VERSION_DATE = "2026-10-12";
 
 /* ================= Constants ================= */
@@ -250,7 +250,7 @@ var STORAGE_KEY = "bousai-goods-v2";
 var BROKEN_KEY = STORAGE_KEY + "-broken";
 var PREV_KEY = STORAGE_KEY + "-prev";
 var THEME_KEY = "bousai-theme-pref";
-var CONTENT_VERSION = 3;
+var CONTENT_VERSION = 4;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
@@ -262,10 +262,11 @@ var GROUP_META = {
   g2:{ num:"2", label:"2次避難", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
 var DEFAULT_DESC = {
-  g0:"0次の備えは、普段使いのカバンに最小限のグッズを入れて常に携帯する「持ち歩き用」です。",
+  g0:"0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災アイテムを忘れないようにしましょう。",
   g1:"1次の備えは、緊急時に即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
   g2:"2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるようにしましょう。"
 };
+var OLD_DEFAULT_DESC_G0 = "0次の備えは、普段使いのカバンに最小限のグッズを入れて常に携帯する「持ち歩き用」です。";
 var OLD_DEFAULT_DESC_G1 = "1次の備えは、緊急時に即座に持ち出せる「避難用」です。1〜2日は行動できるようにしましょう。";
 var DEFAULT_LOCATIONS = {
   g0:["持ち歩き1","持ち歩き2"],
@@ -273,8 +274,8 @@ var DEFAULT_LOCATIONS = {
   g2:["リビング","寝室","レクルーム","その他ルーム"]
 };
 var DEFAULT_ITEMS = {
-  g0:["ホイッスル・防犯ブザー","携帯ライト","モバイルバッテリー","身分証明書のコピー","お薬手帳・常備薬","マスク","小銭・現金","非常食","絆創膏","アルコール消毒"],
-  g1:["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","タオル","ビニール袋","携帯トイレ"],
+  g0:["ホイッスル・防犯ブザー","携帯ライト","モバイルバッテリー","お薬手帳・常備薬","マスク","小銭・現金","非常食","絆創膏","アルコール消毒"],
+  g1:["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","身分証明書のコピー","タオル","ビニール袋","携帯トイレ"],
   g2:["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]
 };
 var LOC_INPUT_EXAMPLE = { g0:"車のトランク", g1:"車のトランク", g2:"子ども部屋" };
@@ -404,6 +405,17 @@ function migrate(st){
         grp.locations.splice(at === -1 ? grp.locations.length : at + 1, 0, "持ち歩き2");
       }
     }
+  }
+  if(v < 4){
+    // 「身分証明書のコピー」は0次→1次へ。説明文が初期値のままなら新しい文言に
+    var a0 = st.groups.g0.items, a1 = st.groups.g1.items;
+    var at0 = -1;
+    for(var q = 0; q < a0.length; q++){ if(a0[q].name === "身分証明書のコピー"){ at0 = q; break; } }
+    if(at0 !== -1){
+      var moved = a0.splice(at0, 1)[0];
+      if(!a1.some(function(it){ return it.name === moved.name; })) a1.push(moved);
+    }
+    if(st.groups.g0.desc === OLD_DEFAULT_DESC_G0) st.groups.g0.desc = DEFAULT_DESC.g0;
   }
   st.contentVersion = CONTENT_VERSION;
 }
@@ -901,7 +913,7 @@ function renderMain(){
     + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
-    + '<p>0次・1次・2次の避難グッズと保管場所を管理(この端末に保存)</p></div>'
+    + '<p>0次・1次・2次の防災アイテムと保管場所を管理(ブラウザ保存)</p></div>'
     + '<div class="overview">' + buildOverviewHtml()
     + '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + (showLocEditor ? "編集を閉じる" : meta.label + "の説明・保管場所を編集") + '</button></div>'
     + buildLocEditorHtml(g, meta)
