@@ -128,6 +128,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .loc-chip.pending{ padding:6px 8px 6px 12px; flex-wrap:wrap; }
   .suggest-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
   .suggest{ min-height:44px; padding:0 14px; border:1px dashed var(--ink-soft); border-radius:22px; background:transparent; color:var(--ink); font-size:15px; max-width:100%; overflow-wrap:anywhere; }
+  .suggest.on{ display:inline-flex; align-items:center; border-style:solid; border-color:var(--ink-soft); background:var(--card); color:var(--ink-soft); }
   .add-line{ display:flex; gap:8px; }
   .add-line input{ flex:1 1 auto; min-width:0; }
   .add-line .btn{ flex-shrink:0; }
@@ -246,7 +247,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.3";
+var APP_VERSION = "1.1.4";
 var APP_VERSION_DATE = "2026-10-12";
 
 /* ================= Constants ================= */
@@ -282,8 +283,12 @@ var DEFAULT_ITEMS = {
   g1:["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","身分証明書のコピー","タオル","ビニール袋","携帯トイレ"],
   g2:["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]
 };
-var LOC_SUGGEST = { g0:["通勤用","お出かけ用","パパのサコッシュ","ママのポーチ"], g1:[], g2:[] };
-var LOC_INPUT_EXAMPLE = { g0:"通勤バッグ、パパのサコッシュ、ママのポーチ", g1:"車のトランク", g2:"子ども部屋、車のトランク、スーツケース" };
+var LOC_SUGGEST = {
+  g0:["持ち歩き1","持ち歩き2","通勤用","お出かけ用","パパのサコッシュ","ママのポーチ"],
+  g1:["防災リュック1","防災リュック2","パパのリュック","ママのリュック","子どものリュック"],
+  g2:["リビング","寝室","レクルーム","その他ルーム","子ども部屋","車のトランク","スーツケース"]
+};
+var LOC_INPUT_EXAMPLE = { g0:"通勤バッグ、パパのサコッシュ、ママのポーチ", g1:"パパのリュック、ママのリュック", g2:"子ども部屋、車のトランク、スーツケース" };
 
 /* ================= Small helpers ================= */
 var ESC_MAP = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
@@ -859,9 +864,10 @@ function buildLocEditorHtml(g, meta){
 function suggestHtml(g, grp){
   var list = LOC_SUGGEST[g] || [], out = "";
   list.forEach(function(name, i){
-    if(findLoc(grp.locations, name) === -1) out += '<button type="button" class="suggest" data-act="add-loc-suggest" data-g="' + g + '" data-si="' + i + '">＋ ' + esc(name) + '</button>';
+    if(findLoc(grp.locations, name) === -1) out += '<button type="button" class="suggest" aria-pressed="false" data-act="add-loc-suggest" data-g="' + g + '" data-si="' + i + '">＋ ' + esc(name) + '</button>';
+    else out += '<span class="suggest on" aria-pressed="true">✓ ' + esc(name) + '</span>';
   });
-  return out ? '<div class="field-title">ワンタップで追加</div><div class="suggest-row">' + out + '</div>' : "";
+  return out ? '<div class="field-title">タップで追加(✓は追加済み。削除は上の✕から)</div><div class="suggest-row">' + out + '</div>' : "";
 }
 function buildItemRow(g, meta, item, locations){
   var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = openSwipeId === item.id && !editing;
@@ -926,7 +932,7 @@ function renderMain(){
     + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
-    + '<p>0次・1次・2次の防災アイテムと保管場所を管理</p></div>'
+    + '<p>0次・1次・2次の防災用品と保管場所を管理<br>どのグッズがどこにあるか？誰が持ってるか？を把握しよう。</p></div>'
     + '<div class="overview">' + buildOverviewHtml()
     + '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + (showLocEditor ? "編集を閉じる" : meta.label + "の説明・保管場所を編集") + '</button></div>'
     + buildLocEditorHtml(g, meta)
