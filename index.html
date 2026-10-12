@@ -92,6 +92,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .ov-track{ flex:1; min-width:0; height:8px; background:var(--card); border:1px solid var(--line); overflow:hidden; }
   .ov-fill{ height:100%; transition:width .3s ease; }
   .ov-count{ font-size:11px; color:var(--ink-soft); width:44px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
+  .edit-ctl{ padding:4px 20px 0; }
+  .edit-close{ width:100%; min-height:48px; }
   .link-btn{
     align-self:flex-start; min-height:44px; padding:0; font-size:13px; color:var(--ink-soft);
     text-decoration:underline; text-underline-offset:3px; overflow-wrap:anywhere;
@@ -247,7 +249,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.7";
+var APP_VERSION = "1.1.8";
 var APP_VERSION_DATE = "2026-10-12";
 
 /* ================= Constants ================= */
@@ -870,7 +872,8 @@ function buildLocEditorHtml(g, meta){
     + '<div class="loc-chips">' + chips + '</div>'
     + suggestHtml(g, grp)
     + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="新しい保管場所(例:' + esc(LOC_INPUT_EXAMPLE[g]) + ')" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
-    + '<button type="button" class="btn" data-act="add-loc" data-g="' + g + '">追加</button></div></div>';
+    + '<button type="button" class="btn" data-act="add-loc" data-g="' + g + '">追加</button></div>'
+    + '<button type="button" class="btn btn-ghost edit-close" style="margin-top:16px" data-act="toggle-loc-editor">編集を閉じる</button></div>';
 }
 function suggestHtml(g, grp){
   var list = LOC_SUGGEST[g] || [], out = "";
@@ -937,6 +940,12 @@ function buildByLocationHtml(g, meta){
   return html + '</div>';
 }
 
+function locEditControlHtml(g, meta){
+  var top = showLocEditor
+    ? '<button type="button" class="btn btn-ghost edit-close" data-act="toggle-loc-editor">編集を閉じる</button>'
+    : '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + meta.label + 'の説明・保管場所を編集</button>';
+  return '<div class="edit-ctl">' + top + '</div>' + buildLocEditorHtml(g, meta);
+}
 function renderMain(){
   var g = state.activeTab, meta = GROUP_META[g], grp = state.groups[g];
   var html = ''
@@ -944,11 +953,10 @@ function renderMain(){
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
     + '<p>0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどの場所にあるか？誰が持ってるか？把握しよう。</p></div>'
-    + '<div class="overview">' + buildOverviewHtml()
-    + '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + (showLocEditor ? "編集を閉じる" : meta.label + "の説明・保管場所を編集") + '</button></div>'
-    + buildLocEditorHtml(g, meta)
+    + '<div class="overview">' + buildOverviewHtml() + '</div>'
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
     + '<div class="group-desc" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + '</div>'
+    + locEditControlHtml(g, meta)
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
