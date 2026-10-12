@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="0次・1次・2次避難の防災グッズと保管場所を管理するチェックリスト">
+<meta name="description" content="0次・1次・2次の備えの防災グッズと保管場所を管理するチェックリスト">
 <meta name="theme-color" id="meta-theme-color" content="#FAF6EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -247,7 +247,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.4";
+var APP_VERSION = "1.1.5";
 var APP_VERSION_DATE = "2026-10-12";
 
 /* ================= Constants ================= */
@@ -262,9 +262,9 @@ var OPEN_W = 88;
 
 var GROUP_ORDER = ["g0","g1","g2"];
 var GROUP_META = {
-  g0:{ num:"0", label:"0次避難", accent:"var(--clay)",  soft:"var(--clay-soft)" },
-  g1:{ num:"1", label:"1次避難", accent:"var(--amber)", soft:"var(--amber-soft)" },
-  g2:{ num:"2", label:"2次避難", accent:"var(--teal)",  soft:"var(--teal-soft)" }
+  g0:{ num:"0", label:"0次の備え", accent:"var(--clay)",  soft:"var(--clay-soft)" },
+  g1:{ num:"1", label:"1次の備え", accent:"var(--amber)", soft:"var(--amber-soft)" },
+  g2:{ num:"2", label:"2次の備え", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
 var DEFAULT_DESC = {
   g0:"0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災アイテムを忘れないようにしましょう。",
@@ -586,7 +586,7 @@ function splitLocations(cell){
 }
 
 var HEADER_WORDS = {
-  group:["次","次数","避難","次避難","group"],
+  group:["次","次数","避難","次避難","備え","次の備え","group"],
   name:["アイテム名","アイテム","品名","名前","name","item"],
   check:["チェック","チェック状態","状態","準備","check","done"],
   loc:["保管場所","場所","保管","location"]
@@ -696,7 +696,7 @@ function planCsvImport(text, mode, cur){
   });
 
   if(!GROUP_ORDER.some(function(g){ return per[g].present; })){
-    plan.fatal.push("取り込める行が見つかりませんでした。1列目に「0次避難」「1次避難」「2次避難」のどれかが入った行が必要です。");
+    plan.fatal.push("取り込める行が見つかりませんでした。1列目に「0次の備え」「1次の備え」「2次の備え」のどれかが入った行が必要です。");
     if(plan.skipped.length) plan.fatal.push("認識できなかった行: " + plan.skipped.length + "行");
     return plan;
   }
@@ -1060,7 +1060,7 @@ function buildSettingsHtml(){
     + '<div class="settings-section danger-zone"><h2 class="settings-title">初期化</h2>'
     + '<p class="note">0次・1次・2次すべてのアイテム・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset + '</div>'
     + '<div class="settings-section"><h2 class="settings-title">参考にしたもの</h2>'
-    + '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li></ul></div>'
+    + '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li></ul></div>'
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
