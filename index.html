@@ -126,6 +126,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .loc-chip > span{ min-width:0; overflow-wrap:anywhere; }
   .loc-chip .chip-x{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
   .loc-chip.pending{ padding:6px 8px 6px 12px; flex-wrap:wrap; }
+  .suggest-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .suggest{ min-height:44px; padding:0 14px; border:1px dashed var(--ink-soft); border-radius:22px; background:transparent; color:var(--ink); font-size:15px; max-width:100%; overflow-wrap:anywhere; }
   .add-line{ display:flex; gap:8px; }
   .add-line input{ flex:1 1 auto; min-width:0; }
   .add-line .btn{ flex-shrink:0; }
@@ -244,7 +246,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.2";
+var APP_VERSION = "1.1.3";
 var APP_VERSION_DATE = "2026-10-12";
 
 /* ================= Constants ================= */
@@ -280,6 +282,7 @@ var DEFAULT_ITEMS = {
   g1:["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","身分証明書のコピー","タオル","ビニール袋","携帯トイレ"],
   g2:["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]
 };
+var LOC_SUGGEST = { g0:["通勤用","お出かけ用","パパのサコッシュ","ママのポーチ"], g1:[], g2:[] };
 var LOC_INPUT_EXAMPLE = { g0:"通勤バッグ、パパのサコッシュ、ママのポーチ", g1:"車のトランク", g2:"子ども部屋、車のトランク、スーツケース" };
 
 /* ================= Small helpers ================= */
@@ -849,8 +852,16 @@ function buildLocEditorHtml(g, meta){
     + '<textarea class="desc-textarea" maxlength="' + MAX_DESC + '" data-change="desc" data-g="' + g + '">' + esc(grp.desc) + '</textarea>'
     + '<div class="field-title">' + meta.label + 'の保管場所</div>'
     + '<div class="loc-chips">' + chips + '</div>'
+    + suggestHtml(g, grp)
     + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="新しい保管場所(例:' + esc(LOC_INPUT_EXAMPLE[g]) + ')" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
     + '<button type="button" class="btn" data-act="add-loc" data-g="' + g + '">追加</button></div></div>';
+}
+function suggestHtml(g, grp){
+  var list = LOC_SUGGEST[g] || [], out = "";
+  list.forEach(function(name, i){
+    if(findLoc(grp.locations, name) === -1) out += '<button type="button" class="suggest" data-act="add-loc-suggest" data-g="' + g + '" data-si="' + i + '">＋ ' + esc(name) + '</button>';
+  });
+  return out ? '<div class="field-title">ワンタップで追加</div><div class="suggest-row">' + out + '</div>' : "";
 }
 function buildItemRow(g, meta, item, locations){
   var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = openSwipeId === item.id && !editing;
@@ -1139,6 +1150,12 @@ var ACTIONS = {
     var name = input ? cleanLine(input.value, MAX_LOC_NAME) : "";
     if(!name || findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS){ if(input) input.value = ""; return; }
     grp.locations.push(name); render(); save(); focusId("new-loc-input");
+  },
+  "add-loc-suggest": function(t){
+    var g = getGroup(t), grp = state.groups[g], list = LOC_SUGGEST[g] || [];
+    var name = list[parseInt(t.getAttribute("data-si"), 10)];
+    if(!name || findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS) return;
+    grp.locations.push(name); render(); save();
   },
   "req-del-loc": function(t){ pendingDeleteLoc = getGroup(t) + ":" + parseInt(t.getAttribute("data-li"), 10); render(); },
   "cancel-del-loc": function(){ pendingDeleteLoc = null; render(); },
