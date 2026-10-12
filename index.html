@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="0次・1次・2次の備えの防災グッズと保管場所を管理するチェックリスト">
+<meta name="description" content="0次・1次・2次の備えの防災用品と保管場所を管理するチェックリスト">
 <meta name="theme-color" id="meta-theme-color" content="#FAF6EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -247,7 +247,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.5";
+var APP_VERSION = "1.1.6";
 var APP_VERSION_DATE = "2026-10-12";
 
 /* ================= Constants ================= */
@@ -267,7 +267,7 @@ var GROUP_META = {
   g2:{ num:"2", label:"2次の備え", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
 var DEFAULT_DESC = {
-  g0:"0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災アイテムを忘れないようにしましょう。",
+  g0:"0次の備えは、普段の「持ち歩き用」です。外出時の最小限の防災用品を忘れないようにしましょう。",
   g1:"1次の備えは、緊急時に即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
   g2:"2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるようにしましょう。"
 };
@@ -528,9 +528,9 @@ function csvCell(v){
   if(/[",\r\n]/.test(s) || /^\s|\s$/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
-/* columns: 次, アイテム名, チェック(済/未), 保管場所(;区切り). A row with an empty アイテム名 registers a location only. */
+/* columns: 次, 品名, チェック(済/未), 保管場所(;区切り). A row with an empty 品名 registers a location only. */
 function buildCsvText(){
-  var rows = [["次","アイテム名","チェック","保管場所"]];
+  var rows = [["次","品名","チェック","保管場所"]];
   GROUP_ORDER.forEach(function(g){
     var grp = state.groups[g], label = GROUP_META[g].label;
     grp.locations.forEach(function(loc){ rows.push([label, "", "", loc]); });   // locations first: keeps their order
@@ -661,7 +661,7 @@ function planCsvImport(text, mode, cur){
   if(!rows.length){ plan.fatal.push("取り込める行がありません。"); return plan; }
 
   var cols = detectColumns(rows);
-  if(cols.unknown){ plan.fatal.push("このCSVは形式が違うようです。1行目に「次・アイテム名・チェック・保管場所」の見出しが必要です(このアプリから書き出したCSVをご利用ください)。"); return plan; }
+  if(cols.unknown){ plan.fatal.push("このCSVは形式が違うようです。1行目に「次・品名・チェック・保管場所」の見出しが必要です(このアプリから書き出したCSVをご利用ください)。"); return plan; }
   var per = {};
   GROUP_ORDER.forEach(function(g){ per[g] = { present:false, entries:[], byKey:dict(), locOrder:[], locSeen:dict() }; });
   var unknownChecks = dict(), dupCount = 0, truncated = 0;
@@ -703,7 +703,7 @@ function planCsvImport(text, mode, cur){
   var totalEntries = 0;
   GROUP_ORDER.forEach(function(g){ totalEntries += per[g].entries.length; });
   if(mode === "overwrite" && totalEntries === 0){
-    plan.fatal.push("アイテムが1件もないCSVで「上書き」すると、リストが空になってしまいます。取り込みを中止しました。");
+    plan.fatal.push("防災用品が1件もないCSVで「上書き」すると、リストが空になってしまいます。取り込みを中止しました。");
     return plan;
   }
 
@@ -761,7 +761,7 @@ function planCsvImport(text, mode, cur){
     plan.warnings.push("認識できない行を " + plan.skipped.length + "行 スキップします(" + ex + (plan.skipped.length > 3 ? " など" : "") + ")。");
   }
   if(dupCount) plan.warnings.push("同じ次の中に同じ名前の行が重複しています(" + dupCount + "件)。最後の行の内容を使います。");
-  if(truncated) plan.warnings.push("長すぎるアイテム名を " + truncated + "件、" + MAX_NAME + "文字に切り詰めます。");
+  if(truncated) plan.warnings.push("長すぎる品名を " + truncated + "件、" + MAX_NAME + "文字に切り詰めます。");
   var unk = Object.keys(unknownChecks);
   if(unk.length) plan.warnings.push("チェック列に認識できない値があります(" + unk.slice(0, 3).map(function(u){ return "「" + clampStr(u, 8) + "」"; }).join("") + ")。未チェックとして扱います。");
   if(!cols.hasLoc) plan.warnings.push("保管場所の列がないため、保管場所は変更しません。");
@@ -875,7 +875,7 @@ function buildItemRow(g, meta, item, locations){
   var top;
   if(editing){
     top = '<div class="item-top">'
-      + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="アイテム名">'
+      + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
       + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
   } else {
@@ -902,12 +902,12 @@ function buildItemRow(g, meta, item, locations){
 }
 function buildItemsHtml(g, meta){
   var grp = state.groups[g];
-  if(!grp.items.length) return '<div class="empty">まだアイテムがありません。下から追加してください。</div>';
+  if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。下から追加してください。</div>';
   return grp.items.map(function(it){ return buildItemRow(g, meta, it, grp.locations); }).join("");
 }
 function buildByLocationHtml(g, meta){
   var grp = state.groups[g];
-  if(!grp.items.length) return '<div class="empty">まだアイテムがありません。「アイテムごと」から追加できます。</div>';
+  if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。「用品ごと」から追加できます。</div>';
   function row(it){
     var c = it.checked, id = esc(it.id);
     return '<div class="loc-group-item">'
@@ -919,10 +919,10 @@ function buildByLocationHtml(g, meta){
   grp.locations.forEach(function(loc){
     var matched = grp.items.filter(function(it){ return it.locations.indexOf(loc) !== -1; });
     html += '<div class="loc-group-title">' + esc(loc) + '(' + matched.length + ')</div>';
-    html += matched.length ? matched.map(row).join("") : '<div class="note" style="padding:10px 0;margin:0">まだアイテムがありません</div>';
+    html += matched.length ? matched.map(row).join("") : '<div class="note" style="padding:10px 0;margin:0">まだ防災用品がありません</div>';
   });
   var none = grp.items.filter(function(it){ return !it.locations.length; });
-  if(none.length) html += '<div class="loc-group-title">保管場所が未設定のアイテム(' + none.length + ')</div>' + none.map(row).join("");
+  if(none.length) html += '<div class="loc-group-title">保管場所が未設定の防災用品(' + none.length + ')</div>' + none.map(row).join("");
   return html + '</div>';
 }
 
@@ -932,20 +932,20 @@ function renderMain(){
     + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
-    + '<p>0次・1次・2次の防災用品と保管場所を管理<br>どのグッズがどこにあるか？誰が持ってるか？を把握しよう。</p></div>'
+    + '<p>0次・1次・2次の防災用品と保管場所を管理<br>どの防災用品がどこにあるか？誰が持ってるか？を把握しよう。</p></div>'
     + '<div class="overview">' + buildOverviewHtml()
     + '<button type="button" class="link-btn" data-act="toggle-loc-editor">' + (showLocEditor ? "編集を閉じる" : meta.label + "の説明・保管場所を編集") + '</button></div>'
     + buildLocEditorHtml(g, meta)
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
     + '<div class="group-desc" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + '</div>'
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
-    + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">アイテムごと</button>'
+    + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
   if(viewMode === "item"){
     html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
-      + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="アイテムを追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
+      + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>アイテムを左にスワイプすると削除ボタンが出ます</div>';
+      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>防災用品を左にスワイプすると削除ボタンが出ます</div>';
   } else {
     html += '<div style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
@@ -977,7 +977,7 @@ function buildCsvPreviewHtml(plan){
   });
   html += '</div>';
   plan.warnings.forEach(function(w){ html += '<div class="msg warn">' + esc(w) + '</div>'; });
-  if(over && plan.totals.removed) html += '<div class="msg error">CSVにない ' + plan.totals.removed + '件のアイテムが削除されます。取り込み後も「直前の状態に戻す」で元に戻せます。</div>';
+  if(over && plan.totals.removed) html += '<div class="msg error">CSVにない ' + plan.totals.removed + '件の防災用品が削除されます。取り込み後も「直前の状態に戻す」で元に戻せます。</div>';
   else html += '<div class="msg">取り込み後も、設定の「直前の状態に戻す」で元に戻せます。</div>';
   if(!plan.changed) html += '<div class="msg warn">現在のリストとの違いがないため、取り込む内容はありません。</div>';
   else html += '<div class="btn-row"><button type="button" class="btn ' + (over ? "btn-danger" : "") + '" data-act="csv-apply">この内容で取り込む</button><button type="button" class="btn btn-ghost" data-act="csv-clear">やめる</button></div>';
@@ -989,7 +989,7 @@ function buildJsonPreviewHtml(plan){
   if(!plan.ok) return html;
   html += '<div class="preview"><h3>取り込みの確認:全データを置き換え</h3>';
   plan.counts.forEach(function(c){
-    html += '<div class="pv-group"><div class="pv-head">' + c.label + '<small>アイテム ' + c.now + '件 → ' + c.after + '件・保管場所 ' + c.locs + 'か所</small></div></div>';
+    html += '<div class="pv-group"><div class="pv-head">' + c.label + '<small>防災用品 ' + c.now + '件 → ' + c.after + '件・保管場所 ' + c.locs + 'か所</small></div></div>';
   });
   html += '</div><div class="msg error">今のデータ(説明文・保管場所・チェック状態を含む全部)がバックアップの内容に置き換わります。取り込み後も「直前の状態に戻す」で元に戻せます。</div>'
     + '<div class="btn-row"><button type="button" class="btn btn-danger" data-act="json-apply">この内容で置き換える</button><button type="button" class="btn btn-ghost" data-act="json-clear">やめる</button></div>';
@@ -1010,12 +1010,12 @@ function buildSettingsHtml(){
   var csvImport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvImport">' + (panels.csvImport ? "CSVインポートを閉じる" : "CSVからインポート") + '</button>';
   if(panels.csvImport){
     csvImport += '<div class="panel">'
-      + '<p class="note">取り込む前に、何がどう変わるかを必ず表示します(確認してから取り込めます)。<br><b>マージ</b>:同じ次・同じアイテム名は更新し、新しいものだけ追加します。自分のアイテムは消えません。<br><b>上書き</b>:CSVに含まれる次のリストを、CSVの内容にそろえます(CSVにないアイテムは削除)。</p>'
+      + '<p class="note">取り込む前に、何がどう変わるかを必ず表示します(確認してから取り込めます)。<br><b>マージ</b>:同じ次・同じ品名は更新し、新しいものだけ追加します。自分の防災用品は消えません。<br><b>上書き</b>:CSVに含まれる次のリストを、CSVの内容にそろえます(CSVにない防災用品は削除)。</p>'
       + '<div class="seg" style="margin-bottom:12px"><button type="button" class="' + (csv.mode === "merge" ? "active" : "") + '" data-act="csv-mode" data-mode="merge">マージ(おすすめ)</button><button type="button" class="' + (csv.mode === "overwrite" ? "active" : "") + '" data-act="csv-mode" data-mode="overwrite">上書き</button></div>'
       + '<p class="field-title">CSVファイルを選ぶ</p><input type="file" accept=".csv,.txt,text/csv,text/plain" data-change="csv-file" style="margin-bottom:12px">'
       + (csv.file ? '<p class="note">読み込んだファイル: ' + esc(csv.file) + '(文字コード: ' + esc(csv.enc) + ')</p>' : '')
       + '<p class="field-title">またはCSVのテキストを貼り付け</p>'
-      + '<textarea class="code-box" id="csv-import-text" data-input="csv-text" placeholder="次,アイテム名,チェック,保管場所" aria-label="CSVのテキスト">' + esc(csv.text) + '</textarea>'
+      + '<textarea class="code-box" id="csv-import-text" data-input="csv-text" placeholder="次,品名,チェック,保管場所" aria-label="CSVのテキスト">' + esc(csv.text) + '</textarea>'
       + '<div class="btn-row"><button type="button" class="btn" data-act="csv-preview">内容を確認する</button></div>'
       + '<div id="csv-preview">' + (csv.plan ? buildCsvPreviewHtml(csv.plan) : "") + '</div>' + msgHtml(csv.msg) + '</div>';
   }
@@ -1052,13 +1052,13 @@ function buildSettingsHtml(){
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
     + '<div class="settings-section"><h2 class="settings-title">テーマ</h2><div class="seg">' + seg + '</div></div>'
     + '<div class="settings-section"><h2 class="settings-title">家族と共有(CSV)</h2>'
-    + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。アイテムとチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。アイテム名が空の行は、保管場所だけを登録する行です。</p>'
+    + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>'
     + csvExport + csvImport + '</div>'
     + '<div class="settings-section"><h2 class="settings-title">全データのバックアップ(JSON)</h2>'
     + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport + '</div>'
     + restore
     + '<div class="settings-section danger-zone"><h2 class="settings-title">初期化</h2>'
-    + '<p class="note">0次・1次・2次すべてのアイテム・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset + '</div>'
+    + '<p class="note">0次・1次・2次すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset + '</div>'
     + '<div class="settings-section"><h2 class="settings-title">参考にしたもの</h2>'
     + '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li></ul></div>'
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
