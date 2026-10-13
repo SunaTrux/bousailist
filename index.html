@@ -205,6 +205,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .switch .knob{ width:22px; height:22px; border-radius:50%; background:var(--ink-soft); flex-shrink:0; }
   .switch.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
   .switch.on .knob{ background:var(--paper); order:-1; }
+  .is-hidden .item-name, .is-hidden .locations{ opacity:.5; }
+  .tag-hidden{ display:inline-block; margin-left:6px; padding:0 6px; border:1px solid var(--line); border-radius:4px; font-size:11px; color:var(--ink-soft); vertical-align:middle; }
+  .swipe-hide{ background:var(--ink-soft); }
   .footer-note{ padding:8px 20px 4px; font-size:12px; color:var(--ink-soft); text-align:center; }
   .empty{ padding:28px 20px; text-align:center; color:var(--ink-soft); font-size:14px; }
 
@@ -258,11 +261,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.2.1";
+var APP_VERSION = "1.3.0";
 var APP_VERSION_DATE = "2026-10-12";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.3.0", lines:["用品一覧では、左スワイプか👁で用品を「非表示」にできます(削除はしません)。","「非表示を表示」スイッチで、非表示の用品を見て、表示に戻せます。","削除は、設定の「防災用品マスタ」から行います。"] },
   { v:"1.2.1", lines:["用品一覧の上に「左スワイプで削除」のスイッチを置きました(初期は非表示)。"] },
   { v:"1.2.0", lines:["用品一覧のスワイプ削除は、初期は使わない設定になりました(設定でオンにできます)。","設定に「防災用品マスタ」を追加。ここではスワイプで削除できます。"] },
   { v:"1.1.11", lines:["編集ボタンを「〇次の保管場所を編集」に、戻るボタンを「一覧に戻る」に変更しました。","保管場所の追加候補と、0次の説明文を見直しました。"] },
@@ -285,8 +289,8 @@ var STORAGE_KEY = "bousai-goods-v2";
 var BROKEN_KEY = STORAGE_KEY + "-broken";
 var PREV_KEY = STORAGE_KEY + "-prev";
 var THEME_KEY = "bousai-theme-pref";
-var SWIPE_KEY = "bousai-swipe-main";   // 用品一覧でのスワイプ削除(初期は非表示)
-var swipeMain = (function(){ try{ return window.localStorage.getItem("bousai-swipe-main") === "1"; }catch(e){ return false; } })();
+var SHOWHIDDEN_KEY = "bousai-show-hidden";   // 非表示にした用品も一覧に出すか(初期は出さない)
+var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
 var CONTENT_VERSION = 6;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
@@ -410,7 +414,7 @@ function sanitizeState(raw){
       });
       var id = (typeof it.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(it.id) && !usedIds[it.id]) ? it.id : newId();
       usedIds[id] = true;
-      items.push({ id:id, name:name, checked:it.checked === true, locations:locs });
+      items.push({ id:id, name:name, checked:it.checked === true, hidden:it.hidden === true, locations:locs });
     });
     out.groups[g] = { desc:desc, locations:locations, items:items };
   });
@@ -881,6 +885,8 @@ function resetSettingsUi(){
 
 /* ================= Rendering ================= */
 var ICON_EDIT = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" stroke="currentColor" stroke-width="2"/></svg>';
+var ICON_EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+var ICON_EYE_OFF = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
 var ICON_X = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 var ICON_OK = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 var ICON_TICK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
@@ -890,7 +896,7 @@ function msgHtml(m){ return m ? '<div class="msg ' + (m.type === "error" ? "erro
 
 function buildOverviewHtml(){
   return GROUP_ORDER.map(function(g){
-    var m = GROUP_META[g], items = state.groups[g].items, done = 0;
+    var m = GROUP_META[g], items = state.groups[g].items.filter(function(it){ return !it.hidden; }), done = 0;
     items.forEach(function(it){ if(it.checked) done++; });
     var pct = items.length ? Math.round(done / items.length * 100) : 0;
     return '<div class="ov-row"><div class="ov-label" style="color:' + m.accent + '">' + m.label + '</div>'
@@ -935,10 +941,9 @@ function suggestHtml(g, grp){
   });
   return out ? '<div class="field-title">タップで追加(✓は追加済み。削除は上の✕から)</div><div class="suggest-row">' + out + '</div>' : "";
 }
-function buildItemRow(g, meta, item, locations, alwaysSwipe){
-  var swipeOn = alwaysSwipe || swipeMain;
-  var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = swipeOn && openSwipeId === item.id && !editing;
-  var id = esc(item.id), checked = item.checked;
+function buildItemRow(g, meta, item, locations){
+  var editing = editingItemId === item.id, open = openSwipeId === item.id && !editing;
+  var id = esc(item.id), checked = item.checked, hid = item.hidden === true;
   var top;
   if(editing){
     top = '<div class="item-top">'
@@ -951,21 +956,18 @@ function buildItemRow(g, meta, item, locations, alwaysSwipe){
       + '<span class="checkbox' + (checked ? " checked" : "") + '" style="' + (checked ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></button>'
       + '<div class="item-name' + (checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(item.name) + '</div>'
       + '<button type="button" class="icon-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
-      + '<button type="button" class="icon-btn" data-act="req-del" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を削除">' + ICON_X + '</button></div>';
+      + '<button type="button" class="icon-btn" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + (hid ? 'を表示に戻す' : 'を非表示にする') + '">' + (hid ? ICON_EYE_OFF : ICON_EYE) + '</button></div>';
   }
   var pills = locations.length ? locations.map(function(loc, i){
     var on = item.locations.indexOf(loc) !== -1;
     return '<button type="button" class="loc-pill' + (on ? " active" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + esc(loc) + '</button>';
   }).join("") : '';
-  var confirm = pending ? '<div class="confirm-row" role="alert"><span>「' + esc(item.name) + '」を削除しますか？</span>'
-    + '<button type="button" class="btn btn-danger" data-act="do-del" data-g="' + g + '" data-id="' + id + '">削除する</button>'
-    + '<button type="button" class="btn btn-ghost" data-act="cancel-del">キャンセル</button></div>' : '';
-  return '<div class="item"><div class="swipe-wrap">'
-    + (swipeOn ? '<button type="button" class="swipe-del" data-act="swipe-del" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">削除</button>' : '')
-    + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + ((editing || !swipeOn) ? ' data-noswipe="1"' : "") + '>'
+  return '<div class="item' + (hid ? ' is-hidden' : '') + '"><div class="swipe-wrap">'
+    + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
+    + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top
-    + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「説明・保管場所を編集」で追加できます)</div>')
-    + confirm + '</div></div></div>';
+    + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「' + GROUP_META[g].num + '次の保管場所を編集」で追加できます)</div>')
+    + '</div></div></div>';
 }
 function buildMasterRow(g, item){
   var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = openSwipeId === item.id && !editing;
@@ -976,7 +978,7 @@ function buildMasterRow(g, item){
       + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
   } else {
-    top = '<div class="item-top"><div class="item-name" style="cursor:default;padding-left:0">' + esc(item.name) + '</div>'
+    top = '<div class="item-top"><div class="item-name" style="cursor:default;padding-left:0">' + esc(item.name) + (item.hidden ? ' <span class="tag-hidden">非表示中</span>' : '') + '</div>'
       + '<button type="button" class="icon-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
       + '<button type="button" class="icon-btn" data-act="req-del" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を削除">' + ICON_X + '</button></div>';
   }
@@ -989,7 +991,7 @@ function buildMasterRow(g, item){
     + top + confirm + '</div></div></div>';
 }
 function buildMasterHtml(){
-  var h = '<p class="note">すべての防災用品を一覧で整理できます。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。</p>';
+  var h = '<p class="note">防災用品を完全に削除するのは、ここです。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。メイン画面で非表示にした用品も、ここに表示されます。</p>';
   GROUP_ORDER.forEach(function(g){
     var grp = state.groups[g];
     h += '<div class="loc-group-title">' + GROUP_META[g].label + '(' + grp.items.length + ')</div>';
@@ -1000,25 +1002,28 @@ function buildMasterHtml(){
 function buildItemsHtml(g, meta){
   var grp = state.groups[g];
   if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。下から追加してください。</div>';
-  return grp.items.map(function(it){ return buildItemRow(g, meta, it, grp.locations); }).join("");
+  var vis = grp.items.filter(function(it){ return showHidden || !it.hidden; });
+  if(!vis.length) return '<div class="empty">すべて非表示になっています。上のスイッチで表示できます。</div>';
+  return vis.map(function(it){ return buildItemRow(g, meta, it, grp.locations); }).join("");
 }
 function buildByLocationHtml(g, meta){
   var grp = state.groups[g];
   if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。「用品ごと」から追加できます。</div>';
   function row(it){
     var c = it.checked, id = esc(it.id);
-    return '<div class="loc-group-item">'
+    return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + '">'
       + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
       + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(it.name) + '</div></div>';
   }
   var html = '<div class="loc-group">';
+  var shown = grp.items.filter(function(it){ return showHidden || !it.hidden; });
   if(!grp.locations.length) html += '<div class="loc-group-title">保管場所が未設定です</div>';
   grp.locations.forEach(function(loc){
-    var matched = grp.items.filter(function(it){ return it.locations.indexOf(loc) !== -1; });
+    var matched = shown.filter(function(it){ return it.locations.indexOf(loc) !== -1; });
     html += '<div class="loc-group-title">' + esc(loc) + '(' + matched.length + ')</div>';
     html += matched.length ? matched.map(row).join("") : '<div class="note" style="padding:10px 0;margin:0">まだ防災用品がありません</div>';
   });
-  var none = grp.items.filter(function(it){ return !it.locations.length; });
+  var none = shown.filter(function(it){ return !it.locations.length; });
   if(none.length) html += '<div class="loc-group-title">保管場所が未設定の防災用品(' + none.length + ')</div>' + none.map(row).join("");
   return html + '</div>';
 }
@@ -1043,13 +1048,14 @@ function renderMain(){
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
+  var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
+  html += '<div class="swipe-pref"><span>非表示 ' + hiddenCount + '件</span>'
+    + '<button type="button" class="switch' + (showHidden ? " on" : "") + '" role="switch" aria-checked="' + showHidden + '" aria-label="非表示の防災用品も表示する" data-act="toggle-show-hidden"><span class="switch-label">' + (showHidden ? "非表示も表示中" : "非表示を表示") + '</span><span class="knob"></span></button></div>';
   if(viewMode === "item"){
-    html += '<div class="swipe-pref"><span>左スワイプで削除</span>'
-      + '<button type="button" class="switch' + (swipeMain ? " on" : "") + '" role="switch" aria-checked="' + swipeMain + '" aria-label="左スワイプで削除" data-act="swipe-pref" data-v="' + (swipeMain ? "off" : "on") + '"><span class="switch-label">' + (swipeMain ? "表示中" : "非表示") + '</span><span class="knob"></span></button></div>'
-      + '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
+    html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>' + (swipeMain ? '防災用品を左にスワイプすると削除ボタンが出ます' : '削除は✕ボタンから。スワイプ削除は上のスイッチでオンにできます(設定の「防災用品マスタ」でもスワイプで削除できます)') + '</div>';
+      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>左にスワイプするか👁を押すと非表示になります(削除は設定の「防災用品マスタ」から)</div>';
   } else {
     html += '<div style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
@@ -1283,7 +1289,8 @@ var ACTIONS = {
 
   "open-settings": function(){ clearTransient(); resetSettingsUi(); showSettings = true; render(); window.scrollTo(0, 0); },
   "close-settings": function(){ showSettings = false; resetSettingsUi(); render(); window.scrollTo(0, 0); },
-  "swipe-pref": function(t){ swipeMain = t.getAttribute("data-v") === "on"; lsSet(SWIPE_KEY, swipeMain ? "1" : "0"); closeSwipe(); render(); },
+  "toggle-hide": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.hidden = !it.hidden; closeSwipe(); render(); save(); },
+  "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
   "panel": function(t){ var p = t.getAttribute("data-p"); if(hasOwn(panels, p)){ panels[p] = !panels[p]; if(p === "csvExport") csv.exportMsg = null; if(p === "jsonExport") json.exportMsg = null; render(); } },
 
