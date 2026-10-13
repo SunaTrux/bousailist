@@ -200,6 +200,11 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .add-row{ display:flex; gap:8px; padding:16px 20px 8px; }
   .add-row input{ flex:1 1 auto; min-width:0; }
   .add-row .btn{ flex-shrink:0; }
+  .swipe-pref{ display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:6px 20px; font-size:13px; color:var(--ink-soft); border-bottom:1px solid var(--line); }
+  .switch{ position:relative; display:flex; align-items:center; gap:8px; min-height:44px; padding:0 8px 0 12px; border:1px solid var(--line); border-radius:22px; background:var(--card); color:var(--ink-soft); font-size:13px; font-weight:700; }
+  .switch .knob{ width:22px; height:22px; border-radius:50%; background:var(--ink-soft); flex-shrink:0; }
+  .switch.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .switch.on .knob{ background:var(--paper); order:-1; }
   .footer-note{ padding:8px 20px 4px; font-size:12px; color:var(--ink-soft); text-align:center; }
   .empty{ padding:28px 20px; text-align:center; color:var(--ink-soft); font-size:14px; }
 
@@ -253,11 +258,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.2.0";
+var APP_VERSION = "1.2.1";
 var APP_VERSION_DATE = "2026-10-12";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.2.1", lines:["用品一覧の上に「左スワイプで削除」のスイッチを置きました(初期は非表示)。"] },
   { v:"1.2.0", lines:["用品一覧のスワイプ削除は、初期は使わない設定になりました(設定でオンにできます)。","設定に「防災用品マスタ」を追加。ここではスワイプで削除できます。"] },
   { v:"1.1.11", lines:["編集ボタンを「〇次の保管場所を編集」に、戻るボタンを「一覧に戻る」に変更しました。","保管場所の追加候補と、0次の説明文を見直しました。"] },
   { v:"1.1.10", lines:["説明・保管場所の編集リンクを、元の位置(タブの上)に戻しました。"] },
@@ -1038,10 +1044,12 @@ function renderMain(){
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
   if(viewMode === "item"){
-    html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
+    html += '<div class="swipe-pref"><span>左スワイプで削除</span>'
+      + '<button type="button" class="switch' + (swipeMain ? " on" : "") + '" role="switch" aria-checked="' + swipeMain + '" aria-label="左スワイプで削除" data-act="swipe-pref" data-v="' + (swipeMain ? "off" : "on") + '"><span class="switch-label">' + (swipeMain ? "表示中" : "非表示") + '</span><span class="knob"></span></button></div>'
+      + '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>' + (swipeMain ? '防災用品を左にスワイプすると削除ボタンが出ます' : '整理するときは、設定の「防災用品マスタ」からスワイプで削除できます') + '</div>';
+      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>' + (swipeMain ? '防災用品を左にスワイプすると削除ボタンが出ます' : '削除は✕ボタンから。スワイプ削除は上のスイッチでオンにできます(設定の「防災用品マスタ」でもスワイプで削除できます)') + '</div>';
   } else {
     html += '<div style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
@@ -1147,9 +1155,6 @@ function buildSettingsHtml(){
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
     + '<div class="settings-section"><h2 class="settings-title">テーマ</h2><div class="seg">' + seg + '</div></div>'
-    + '<div class="settings-section"><h2 class="settings-title">一覧のスワイプ削除</h2>'
-    + '<p class="note">用品の一覧(メイン画面)で左スワイプによる削除を使うか選べます。誤って消さないよう、初期は「使わない」です。✕ボタンはどちらでも使えます。</p>'
-    + '<div class="seg"><button type="button" class="' + (swipeMain ? "" : "active") + '" data-act="swipe-pref" data-v="off">使わない</button><button type="button" class="' + (swipeMain ? "active" : "") + '" data-act="swipe-pref" data-v="on">使う</button></div></div>'
     + '<div class="settings-section"><h2 class="settings-title">防災用品マスタ</h2>' + buildMasterHtml() + '</div>'
     + '<div class="settings-section"><h2 class="settings-title">家族と共有(CSV)</h2>'
     + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>'
