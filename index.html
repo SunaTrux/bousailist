@@ -253,11 +253,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.1.11";
+var APP_VERSION = "1.2.0";
 var APP_VERSION_DATE = "2026-10-12";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.2.0", lines:["用品一覧のスワイプ削除は、初期は使わない設定になりました(設定でオンにできます)。","設定に「防災用品マスタ」を追加。ここではスワイプで削除できます。"] },
   { v:"1.1.11", lines:["編集ボタンを「〇次の保管場所を編集」に、戻るボタンを「一覧に戻る」に変更しました。","保管場所の追加候補と、0次の説明文を見直しました。"] },
   { v:"1.1.10", lines:["説明・保管場所の編集リンクを、元の位置(タブの上)に戻しました。"] },
   { v:"1.1.9", lines:["更新のお知らせ表示を追加しました。","新しい版があるときは、再読み込みをすすめるお知らせが出ます。"] },
@@ -278,6 +279,8 @@ var STORAGE_KEY = "bousai-goods-v2";
 var BROKEN_KEY = STORAGE_KEY + "-broken";
 var PREV_KEY = STORAGE_KEY + "-prev";
 var THEME_KEY = "bousai-theme-pref";
+var SWIPE_KEY = "bousai-swipe-main";   // 用品一覧でのスワイプ削除(初期は非表示)
+var swipeMain = (function(){ try{ return window.localStorage.getItem("bousai-swipe-main") === "1"; }catch(e){ return false; } })();
 var CONTENT_VERSION = 6;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
@@ -926,8 +929,9 @@ function suggestHtml(g, grp){
   });
   return out ? '<div class="field-title">タップで追加(✓は追加済み。削除は上の✕から)</div><div class="suggest-row">' + out + '</div>' : "";
 }
-function buildItemRow(g, meta, item, locations){
-  var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = openSwipeId === item.id && !editing;
+function buildItemRow(g, meta, item, locations, alwaysSwipe){
+  var swipeOn = alwaysSwipe || swipeMain;
+  var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = swipeOn && openSwipeId === item.id && !editing;
   var id = esc(item.id), checked = item.checked;
   var top;
   if(editing){
@@ -951,11 +955,41 @@ function buildItemRow(g, meta, item, locations){
     + '<button type="button" class="btn btn-danger" data-act="do-del" data-g="' + g + '" data-id="' + id + '">削除する</button>'
     + '<button type="button" class="btn btn-ghost" data-act="cancel-del">キャンセル</button></div>' : '';
   return '<div class="item"><div class="swipe-wrap">'
-    + '<button type="button" class="swipe-del" data-act="swipe-del" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">削除</button>'
-    + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
+    + (swipeOn ? '<button type="button" class="swipe-del" data-act="swipe-del" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">削除</button>' : '')
+    + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + ((editing || !swipeOn) ? ' data-noswipe="1"' : "") + '>'
     + top
     + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「説明・保管場所を編集」で追加できます)</div>')
     + confirm + '</div></div></div>';
+}
+function buildMasterRow(g, item){
+  var editing = editingItemId === item.id, pending = pendingDeleteId === item.id, open = openSwipeId === item.id && !editing;
+  var id = esc(item.id), top;
+  if(editing){
+    top = '<div class="item-top">'
+      + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
+      + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
+      + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
+  } else {
+    top = '<div class="item-top"><div class="item-name" style="cursor:default;padding-left:0">' + esc(item.name) + '</div>'
+      + '<button type="button" class="icon-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
+      + '<button type="button" class="icon-btn" data-act="req-del" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を削除">' + ICON_X + '</button></div>';
+  }
+  var confirm = pending ? '<div class="confirm-row" role="alert"><span>「' + esc(item.name) + '」を削除しますか？</span>'
+    + '<button type="button" class="btn btn-danger" data-act="do-del" data-g="' + g + '" data-id="' + id + '">削除する</button>'
+    + '<button type="button" class="btn btn-ghost" data-act="cancel-del">キャンセル</button></div>' : '';
+  return '<div class="item"><div class="swipe-wrap">'
+    + '<button type="button" class="swipe-del" data-act="swipe-del" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">削除</button>'
+    + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
+    + top + confirm + '</div></div></div>';
+}
+function buildMasterHtml(){
+  var h = '<p class="note">すべての防災用品を一覧で整理できます。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。</p>';
+  GROUP_ORDER.forEach(function(g){
+    var grp = state.groups[g];
+    h += '<div class="loc-group-title">' + GROUP_META[g].label + '(' + grp.items.length + ')</div>';
+    h += grp.items.length ? grp.items.map(function(it){ return buildMasterRow(g, it); }).join("") : '<div class="note" style="padding:6px 0;margin:0">防災用品がありません</div>';
+  });
+  return h;
 }
 function buildItemsHtml(g, meta){
   var grp = state.groups[g];
@@ -1007,7 +1041,7 @@ function renderMain(){
     html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>防災用品を左にスワイプすると削除ボタンが出ます</div>';
+      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>' + (swipeMain ? '防災用品を左にスワイプすると削除ボタンが出ます' : '整理するときは、設定の「防災用品マスタ」からスワイプで削除できます') + '</div>';
   } else {
     html += '<div style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
@@ -1113,6 +1147,10 @@ function buildSettingsHtml(){
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
     + '<div class="settings-section"><h2 class="settings-title">テーマ</h2><div class="seg">' + seg + '</div></div>'
+    + '<div class="settings-section"><h2 class="settings-title">一覧のスワイプ削除</h2>'
+    + '<p class="note">用品の一覧(メイン画面)で左スワイプによる削除を使うか選べます。誤って消さないよう、初期は「使わない」です。✕ボタンはどちらでも使えます。</p>'
+    + '<div class="seg"><button type="button" class="' + (swipeMain ? "" : "active") + '" data-act="swipe-pref" data-v="off">使わない</button><button type="button" class="' + (swipeMain ? "active" : "") + '" data-act="swipe-pref" data-v="on">使う</button></div></div>'
+    + '<div class="settings-section"><h2 class="settings-title">防災用品マスタ</h2>' + buildMasterHtml() + '</div>'
     + '<div class="settings-section"><h2 class="settings-title">家族と共有(CSV)</h2>'
     + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>'
     + csvExport + csvImport + '</div>'
@@ -1240,6 +1278,7 @@ var ACTIONS = {
 
   "open-settings": function(){ clearTransient(); resetSettingsUi(); showSettings = true; render(); window.scrollTo(0, 0); },
   "close-settings": function(){ showSettings = false; resetSettingsUi(); render(); window.scrollTo(0, 0); },
+  "swipe-pref": function(t){ swipeMain = t.getAttribute("data-v") === "on"; lsSet(SWIPE_KEY, swipeMain ? "1" : "0"); closeSwipe(); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
   "panel": function(t){ var p = t.getAttribute("data-p"); if(hasOwn(panels, p)){ panels[p] = !panels[p]; if(p === "csvExport") csv.exportMsg = null; if(p === "jsonExport") json.exportMsg = null; render(); } },
 
