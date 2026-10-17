@@ -172,9 +172,22 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .swipe-content.dragging{ transition:none; }
   .swipe-content.open{ transform:translateX(-88px); }
+  .swipe-content.open-l{ transform:translateX(88px); }
+  .swipe-pin{
+    position:absolute; top:0; left:0; bottom:0; width:88px; display:flex; align-items:center; justify-content:center;
+    background:var(--teal); color:var(--on-accent); font-size:15px; font-weight:700; text-align:center;
+  }
   .item-top{ display:flex; align-items:center; gap:2px; min-height:48px; }
   .row-btn{ width:40px; height:48px; border-radius:8px; }
   @media (max-width:360px){ .row-btn{ width:34px; } .item-top{ gap:0; } }
+  /* スマホの横向き: 画面を広く使い、用品を2列に並べる(並べ替えのドラッグは縦1列の前提なので、横向きでは持ち手を隠す) */
+  @media (orientation:landscape) and (max-height:520px) and (min-width:560px){
+    #app{ max-width:none; }
+    .items{ display:grid; grid-template-columns:1fr 1fr; column-gap:28px; align-items:start; }
+    .loc-group{ display:grid; grid-template-columns:1fr 1fr; column-gap:28px; align-content:start; }
+    .loc-group > .loc-group-title, .loc-group > .note{ grid-column:1 / -1; }
+    .item-top .drag-handle{ display:none; }
+  }
   .drag-handle{ flex-shrink:0; width:38px; height:48px; margin-left:0; margin-right:-6px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; }
   .item.drag-lifted{ position:relative; z-index:6; background:var(--paper); box-shadow:0 6px 18px rgba(0,0,0,.28); transition:none; }
   .item.drag-lifted .swipe-content{ background:var(--paper); }
@@ -290,11 +303,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.7.0";
+var APP_VERSION = "1.8.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.8.0", lines:["用品を右にスワイプすると「ピン留め」ができます(左スワイプは今まで通り非表示)。","スマホを横向きにすると、用品が2列で表示されます(横向きのときは並べ替えの持ち手は出ません)。"] },
   { v:"1.7.0", lines:["用品の行に「ピン」ボタンを追加。ピン留めした用品は、いつも一覧の先頭に出ます。","用品一覧の上のスイッチで「未チェックだけ」に絞り込めます(残り件数つき)。"] },
   { v:"1.6.2", lines:["「全データを初期化する」を押したとき、先にバックアップ(JSON)を保存するボタンを出すようにしました。"] },
   { v:"1.6.1", lines:["「直前の状態に戻す」を、「CSVの取り込み前に戻す」「初期化前に戻す」のように、何の前に戻るかが分かる表示にしました。","戻せるのは直前の1回だけで、用品1件の削除などは対象外であることも説明に書きました。"] },
@@ -923,6 +937,7 @@ function planJsonImport(text, cur){
 var viewMode = "item";
 var showLocEditor = false;
 var showSettings = false;
+var openSwipeSide = "r";   // 開いているスワイプの側: "r"=右側のボタン(非表示/削除) "l"=左側のボタン(ピン留め)
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
 var pendingReset = false, pendingRestore = false, resetBackupMsg = null;
 var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
@@ -1002,7 +1017,7 @@ function suggestHtml(g, grp){
   return out ? '<div class="field-title">タップで追加(✓は追加済み。削除は上の✕から)</div><div class="suggest-row">' + out + '</div>' : "";
 }
 function buildItemRow(g, meta, item, locations){
-  var editing = editingItemId === item.id, open = openSwipeId === item.id && !editing;
+  var editing = editingItemId === item.id, open = openSwipeId === item.id && !editing && openSwipeSide === "r", openL = openSwipeId === item.id && !editing && openSwipeSide === "l";
   var id = esc(item.id), checked = item.checked, hid = item.hidden === true;
   var top;
   if(editing){
@@ -1025,8 +1040,9 @@ function buildItemRow(g, meta, item, locations){
     return '<button type="button" class="loc-pill' + (on ? " active" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + esc(loc) + '</button>';
   }).join("") : '';
   return '<div class="item' + (hid ? ' is-hidden' : '') + (item.pinned ? ' is-pinned' : '') + '"><div class="swipe-wrap">'
+    + '<button type="button" class="swipe-pin" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" tabindex="' + (openL ? 0 : -1) + '" aria-hidden="' + (openL ? "false" : "true") + '">' + (item.pinned ? "ピンを外す" : "ピン留め") + '</button>'
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
-    + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
+    + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top
     + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「' + GROUP_META[g].num + '次の保管場所を編集」で追加できます)</div>')
     + '</div></div></div>';
@@ -1498,10 +1514,11 @@ var ACTIONS = {
 
 /* ---- delegated events ---- */
 appEl.addEventListener("click", function(e){
+  if(Date.now() < suppressClickUntil){ suppressClickUntil = 0; return; }
   var target = e.target;
   if(!target || !target.closest) return;
   var content = target.closest(".swipe-content");
-  if(openSwipeId && content && content.getAttribute("data-swipe-id") === openSwipeId && !target.closest(".swipe-del")){ closeSwipe(); return; }  // tap on an open row just closes it
+  if(openSwipeId && content && content.getAttribute("data-swipe-id") === openSwipeId && !target.closest(".swipe-del, .swipe-pin")){ closeSwipe(); return; }  // tap on an open row just closes it
   var t = target.closest("[data-act]");
   if(!t || !appEl.contains(t)) return;
   var fn = ACTIONS[t.getAttribute("data-act")];
@@ -1642,42 +1659,45 @@ appEl.addEventListener("keydown", function(e){
 });
 
 /* ---- swipe to delete ---- */
-var swipe = null;
+var swipe = null, suppressClickUntil = 0;
 function swipeEls(id){
   var list = appEl.querySelectorAll(".swipe-content");
   for(var i = 0; i < list.length; i++){
     if(list[i].getAttribute("data-swipe-id") === id){
-      var btn = list[i].parentNode.querySelector(".swipe-del");
-      return { content:list[i], btn:btn };
+      var wrap = list[i].parentNode;
+      return { content:list[i], btn:wrap.querySelector(".swipe-del"), pinBtn:wrap.querySelector(".swipe-pin") };
     }
   }
   return null;
 }
-function setSwipeOpen(id, open){
+function setSwipeOpen(id, open, side){
   var els = swipeEls(id);
   if(!els) return;
+  side = side || "r";
   els.content.classList.remove("dragging");
   els.content.style.transform = "";
-  if(open) els.content.classList.add("open"); else els.content.classList.remove("open");
-  if(els.btn){ els.btn.setAttribute("tabindex", open ? "0" : "-1"); els.btn.setAttribute("aria-hidden", open ? "false" : "true"); }
+  els.content.classList.toggle("open", !!open && side === "r");
+  els.content.classList.toggle("open-l", !!open && side === "l");
+  if(els.btn){ els.btn.setAttribute("tabindex", open && side === "r" ? "0" : "-1"); els.btn.setAttribute("aria-hidden", open && side === "r" ? "false" : "true"); }
+  if(els.pinBtn){ els.pinBtn.setAttribute("tabindex", open && side === "l" ? "0" : "-1"); els.pinBtn.setAttribute("aria-hidden", open && side === "l" ? "false" : "true"); }
 }
 function closeSwipe(){
   if(!openSwipeId) return;
   var id = openSwipeId; openSwipeId = null;
   setSwipeOpen(id, false);
 }
-function swipeOffset(sw, x){ return Math.max(-OPEN_W - 24, Math.min(0, sw.base + (x - sw.x0))); }
+function swipeOffset(sw, x){ return Math.max(-OPEN_W - 24, Math.min(sw.pin ? OPEN_W + 24 : 0, sw.base + (x - sw.x0))); }
 
 appEl.addEventListener("pointerdown", function(e){
   if(e.pointerType === "mouse" && e.button !== 0) return;
   var target = e.target;
   if(!target || !target.closest) return;
   var content = target.closest(".swipe-content");
-  var onDel = !!target.closest(".swipe-del");
+  var onDel = !!target.closest(".swipe-del, .swipe-pin");
   if(openSwipeId && !onDel && (!content || content.getAttribute("data-swipe-id") !== openSwipeId)) closeSwipe();
   if(!content || onDel || content.getAttribute("data-noswipe") || target.closest("input,textarea,.drag-handle")) return;
   var id = content.getAttribute("data-swipe-id");
-  swipe = { id:id, el:content, pid:e.pointerId, x0:e.clientX, y0:e.clientY, base:(openSwipeId === id ? -OPEN_W : 0), dragging:false, off:0 };
+  swipe = { id:id, el:content, pid:e.pointerId, x0:e.clientX, y0:e.clientY, pin:!!content.getAttribute("data-pin"), base:(openSwipeId === id ? (openSwipeSide === "l" ? OPEN_W : -OPEN_W) : 0), dragging:false, off:0 };
 });
 appEl.addEventListener("pointermove", function(e){
   if(!swipe || e.pointerId !== swipe.pid) return;
@@ -1696,11 +1716,12 @@ function finishSwipe(e){
   if(!swipe || e.pointerId !== swipe.pid) return;
   var sw = swipe; swipe = null;
   if(!sw.dragging) return;
+  suppressClickUntil = Date.now() + 400;   // マウスでドラッグした直後の「クリック」で閉じ直さない
   try{ sw.el.releasePointerCapture(e.pointerId); }catch(err){}
-  var open = sw.off < -OPEN_W * 0.45;
-  if(open){
+  var side = sw.off < -OPEN_W * 0.45 ? "r" : (sw.pin && sw.off > OPEN_W * 0.45 ? "l" : null);
+  if(side){
     if(openSwipeId && openSwipeId !== sw.id) closeSwipe();
-    openSwipeId = sw.id; setSwipeOpen(sw.id, true);
+    openSwipeId = sw.id; openSwipeSide = side; setSwipeOpen(sw.id, true, side);
   } else {
     if(openSwipeId === sw.id) openSwipeId = null;
     setSwipeOpen(sw.id, false);
