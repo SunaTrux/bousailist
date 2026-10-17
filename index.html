@@ -224,6 +224,22 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
   /* ---------- Settings ---------- */
   .back-btn{ min-height:44px; padding:0; font-size:14px; font-weight:700; color:var(--ink-soft); }
+  .acc{ border-bottom:1px solid var(--line); }
+  .acc-h{ margin:0; font-size:inherit; }
+  .acc-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:56px;
+    padding:10px 20px; text-align:left; background:transparent; color:var(--ink);
+  }
+  .acc-t{ display:flex; flex-direction:column; gap:2px; min-width:0; font-size:15px; font-weight:900; }
+  .acc-t small{ font-size:12px; font-weight:500; color:var(--ink-soft); overflow-wrap:anywhere; }
+  .acc-ch{ flex:none; display:inline-flex; color:var(--ink-soft); transition:transform .18s ease; }
+  .acc-btn[aria-expanded="true"] .acc-ch{ transform:rotate(90deg); }
+  .acc-body{ padding:2px 20px 20px; }
+  .acc-sub{ font-size:13px; font-weight:900; margin:18px 0 6px; padding-top:14px; border-top:1px dashed var(--line); }
+  .acc-sub:first-child{ margin-top:0; padding-top:0; border-top:0; }
+  .acc-sub + .note{ margin-top:0; }
+  .acc.danger .acc-btn[aria-expanded="true"] .acc-t, .acc.danger .acc-sub{ color:var(--clay); }
+  @media (prefers-reduced-motion: reduce){ .acc-ch{ transition:none; } }
   .settings-section{ padding:20px; border-bottom:1px solid var(--line); }
   .settings-title{ font-size:14px; font-weight:900; margin:0 0 10px; }
   .note{ font-size:13px; color:var(--ink-soft); line-height:1.7; margin:0 0 12px; overflow-wrap:anywhere; }
@@ -268,11 +284,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.5.0";
-var APP_VERSION_DATE = "2026-10-12";
+var APP_VERSION = "1.6.0";
+var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.6.0", lines:["設定画面を、見出しだけの目次から始まる形にしました。見出しを押すと、その項目だけが開きます。","書き出し(Markdown/CSV/JSON)は「書き出し・共有・バックアップ」に、初期化などは「危険な操作」にまとめました。"] },
   { v:"1.5.0", lines:["設定に「メモ・LINE用(Markdown)」の書き出しを追加しました。","コピーしてLINEやメモに貼ったり、.mdファイルで保存したりできます。"] },
   { v:"1.4.3", lines:["非表示ボタンのアイコンを、目に斜線の形に統一しました(絵文字の👁は使いません)。"] },
   { v:"1.4.2", lines:["並べ替えの持ち手を、iPhone標準と同じ「三本線(≡)」の形にしました。"] },
@@ -883,6 +900,7 @@ var showLocEditor = false;
 var showSettings = false;
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
 var pendingReset = false, pendingRestore = false;
+var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
 var mdMsg = null;
 var panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
 var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
@@ -893,10 +911,11 @@ function resetSettingsUi(){
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
-  pendingReset = false; pendingRestore = false;
+  pendingReset = false; pendingRestore = false; openSecs = [];
 }
 
 /* ================= Rendering ================= */
+var ICON_CHEV = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var ICON_EDIT = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" stroke="currentColor" stroke-width="2"/></svg>';
 var ICON_EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 var ICON_EYE_OFF = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
@@ -1167,33 +1186,48 @@ function buildSettingsHtml(){
 
   var restore = '';
   if(prevSnap){
-    restore = '<div class="settings-section"><h2 class="settings-title">直前の状態に戻す</h2>'
+    restore = '<h3 class="acc-sub">直前の状態に戻す</h3>'
       + '<p class="note">「' + esc(prevSnap.label) + '」の直前(' + fmtTime(prevSnap.at) + ')の状態に戻せます。今の状態は元に戻されます。</p>'
       + (pendingRestore
         ? '<div class="confirm-row" style="margin-left:0" role="alert"><span>戻すと、その後の変更は失われます。よろしいですか？</span><button type="button" class="btn btn-danger" data-act="do-restore">戻す</button><button type="button" class="btn btn-ghost" data-act="cancel-restore">キャンセル</button></div>'
         : '<button type="button" class="settings-btn" data-act="req-restore">直前の状態に戻す</button>')
-      + '</div>';
+      + '';
   }
   var reset = pendingReset
     ? '<div class="confirm-row" style="margin-left:0" role="alert"><span>全データを削除して初期状態に戻します。本当によろしいですか？(直前の状態に戻す機能で元に戻せます)</span><button type="button" class="btn btn-danger" data-act="do-reset">初期化する</button><button type="button" class="btn btn-ghost" data-act="cancel-reset">キャンセル</button></div>'
     : '<button type="button" class="btn btn-ghost" style="width:100%;border-color:var(--clay);color:var(--clay)" data-act="req-reset">全データを初期化する</button>';
 
+  var total = 0, hiddenN = 0;
+  GROUP_ORDER.forEach(function(g){ state.groups[g].items.forEach(function(it){ total++; if(it.hidden) hiddenN++; }); });
+  var themeName = themePref === "light" ? "ライト" : themePref === "dark" ? "ダーク" : "端末に合わせる";
+  var pendingBy = {
+    master: !!(pendingDeleteId || pendingDeleteLoc),
+    share: !!(csv.plan || json.plan),
+    danger: !!(pendingReset || pendingRestore)
+  };
+  function acc(key, title, summary, body, cls){
+    var open = openSecs.indexOf(key) >= 0;
+    return '<section class="acc' + (cls ? " " + cls : "") + '" data-sec-wrap="' + key + '">'
+      + '<h2 class="acc-h"><button type="button" class="acc-btn" data-act="toggle-sec" data-sec="' + key + '" aria-expanded="' + open + '" aria-controls="sec-' + key + '">'
+      + '<span class="acc-t">' + title + (summary ? '<small>' + esc(summary) + '</small>' : '') + '</span>'
+      + '<span class="acc-ch" aria-hidden="true">' + ICON_CHEV + '</span></button></h2>'
+      + (open ? '<div class="acc-body" id="sec-' + key + '">' + body + '</div>' : '')
+      + '</section>';
+  }
+  var themeBody = '<div class="seg">' + seg + '</div>';
+  var shareBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
+    + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport
+    + '<h3 class="acc-sub">自分用の完全バックアップ(JSON)</h3>' + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport;
+  var dangerBody = restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">0次・1次・2次すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
+  var dangerSummary = prevSnap ? "直前の状態に戻す・初期化" : "初期化";
+
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
-    + '<div class="settings-section"><h2 class="settings-title">テーマ</h2><div class="seg">' + seg + '</div></div>'
-    + '<div class="settings-section"><h2 class="settings-title">防災用品マスタ</h2>' + buildMasterHtml() + '</div>'
-    + '<div class="settings-section"><h2 class="settings-title">メモ・LINE用(Markdown)</h2>'
-    + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport + '</div>'
-    + '<div class="settings-section"><h2 class="settings-title">家族と共有(CSV)</h2>'
-    + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>'
-    + csvExport + csvImport + '</div>'
-    + '<div class="settings-section"><h2 class="settings-title">全データのバックアップ(JSON)</h2>'
-    + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport + '</div>'
-    + restore
-    + '<div class="settings-section danger-zone"><h2 class="settings-title">初期化</h2>'
-    + '<p class="note">0次・1次・2次すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset + '</div>'
-    + '<div class="settings-section"><h2 class="settings-title">参考にしたもの</h2>'
-    + '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li></ul></div>'
+    + acc("theme", "テーマ", themeName, themeBody)
+    + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
+    + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
+    + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
+    + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li></ul>')
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
@@ -1333,6 +1367,18 @@ var ACTIONS = {
   "toggle-hide": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.hidden = !it.hidden; closeSwipe(); render(); save(); },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
+  "toggle-sec": function(t){
+    var k = t.getAttribute("data-sec"), idx = openSecs.indexOf(k);
+    var pend = { master: !!(pendingDeleteId || pendingDeleteLoc), share: !!(csv.plan || json.plan), danger: !!(pendingReset || pendingRestore) };
+    if(idx >= 0){ if(!pend[k]) openSecs.splice(idx, 1); }
+    else {
+      openSecs = openSecs.filter(function(x){ return pend[x]; });  // 確認中・作業中の見出しは開いたまま残す
+      openSecs.push(k);
+      if(k !== "master"){ openSwipeId = null; }
+    }
+    render();
+    if(idx < 0){ var w = appEl.querySelector('[data-sec-wrap="' + k + '"]'); if(w && w.scrollIntoView) w.scrollIntoView({ block:"start" }); }
+  },
   "panel": function(t){ var p = t.getAttribute("data-p"); if(hasOwn(panels, p)){ panels[p] = !panels[p]; if(p === "csvExport") csv.exportMsg = null; if(p === "mdExport") mdMsg = null; if(p === "jsonExport") json.exportMsg = null; render(); } },
 
   "csv-download": function(){
