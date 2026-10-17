@@ -284,11 +284,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.6.1";
+var APP_VERSION = "1.6.2";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.6.2", lines:["「全データを初期化する」を押したとき、先にバックアップ(JSON)を保存するボタンを出すようにしました。"] },
   { v:"1.6.1", lines:["「直前の状態に戻す」を、「CSVの取り込み前に戻す」「初期化前に戻す」のように、何の前に戻るかが分かる表示にしました。","戻せるのは直前の1回だけで、用品1件の削除などは対象外であることも説明に書きました。"] },
   { v:"1.6.0", lines:["設定画面を、見出しだけの目次から始まる形にしました。見出しを押すと、その項目だけが開きます。","書き出し(Markdown/CSV/JSON)は「書き出し・共有・バックアップ」に、初期化などは「危険な操作」にまとめました。"] },
   { v:"1.5.0", lines:["設定に「メモ・LINE用(Markdown)」の書き出しを追加しました。","コピーしてLINEやメモに貼ったり、.mdファイルで保存したりできます。"] },
@@ -907,7 +908,7 @@ var viewMode = "item";
 var showLocEditor = false;
 var showSettings = false;
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
-var pendingReset = false, pendingRestore = false;
+var pendingReset = false, pendingRestore = false, resetBackupMsg = null;
 var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
 var mdMsg = null;
 var panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
@@ -919,7 +920,7 @@ function resetSettingsUi(){
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
-  pendingReset = false; pendingRestore = false; openSecs = [];
+  pendingReset = false; pendingRestore = false; resetBackupMsg = null; openSecs = [];
 }
 
 /* ================= Rendering ================= */
@@ -1202,7 +1203,9 @@ function buildSettingsHtml(){
         : '<button type="button" class="settings-btn" data-act="req-restore">' + esc(before) + '前に戻す(' + fmtTime(prevSnap.at) + ')</button>');
   }
   var reset = pendingReset
-    ? '<div class="confirm-row" style="margin-left:0" role="alert"><span>全データを削除して初期状態に戻します。本当によろしいですか？(「危険な操作」から、初期化前の状態に戻せます)</span><button type="button" class="btn btn-danger" data-act="do-reset">初期化する</button><button type="button" class="btn btn-ghost" data-act="cancel-reset">キャンセル</button></div>'
+    ? '<div class="panel" role="alert"><p class="note" style="margin-bottom:10px"><b>初期化の前に、バックアップ(JSON)を保存しておくのがおすすめです。</b>初期化すると、いまの用品・保管場所・説明文・チェック状態が消えます。</p>'
+      + '<button type="button" class="btn" style="width:100%" data-act="reset-backup">先にバックアップを保存する</button>' + msgHtml(resetBackupMsg)
+      + '<div class="confirm-row" style="margin-left:0;margin-top:12px"><span>全データを削除して初期状態に戻します。本当によろしいですか？(「危険な操作」から、初期化前の状態に戻すこともできます)</span><button type="button" class="btn btn-danger" data-act="do-reset">初期化する</button><button type="button" class="btn btn-ghost" data-act="cancel-reset">キャンセル</button></div></div>'
     : '<button type="button" class="btn btn-ghost" style="width:100%;border-color:var(--clay);color:var(--clay)" data-act="req-reset">全データを初期化する</button>';
 
   var total = 0, hiddenN = 0;
@@ -1421,6 +1424,11 @@ var ACTIONS = {
     catch(e){ json.exportMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」を使ってください。" }; }
     render();
   },
+  "reset-backup": function(){
+    try{ downloadFile(JSON.stringify(state, null, 2), "防災リスト_バックアップ_" + ymd(new Date()) + ".json", "application/json;charset=utf-8", false); resetBackupMsg = { type:"ok", text:"バックアップを保存しました。端末のダウンロードを確認してください。続けて初期化できます。" }; }
+    catch(e){ resetBackupMsg = { type:"error", text:"保存できませんでした。キャンセルして、「書き出し・共有・バックアップ」の「テキストをコピー」を使ってください。" }; }
+    render();
+  },
   "json-copy": function(){ json.exportMsg = copyFrom("json-export-text") ? { type:"ok", text:"コピーしました。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
   "json-preview": function(){ json.msg = null; var ta = document.getElementById("json-import-text"); if(ta) json.text = ta.value; json.garbled = false; json.plan = computeJsonPlan(); render(); scrollToId("json-preview"); },
   "json-clear": function(){ json.plan = null; json.text = ""; json.file = ""; json.enc = ""; json.garbled = false; json.msg = null; render(); },
@@ -1445,8 +1453,8 @@ var ACTIONS = {
     state = restored; prevSnap = null; lsDel(PREV_KEY); clearTransient(); save();
     csv.msg = null; json.msg = null; render();
   },
-  "req-reset": function(){ pendingReset = true; render(); },
-  "cancel-reset": function(){ pendingReset = false; render(); },
+  "req-reset": function(){ resetBackupMsg = null; pendingReset = true; render(); },
+  "cancel-reset": function(){ resetBackupMsg = null; pendingReset = false; render(); },
   "do-reset": function(){
     rememberPrev("全データの初期化");
     state = defaultData(); migrate(state); clearTransient(); pendingReset = false; save(); render();
