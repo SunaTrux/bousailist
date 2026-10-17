@@ -307,11 +307,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.8.2";
+var APP_VERSION = "1.8.3";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.8.3", lines:["トップの説明文の言い回しを「どの防災用品がどこにあるか？」に直しました。"] },
   { v:"1.8.2", lines:["絞り込みの行が、狭い画面でも1行に収まるように、文字と余白を調整しました。"] },
   { v:"1.8.1", lines:["一覧の上の絞り込みを、「表示:すべて/未チェックだけ(件数)」と「非表示も表示(件数)」のチェックにまとめ直しました。"] },
   { v:"1.8.0", lines:["用品を右にスワイプすると「ピン留め」ができます(左スワイプは今まで通り非表示)。","スマホを横向きにすると、用品が2列で表示されます(横向きのときは並べ替えの持ち手は出ません)。"] },
@@ -1127,7 +1128,7 @@ function renderMain(){
     + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
-    + '<p>0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどの場所にあるか？誰が持ってるか？把握しよう。</p></div>'
+    + '<p>0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。</p></div>'
     + '<div class="overview">' + buildOverviewHtml() + locEditControlHtml(g, meta) + '</div>'
     + buildLocEditorHtml(g, meta)
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
