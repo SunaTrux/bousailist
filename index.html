@@ -268,11 +268,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.4.3";
+var APP_VERSION = "1.5.0";
 var APP_VERSION_DATE = "2026-10-12";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.5.0", lines:["設定に「メモ・LINE用(Markdown)」の書き出しを追加しました。","コピーしてLINEやメモに貼ったり、.mdファイルで保存したりできます。"] },
   { v:"1.4.3", lines:["非表示ボタンのアイコンを、目に斜線の形に統一しました(絵文字の👁は使いません)。"] },
   { v:"1.4.2", lines:["並べ替えの持ち手を、iPhone標準と同じ「三本線(≡)」の形にしました。"] },
   { v:"1.4.1", lines:["並べ替えの持ち手を右端に移し、✎・👁・持ち手を押しやすい大きさに調整しました。"] },
@@ -882,13 +883,14 @@ var showLocEditor = false;
 var showSettings = false;
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
 var pendingReset = false, pendingRestore = false;
-var panels = { csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
+var mdMsg = null;
+var panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
 var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
 var json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
 var appEl = document.getElementById("app");
 
 function resetSettingsUi(){
-  panels = { csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
+  panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   pendingReset = false; pendingRestore = false;
@@ -1125,6 +1127,11 @@ function buildSettingsHtml(){
     return '<button type="button" class="' + ((themePref === v) ? "active" : "") + '" data-act="theme" data-theme="' + (v || "auto") + '">' + label + '</button>';
   }).join("");
 
+  var mdExport = '<button type="button" class="settings-btn" data-act="panel" data-p="mdExport">' + (panels.mdExport ? "Markdownを閉じる" : "Markdownで書き出し") + '</button>';
+  if(panels.mdExport){
+    mdExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="md-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="md-download">.mdファイルをダウンロード</button></div>'
+      + '<textarea class="code-box" id="md-export-text" readonly aria-label="Markdownの内容">' + esc(buildMarkdownText()) + '</textarea>' + msgHtml(mdMsg) + '</div>';
+  }
   var csvExport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvExport">' + (panels.csvExport ? "CSVエクスポートを閉じる" : "リストをCSVでエクスポート") + '</button>';
   if(panels.csvExport){
     csvExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="csv-download">CSVをダウンロード</button><button type="button" class="btn btn-ghost" data-act="csv-copy">テキストをコピー</button></div>'
@@ -1175,6 +1182,8 @@ function buildSettingsHtml(){
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
     + '<div class="settings-section"><h2 class="settings-title">テーマ</h2><div class="seg">' + seg + '</div></div>'
     + '<div class="settings-section"><h2 class="settings-title">防災用品マスタ</h2>' + buildMasterHtml() + '</div>'
+    + '<div class="settings-section"><h2 class="settings-title">メモ・LINE用(Markdown)</h2>'
+    + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport + '</div>'
     + '<div class="settings-section"><h2 class="settings-title">家族と共有(CSV)</h2>'
     + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>'
     + csvExport + csvImport + '</div>'
@@ -1204,6 +1213,25 @@ function findItem(g, id){
   return null;
 }
 function clearTransient(){ openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
+/* メモ・LINE・印刷向けの読み物(取り込み用ではありません)。非表示の用品は含めません。 */
+function buildMarkdownText(){
+  function one(v){ return String(v).replace(/[\r\n]+/g, " ").trim(); }
+  var d = new Date();
+  var out = ["# わが家の防災リスト", "", d.getFullYear() + "/" + pad2(d.getMonth() + 1) + "/" + pad2(d.getDate()) + " 時点", ""];
+  GROUP_ORDER.forEach(function(g){
+    var grp = state.groups[g], items = grp.items.filter(function(it){ return !it.hidden; });
+    var done = items.filter(function(it){ return it.checked; }).length;
+    out.push("## " + GROUP_META[g].label + "(" + done + "/" + items.length + ")", "");
+    if(grp.desc) out.push(one(grp.desc), "");
+    if(grp.locations.length) out.push("保管場所: " + grp.locations.map(one).join("、"), "");
+    items.forEach(function(it){
+      var locs = it.locations.length ? "(" + it.locations.map(one).join("・") + ")" : "";
+      out.push("- [" + (it.checked ? "x" : " ") + "] " + one(it.name) + locs);
+    });
+    out.push("");
+  });
+  return out.join("\n").replace(/\n+$/, "\n");
+}
 function downloadFile(text, filename, mime, withBom){
   var blob = new Blob([(withBom ? "\uFEFF" : "") + text], { type:mime });
   var url = URL.createObjectURL(blob);
@@ -1305,11 +1333,17 @@ var ACTIONS = {
   "toggle-hide": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.hidden = !it.hidden; closeSwipe(); render(); save(); },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
-  "panel": function(t){ var p = t.getAttribute("data-p"); if(hasOwn(panels, p)){ panels[p] = !panels[p]; if(p === "csvExport") csv.exportMsg = null; if(p === "jsonExport") json.exportMsg = null; render(); } },
+  "panel": function(t){ var p = t.getAttribute("data-p"); if(hasOwn(panels, p)){ panels[p] = !panels[p]; if(p === "csvExport") csv.exportMsg = null; if(p === "mdExport") mdMsg = null; if(p === "jsonExport") json.exportMsg = null; render(); } },
 
   "csv-download": function(){
     try{ downloadFile(buildCsvText(), "防災リスト_" + ymd(new Date()) + ".csv", "text/csv;charset=utf-8", true); csv.exportMsg = { type:"ok", text:"ダウンロードを開始しました(文字コード: UTF-8・BOM付き。Excelでも文字化けしません)。保存できない場合は「テキストをコピー」を使ってください。" }; }
     catch(e){ csv.exportMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」を使ってください。" }; }
+    render();
+  },
+  "md-copy": function(){ mdMsg = copyFrom("md-export-text") ? { type:"ok", text:"コピーしました。LINEやメモに貼り付けられます。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
+  "md-download": function(){
+    try{ downloadFile(buildMarkdownText(), "防災リスト_" + ymd(new Date()) + ".md", "text/markdown;charset=utf-8", true); mdMsg = { type:"ok", text:"ダウンロードを開始しました(文字コードはUTF-8)。" }; }
+    catch(e){ mdMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」をお使いください。" }; }
     render();
   },
   "csv-copy": function(){ csv.exportMsg = copyFrom("csv-export-text") ? { type:"ok", text:"コピーしました。メモやLINEなどに貼り付けて送れます。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
@@ -1578,6 +1612,7 @@ appEl.addEventListener("pointercancel", finishSwipe);
 
 /* ================= Boot ================= */
 window.BousaiApp = {
+  buildMarkdownText:buildMarkdownText,
   version:APP_VERSION, versionDate:APP_VERSION_DATE,
   sanitizeState:sanitizeState, planCsvImport:planCsvImport, planJsonImport:planJsonImport,
   buildCsvText:buildCsvText, parseCsvRows:parseCsvRows, decodeTextBuffer:decodeTextBuffer,
