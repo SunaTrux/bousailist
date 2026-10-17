@@ -211,6 +211,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .switch.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
   .switch.on .knob{ background:var(--paper); order:-1; }
   .is-hidden .item-name, .is-hidden .locations{ opacity:.5; }
+  .inline-ic{ display:inline-block; vertical-align:-5px; line-height:0; }
+  .inline-ic svg{ width:18px; height:18px; }
   .tag-hidden{ display:inline-block; margin-left:6px; padding:0 6px; border:1px solid var(--line); border-radius:4px; font-size:11px; color:var(--ink-soft); vertical-align:middle; }
   .swipe-hide{ background:var(--ink-soft); }
   .footer-note{ padding:8px 20px 4px; font-size:12px; color:var(--ink-soft); text-align:center; }
@@ -266,11 +268,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.4.2";
+var APP_VERSION = "1.4.3";
 var APP_VERSION_DATE = "2026-10-12";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.4.3", lines:["非表示ボタンのアイコンを、目に斜線の形に統一しました(絵文字の👁は使いません)。"] },
   { v:"1.4.2", lines:["並べ替えの持ち手を、iPhone標準と同じ「三本線(≡)」の形にしました。"] },
   { v:"1.4.1", lines:["並べ替えの持ち手を右端に移し、✎・👁・持ち手を押しやすい大きさに調整しました。"] },
   { v:"1.4.0", lines:["用品一覧の左端の「⋮⋮」をドラッグして、順番を入れ替えられます。"] },
@@ -965,7 +968,7 @@ function buildItemRow(g, meta, item, locations){
       + '<span class="checkbox' + (checked ? " checked" : "") + '" style="' + (checked ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></button>'
       + '<div class="item-name' + (checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(item.name) + '</div>'
       + '<button type="button" class="icon-btn row-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
-      + '<button type="button" class="icon-btn row-btn" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + (hid ? 'を表示に戻す' : 'を非表示にする') + '">' + (hid ? ICON_EYE_OFF : ICON_EYE) + '</button>'
+      + '<button type="button" class="icon-btn row-btn" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + (hid ? 'を表示に戻す' : 'を非表示にする') + '">' + (hid ? ICON_EYE : ICON_EYE_OFF) + '</button>'
       + '<button type="button" class="drag-handle" data-drag-id="' + id + '" data-g="' + g + '" aria-label="' + esc(item.name) + 'を並べ替え(ドラッグ、または上下キー)">' + ICON_GRIP + '</button></div>';
   }
   var pills = locations.length ? locations.map(function(loc, i){
@@ -1065,7 +1068,7 @@ function renderMain(){
     html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>左にスワイプするか👁を押すと非表示になります(削除は設定の「防災用品マスタ」から)</div>';
+      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります(削除は設定の「防災用品マスタ」から)</div>';
   } else {
     html += '<div style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
