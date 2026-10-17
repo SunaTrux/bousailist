@@ -229,6 +229,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .fb-box svg{ width:80%; height:80%; }
   .fb-check.on{ color:var(--ink); }
   .fb-check.on .fb-box{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent,#fff); }
+  .import-sum{ margin:0; padding:10px 12px; border-bottom:1px solid var(--line); font-size:13px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
+  .import-sum dt{ color:var(--ink-soft); }
+  .import-sum dd{ margin:0; min-width:0; overflow-wrap:anywhere; }
   .pin-btn{ color:var(--ink-soft); }
   .pin-btn.on{ color:var(--ink); }
   .pin-mark{ display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--ink-soft); }
@@ -307,11 +310,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.8.3";
+var APP_VERSION = "1.9.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.9.0", lines:["書き出すファイルの名前に、端末と環境(例: iPhone-Safari)を入れました。","取り込みの確認に、ファイル名・書き出した端末・取り込み先・取り込み方を表示します。"] },
   { v:"1.8.3", lines:["トップの説明文の言い回しを「どの防災用品がどこにあるか？」に直しました。"] },
   { v:"1.8.2", lines:["絞り込みの行が、狭い画面でも1行に収まるように、文字と余白を調整しました。"] },
   { v:"1.8.1", lines:["一覧の上の絞り込みを、「表示:すべて/未チェックだけ(件数)」と「非表示も表示(件数)」のチェックにまとめ直しました。"] },
@@ -424,6 +428,42 @@ function newId(){
 }
 function pad2(n){ return (n < 10 ? "0" : "") + n; }
 function ymd(d){ return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()); }
+/* 書き出したファイルの名前に入れる「どの端末・環境か」の印(例: iPhone-Safari / Windows-Chrome / iPhone-Safari-アプリ) */
+function deviceTag(){
+  var ua = (typeof navigator !== "undefined" && navigator.userAgent) || "", os = "不明端末", br = "";
+  if(/iPhone|iPod/.test(ua)) os = "iPhone";
+  else if(/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) os = "iPad";
+  else if(/Android/.test(ua)) os = "Android";
+  else if(/Windows/.test(ua)) os = "Windows";
+  else if(/Macintosh|Mac OS X/.test(ua)) os = "Mac";
+  else if(/CrOS/.test(ua)) os = "ChromeOS";
+  else if(/Linux/.test(ua)) os = "Linux";
+  if(/EdgA|EdgiOS|Edg\//.test(ua)) br = "Edge";
+  else if(/OPR\/|OPiOS/.test(ua)) br = "Opera";
+  else if(/SamsungBrowser/.test(ua)) br = "Samsung";
+  else if(/Firefox|FxiOS/.test(ua)) br = "Firefox";
+  else if(/CriOS|Chrome\//.test(ua)) br = "Chrome";
+  else if(/Safari\//.test(ua)) br = "Safari";
+  var standalone = false;
+  try{ standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; }catch(e){}
+  return os + (br ? "-" + br : "") + (standalone ? "-アプリ" : "");
+}
+function exportFileName(kind, ext){ return "防災リスト_" + (kind ? kind + "_" : "") + deviceTag() + "_" + ymd(new Date()) + ext; }
+/* ファイル名から「どの端末で書き出したか」を読み取る(読み取れなければ null) */
+function parseExportOrigin(name){
+  var m = /_((?:iPhone|iPad|Android|Windows|Mac|ChromeOS|Linux|不明端末)(?:-[A-Za-z]+)?(?:-アプリ)?)_(\d{4})(\d{2})(\d{2})(?=[._(]|$)/.exec(name || "");
+  return m ? { device:m[1], date:m[2] + "/" + m[3] + "/" + m[4] } : null;
+}
+function importSummaryHtml(fileName, how){
+  var origin = parseExportOrigin(fileName);
+  var rows = [
+    ["取り込むファイル", fileName ? esc(fileName) : "貼り付けたテキスト"],
+    ["書き出した端末", origin ? esc(origin.device) + "(" + origin.date + " に書き出し)" : "ファイル名からは分かりません"],
+    ["取り込み先", "この端末(" + esc(deviceTag()) + ")のこのアプリ"],
+    ["取り込み方", how]
+  ];
+  return '<dl class="import-sum">' + rows.map(function(r){ return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join("") + '</dl>';
+}
 function fmtTime(ms){ var d = new Date(ms); return pad2(d.getMonth() + 1) + "/" + pad2(d.getDate()) + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
 
 /* ================= State: build / sanitize / migrate ================= */
@@ -1164,7 +1204,8 @@ function buildCsvPreviewHtml(plan){
   plan.fatal.forEach(function(f){ html += '<div class="msg error" role="alert">' + esc(f) + '</div>'; });
   if(!plan.ok) return html;
   var over = plan.mode === "overwrite";
-  html += '<div class="preview"><h3>取り込みの確認:' + (over ? "上書き" : "マージ") + '</h3>';
+  html += '<div class="preview"><h3>取り込みの確認:' + (over ? "上書き" : "マージ") + '</h3>'
+    + importSummaryHtml(csv.file, over ? "<b>上書き</b>:CSVの内容に合わせます。CSVにない用品は削除します。" : "<b>マージ</b>:同じ品名はCSVの内容で更新し、新しい品名は追加します。CSVにない用品は残します。");
   plan.groups.forEach(function(gi){
     html += '<div class="pv-group"><div class="pv-head">' + gi.label;
     if(!gi.present){ html += '<small>CSVに含まれていないので変更しません</small></div></div>'; return; }
@@ -1189,7 +1230,8 @@ function buildJsonPreviewHtml(plan){
   var html = '';
   plan.fatal.forEach(function(f){ html += '<div class="msg error" role="alert">' + esc(f) + '</div>'; });
   if(!plan.ok) return html;
-  html += '<div class="preview"><h3>取り込みの確認:全データを置き換え</h3>';
+  html += '<div class="preview"><h3>取り込みの確認:全データを置き換え</h3>'
+    + importSummaryHtml(json.file, "<b>全データを置き換え</b>:説明文・保管場所・チェック状態も、バックアップの内容になります。");
   plan.counts.forEach(function(c){
     html += '<div class="pv-group"><div class="pv-head">' + c.label + '<small>防災用品 ' + c.now + '件 → ' + c.after + '件・保管場所 ' + c.locs + 'か所</small></div></div>';
   });
@@ -1452,13 +1494,13 @@ var ACTIONS = {
   "panel": function(t){ var p = t.getAttribute("data-p"); if(hasOwn(panels, p)){ panels[p] = !panels[p]; if(p === "csvExport") csv.exportMsg = null; if(p === "mdExport") mdMsg = null; if(p === "jsonExport") json.exportMsg = null; render(); } },
 
   "csv-download": function(){
-    try{ downloadFile(buildCsvText(), "防災リスト_" + ymd(new Date()) + ".csv", "text/csv;charset=utf-8", true); csv.exportMsg = { type:"ok", text:"ダウンロードを開始しました(文字コード: UTF-8・BOM付き。Excelでも文字化けしません)。保存できない場合は「テキストをコピー」を使ってください。" }; }
+    try{ downloadFile(buildCsvText(), exportFileName("", ".csv"), "text/csv;charset=utf-8", true); csv.exportMsg = { type:"ok", text:"ダウンロードを開始しました(文字コード: UTF-8・BOM付き。Excelでも文字化けしません)。保存できない場合は「テキストをコピー」を使ってください。" }; }
     catch(e){ csv.exportMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」を使ってください。" }; }
     render();
   },
   "md-copy": function(){ mdMsg = copyFrom("md-export-text") ? { type:"ok", text:"コピーしました。LINEやメモに貼り付けられます。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
   "md-download": function(){
-    try{ downloadFile(buildMarkdownText(), "防災リスト_" + ymd(new Date()) + ".md", "text/markdown;charset=utf-8", true); mdMsg = { type:"ok", text:"ダウンロードを開始しました(文字コードはUTF-8)。" }; }
+    try{ downloadFile(buildMarkdownText(), exportFileName("", ".md"), "text/markdown;charset=utf-8", true); mdMsg = { type:"ok", text:"ダウンロードを開始しました(文字コードはUTF-8)。" }; }
     catch(e){ mdMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」をお使いください。" }; }
     render();
   },
@@ -1479,12 +1521,12 @@ var ACTIONS = {
   },
 
   "json-download": function(){
-    try{ downloadFile(JSON.stringify(state, null, 2), "防災リスト_バックアップ_" + ymd(new Date()) + ".json", "application/json;charset=utf-8", false); json.exportMsg = { type:"ok", text:"ダウンロードを開始しました。保存できない場合は「テキストをコピー」を使ってください。" }; }
+    try{ downloadFile(JSON.stringify(state, null, 2), exportFileName("バックアップ", ".json"), "application/json;charset=utf-8", false); json.exportMsg = { type:"ok", text:"ダウンロードを開始しました。保存できない場合は「テキストをコピー」を使ってください。" }; }
     catch(e){ json.exportMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」を使ってください。" }; }
     render();
   },
   "reset-backup": function(){
-    try{ downloadFile(JSON.stringify(state, null, 2), "防災リスト_バックアップ_" + ymd(new Date()) + ".json", "application/json;charset=utf-8", false); resetBackupMsg = { type:"ok", text:"バックアップを保存しました。端末のダウンロードを確認してください。続けて初期化できます。" }; }
+    try{ downloadFile(JSON.stringify(state, null, 2), exportFileName("バックアップ", ".json"), "application/json;charset=utf-8", false); resetBackupMsg = { type:"ok", text:"バックアップを保存しました。端末のダウンロードを確認してください。続けて初期化できます。" }; }
     catch(e){ resetBackupMsg = { type:"error", text:"保存できませんでした。キャンセルして、「書き出し・共有・バックアップ」の「テキストをコピー」を使ってください。" }; }
     render();
   },
