@@ -174,6 +174,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .swipe-content.open{ transform:translateX(-88px); }
   .item-top{ display:flex; align-items:center; gap:2px; min-height:48px; }
   .row-btn{ width:40px; height:48px; border-radius:8px; }
+  @media (max-width:360px){ .row-btn{ width:34px; } .item-top{ gap:0; } }
   .drag-handle{ flex-shrink:0; width:38px; height:48px; margin-left:0; margin-right:-6px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; }
   .item.drag-lifted{ position:relative; z-index:6; background:var(--paper); box-shadow:0 6px 18px rgba(0,0,0,.28); transition:none; }
   .item.drag-lifted .swipe-content{ background:var(--paper); }
@@ -205,7 +206,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .add-row{ display:flex; gap:8px; padding:16px 20px 8px; }
   .add-row input{ flex:1 1 auto; min-width:0; }
   .add-row .btn{ flex-shrink:0; }
-  .swipe-pref{ display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:6px 20px; font-size:13px; color:var(--ink-soft); border-bottom:1px solid var(--line); }
+  .swipe-pref{ display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px 10px; padding:6px 20px; font-size:13px; color:var(--ink-soft); border-bottom:1px solid var(--line); }
+  .pref-gap{ flex:1 1 0; }
+  .pin-btn{ color:var(--ink-soft); }
+  .pin-btn.on{ color:var(--ink); }
+  .pin-mark{ display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--ink-soft); }
+  .pin-mark svg{ width:14px; height:14px; }
   .switch{ position:relative; display:flex; align-items:center; gap:8px; min-height:44px; padding:0 8px 0 12px; border:1px solid var(--line); border-radius:22px; background:var(--card); color:var(--ink-soft); font-size:13px; font-weight:700; }
   .switch .knob{ width:22px; height:22px; border-radius:50%; background:var(--ink-soft); flex-shrink:0; }
   .switch.on{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
@@ -284,11 +290,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.6.2";
+var APP_VERSION = "1.7.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.7.0", lines:["用品の行に「ピン」ボタンを追加。ピン留めした用品は、いつも一覧の先頭に出ます。","用品一覧の上のスイッチで「未チェックだけ」に絞り込めます(残り件数つき)。"] },
   { v:"1.6.2", lines:["「全データを初期化する」を押したとき、先にバックアップ(JSON)を保存するボタンを出すようにしました。"] },
   { v:"1.6.1", lines:["「直前の状態に戻す」を、「CSVの取り込み前に戻す」「初期化前に戻す」のように、何の前に戻るかが分かる表示にしました。","戻せるのは直前の1回だけで、用品1件の削除などは対象外であることも説明に書きました。"] },
   { v:"1.6.0", lines:["設定画面を、見出しだけの目次から始まる形にしました。見出しを押すと、その項目だけが開きます。","書き出し(Markdown/CSV/JSON)は「書き出し・共有・バックアップ」に、初期化などは「危険な操作」にまとめました。"] },
@@ -321,6 +328,14 @@ var BROKEN_KEY = STORAGE_KEY + "-broken";
 var PREV_KEY = STORAGE_KEY + "-prev";
 var THEME_KEY = "bousai-theme-pref";
 var SHOWHIDDEN_KEY = "bousai-show-hidden";   // 非表示にした用品も一覧に出すか(初期は出さない)
+var ONLYUNCHECKED_KEY = "bousai-only-unchecked";   // 未チェックの用品だけ表示するか(初期は全部表示)
+var onlyUnchecked = (function(){ try{ return window.localStorage.getItem("bousai-only-unchecked") === "1"; }catch(e){ return false; } })();
+var keepVisible = {};   // 絞り込み中にチェックした用品は、絞り込みを切り替えるまで一覧に残す(押し間違いを直せるように)
+function isShown(it){
+  if(it.hidden && !showHidden) return false;
+  if(onlyUnchecked && it.checked && !keepVisible[it.id]) return false;
+  return true;
+}
 var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
 var CONTENT_VERSION = 6;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
@@ -445,8 +460,9 @@ function sanitizeState(raw){
       });
       var id = (typeof it.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(it.id) && !usedIds[it.id]) ? it.id : newId();
       usedIds[id] = true;
-      items.push({ id:id, name:name, checked:it.checked === true, hidden:it.hidden === true, locations:locs });
+      items.push({ id:id, name:name, checked:it.checked === true, hidden:it.hidden === true, pinned:it.pinned === true, locations:locs });
     });
+    items = items.filter(function(x){ return x.pinned; }).concat(items.filter(function(x){ return !x.pinned; }));  // ピン留めは常に先頭
     out.groups[g] = { desc:desc, locations:locations, items:items };
   });
   return out;
@@ -928,6 +944,8 @@ var ICON_CHEV = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="tr
 var ICON_EDIT = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" stroke="currentColor" stroke-width="2"/></svg>';
 var ICON_EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 var ICON_EYE_OFF = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+var ICON_PIN = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 14v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var ICON_PIN_ON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 14v7" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var ICON_GRIP = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
 var ICON_X = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 var ICON_OK = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
@@ -997,6 +1015,7 @@ function buildItemRow(g, meta, item, locations){
       + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + checked + '" aria-label="' + esc(item.name) + 'のチェック">'
       + '<span class="checkbox' + (checked ? " checked" : "") + '" style="' + (checked ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></button>'
       + '<div class="item-name' + (checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(item.name) + '</div>'
+      + '<button type="button" class="icon-btn row-btn pin-btn' + (item.pinned ? " on" : "") + '" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-pressed="' + (item.pinned === true) + '" aria-label="' + esc(item.name) + (item.pinned ? 'のピン留めを外す' : 'をピン留め(先頭に固定)') + '">' + (item.pinned ? ICON_PIN_ON : ICON_PIN) + '</button>'
       + '<button type="button" class="icon-btn row-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
       + '<button type="button" class="icon-btn row-btn" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + (hid ? 'を表示に戻す' : 'を非表示にする') + '">' + (hid ? ICON_EYE : ICON_EYE_OFF) + '</button>'
       + '<button type="button" class="drag-handle" data-drag-id="' + id + '" data-g="' + g + '" aria-label="' + esc(item.name) + 'を並べ替え(ドラッグ、または上下キー)">' + ICON_GRIP + '</button></div>';
@@ -1005,7 +1024,7 @@ function buildItemRow(g, meta, item, locations){
     var on = item.locations.indexOf(loc) !== -1;
     return '<button type="button" class="loc-pill' + (on ? " active" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + esc(loc) + '</button>';
   }).join("") : '';
-  return '<div class="item' + (hid ? ' is-hidden' : '') + '"><div class="swipe-wrap">'
+  return '<div class="item' + (hid ? ' is-hidden' : '') + (item.pinned ? ' is-pinned' : '') + '"><div class="swipe-wrap">'
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
     + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top
@@ -1045,8 +1064,11 @@ function buildMasterHtml(){
 function buildItemsHtml(g, meta){
   var grp = state.groups[g];
   if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。下から追加してください。</div>';
-  var vis = grp.items.filter(function(it){ return showHidden || !it.hidden; });
-  if(!vis.length) return '<div class="empty">すべて非表示になっています。上のスイッチで表示できます。</div>';
+  var vis = grp.items.filter(isShown);
+  if(!vis.length){
+    if(onlyUnchecked && grp.items.some(function(it){ return !it.hidden || showHidden; })) return '<div class="empty">未チェックの防災用品はありません。すべてチェック済みです。</div>';
+    return '<div class="empty">すべて非表示になっています。上のスイッチで表示できます。</div>';
+  }
   return vis.map(function(it){ return buildItemRow(g, meta, it, grp.locations); }).join("");
 }
 function buildByLocationHtml(g, meta){
@@ -1056,10 +1078,10 @@ function buildByLocationHtml(g, meta){
     var c = it.checked, id = esc(it.id);
     return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + '">'
       + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
-      + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(it.name) + '</div></div>';
+      + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
   var html = '<div class="loc-group">';
-  var shown = grp.items.filter(function(it){ return showHidden || !it.hidden; });
+  var shown = grp.items.filter(isShown);
   if(!grp.locations.length) html += '<div class="loc-group-title">保管場所が未設定です</div>';
   grp.locations.forEach(function(loc){
     var matched = shown.filter(function(it){ return it.locations.indexOf(loc) !== -1; });
@@ -1092,7 +1114,11 @@ function renderMain(){
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
-  html += '<div class="swipe-pref"><span>非表示 ' + hiddenCount + '件</span>'
+  var remain = grp.items.filter(function(it){ return !it.hidden && !it.checked; }).length;
+  html += '<div class="swipe-pref">'
+    + '<button type="button" class="switch' + (onlyUnchecked ? " on" : "") + '" role="switch" aria-checked="' + onlyUnchecked + '" aria-label="未チェックの防災用品だけ表示する" data-act="toggle-only-unchecked"><span class="switch-label">' + (onlyUnchecked ? "未チェックだけ表示中" : "未チェックだけ表示") + '(残り' + remain + ')</span><span class="knob"></span></button>'
+    + '<span class="pref-gap"></span>'
+    + '<span>非表示 ' + hiddenCount + '件</span>'
     + '<button type="button" class="switch' + (showHidden ? " on" : "") + '" role="switch" aria-checked="' + showHidden + '" aria-label="非表示の防災用品も表示する" data-act="toggle-show-hidden"><span class="switch-label">' + (showHidden ? "非表示も表示中" : "非表示を表示") + '</span><span class="knob"></span></button></div>';
   if(viewMode === "item"){
     html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
@@ -1313,10 +1339,10 @@ function readFileInto(file, target, after){
 }
 
 var ACTIONS = {
-  "tab": function(t){ state.activeTab = getGroup(t); clearTransient(); showLocEditor = false; render(); save(); },
+  "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); showLocEditor = false; render(); save(); },
   "view": function(t){ viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item"; clearTransient(); render(); },
   "toggle-loc-editor": function(){ showLocEditor = !showLocEditor; pendingDeleteLoc = null; render(); },
-  "toggle-check": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.checked = !it.checked; render(); save(); },
+  "toggle-check": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.checked = !it.checked; if(onlyUnchecked){ if(it.checked) keepVisible[it.id] = true; else delete keepVisible[it.id]; } render(); save(); },
   "toggle-loc": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
     var li = parseInt(t.getAttribute("data-li"), 10);
@@ -1376,6 +1402,15 @@ var ACTIONS = {
   "open-settings": function(){ clearTransient(); resetSettingsUi(); showSettings = true; render(); window.scrollTo(0, 0); },
   "close-settings": function(){ showSettings = false; resetSettingsUi(); render(); window.scrollTo(0, 0); },
   "toggle-hide": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.hidden = !it.hidden; closeSwipe(); render(); save(); },
+  "toggle-only-unchecked": function(){ onlyUnchecked = !onlyUnchecked; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, onlyUnchecked ? "1" : "0"); closeSwipe(); render(); },
+  "toggle-pin": function(t){
+    var g = getGroup(t), grp = state.groups[g], it = findItem(g, t.getAttribute("data-id")); if(!it) return;
+    var idx = grp.items.indexOf(it); grp.items.splice(idx, 1);
+    var pinnedN = grp.items.filter(function(x){ return x.pinned; }).length;
+    it.pinned = !it.pinned;
+    grp.items.splice(pinnedN, 0, it);   // ピン留め→ピン先頭群の末尾 / 解除→通常の先頭
+    closeSwipe(); render(); save();
+  },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
   "toggle-sec": function(t){
@@ -1507,12 +1542,14 @@ appEl.addEventListener("change", function(e){
 
 /* ---- reorder (drag the grip, or ArrowUp/ArrowDown on it) ---- */
 function visibleIds(g){
-  return state.groups[g].items.filter(function(it){ return showHidden || !it.hidden; }).map(function(it){ return it.id; });
+  return state.groups[g].items.filter(isShown).map(function(it){ return it.id; });
 }
 /* move the item (by id) to position `to` among the items currently shown; hidden-away items keep their slots */
 function reorderVisible(g, id, to){
   var grp = state.groups[g], vis = visibleIds(g), from = vis.indexOf(id);
   if(from === -1 || to < 0 || to >= vis.length || to === from) return false;
+  var pinOf = {}; grp.items.forEach(function(it){ pinOf[it.id] = it.pinned === true; });
+  if(pinOf[vis[to]] !== pinOf[id]) return false;   // ピン留めの境界はまたげない
   var slots = [];
   grp.items.forEach(function(it, i){ if(vis.indexOf(it.id) !== -1) slots.push(i); });
   var byId = {}; grp.items.forEach(function(it){ byId[it.id] = it; });
