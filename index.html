@@ -219,14 +219,14 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .add-row{ display:flex; gap:8px; padding:16px 20px 8px; }
   .add-row input{ flex:1 1 auto; min-width:0; }
   .add-row .btn{ flex-shrink:0; }
-  .filter-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; padding:10px 20px; border-bottom:1px solid var(--line); font-size:13px; color:var(--ink-soft); }
-  .fb-label{ font-size:13px; }
-  .fb-chips{ display:flex; flex-wrap:wrap; gap:8px; }
-  .chip{ min-height:40px; padding:0 16px; border:1.5px solid var(--line); border-radius:20px; background:var(--card); color:var(--ink-soft); font-size:14px; font-weight:500; }
+  .filter-bar{ display:flex; flex-wrap:nowrap; align-items:center; gap:0 4px; padding:6px 10px; border-bottom:1px solid var(--line); font-size:clamp(10.5px,3.3vw,13px); color:var(--ink-soft); white-space:nowrap; }
+  .fb-label{ flex:none; }
+  .fb-chips{ display:flex; flex:none; gap:4px; }
+  .chip{ min-height:34px; padding:0 .65em; border:1.5px solid var(--line); border-radius:17px; background:var(--card); color:var(--ink-soft); font-size:1em; font-weight:500; white-space:nowrap; }
   .chip.on{ background:var(--accent-soft,var(--card)); border-color:var(--accent,var(--ink)); color:var(--ink); font-weight:700; }
-  .fb-check{ display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 4px; background:transparent; color:var(--ink-soft); font-size:14px; }
-  .fb-box{ display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border:2px solid var(--ink-soft); border-radius:5px; flex:none; }
-  .fb-box svg{ width:14px; height:14px; }
+  .fb-check{ display:inline-flex; flex:none; align-items:center; gap:3px; min-height:34px; padding:0 2px; background:transparent; color:var(--ink-soft); font-size:1em; white-space:nowrap; }
+  .fb-box{ display:inline-flex; align-items:center; justify-content:center; width:1.3em; height:1.3em; border:1.5px solid var(--ink-soft); border-radius:4px; flex:none; }
+  .fb-box svg{ width:80%; height:80%; }
   .fb-check.on{ color:var(--ink); }
   .fb-check.on .fb-box{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent,#fff); }
   .pin-btn{ color:var(--ink-soft); }
@@ -307,11 +307,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.8.1";
+var APP_VERSION = "1.8.2";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.8.2", lines:["絞り込みの行が、狭い画面でも1行に収まるように、文字と余白を調整しました。"] },
   { v:"1.8.1", lines:["一覧の上の絞り込みを、「表示:すべて/未チェックだけ(件数)」と「非表示も表示(件数)」のチェックにまとめ直しました。"] },
   { v:"1.8.0", lines:["用品を右にスワイプすると「ピン留め」ができます(左スワイプは今まで通り非表示)。","スマホを横向きにすると、用品が2列で表示されます(横向きのときは並べ替えの持ち手は出ません)。"] },
   { v:"1.7.0", lines:["用品の行に「ピン」ボタンを追加。ピン留めした用品は、いつも一覧の先頭に出ます。","用品一覧の上のスイッチで「未チェックだけ」に絞り込めます(残り件数つき)。"] },
