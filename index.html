@@ -154,6 +154,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     padding:16px 20px; font-size:14px; color:var(--ink-soft); line-height:1.7; background:var(--card);
     border-bottom:1px solid var(--line); border-left:4px solid var(--accent,var(--ink)); overflow-wrap:anywhere;
   }
+  .desc-link{ margin-top:6px; }
+  .text-link{ display:inline-block; min-height:36px; padding:6px 0; background:none; color:var(--ink); font-size:14px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
   .view-toggle{ display:flex; border-bottom:1px solid var(--line); }
   .view-toggle button{ flex:1; min-height:44px; text-align:center; background:var(--card); font-size:13px; font-weight:700; color:var(--ink-soft); }
   .view-toggle button.active{ background:var(--paper); color:var(--ink); box-shadow:inset 0 -3px 0 var(--accent,var(--ink)); }
@@ -321,11 +323,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.11.0";
+var APP_VERSION = "1.11.1";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.11.1", lines:["「保管場所を編集」を、ボタンから文字のリンクに変え、各次の説明文の最後の行に移しました。"] },
   { v:"1.11.0", lines:["アプリを開いたときと、開いている間の数分おきに、新しい版がないか自動で確認します。あれば上に「再読み込み」のお知らせが出ます。","設定の「アプリの更新」に「更新を確認」ボタンを追加しました。"] },
   { v:"1.10.0", lines:["ピン留めした用品を、トップの説明文の下に「ピン留め」として集めて表示します(何次かも分かります)。ここでチェックもでき、右スワイプで解除できます。","用品の行のアイコンの間隔を詰めて、品名が広く使えるようにしました。"] },
   { v:"1.9.0", lines:["書き出すファイルの名前に、端末と環境(例: iPhone-Safari)を入れました。","取り込みの確認に、ファイル名・書き出した端末・取り込み先・取り込み方を表示します。"] },
@@ -1218,11 +1221,8 @@ function buildByLocationHtml(g, meta){
   return html + '</div>';
 }
 
-function locEditControlHtml(g, meta){
-  var top = showLocEditor
-    ? '<button type="button" class="btn btn-ghost edit-close" data-act="toggle-loc-editor">一覧に戻る</button>'
-    : '<button type="button" class="btn btn-ghost edit-open" data-act="toggle-loc-editor">' + meta.num + '次の保管場所を編集</button>';
-  return '<div class="edit-ctl">' + top + '</div>';
+function locEditLinkHtml(g, meta){
+  return '<div class="desc-link"><button type="button" class="text-link" data-act="toggle-loc-editor">' + (showLocEditor ? '一覧に戻る' : meta.num + '次の保管場所を編集') + '</button></div>';
 }
 function renderMain(){
   var g = state.activeTab, meta = GROUP_META[g], grp = state.groups[g];
@@ -1232,10 +1232,10 @@ function renderMain(){
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
     + '<p>0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。</p></div>'
     + buildPinnedHtml()
-    + '<div class="overview">' + buildOverviewHtml() + locEditControlHtml(g, meta) + '</div>'
+    + '<div class="overview">' + buildOverviewHtml() + '</div>'
     + buildLocEditorHtml(g, meta)
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
-    + '<div class="group-desc" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + '</div>'
+    + '<div class="group-desc" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + locEditLinkHtml(g, meta) + '</div>'
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
