@@ -143,8 +143,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .tabs{ display:flex; border-bottom:1px solid var(--line); }
   .tab{ flex:1; min-width:0; padding:8px 4px 7px; text-align:center; position:relative; color:var(--ink-soft); }
   .tab .stamp{
-    width:26px; height:26px; border-radius:50%; border:2px solid currentColor; margin:0 auto 2px;
-    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px;
+    width:32px; height:32px; border-radius:50%; border:2px solid currentColor; margin:0 auto 4px;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px;
   }
   .tab .tlabel{ font-size:12px; font-weight:700; }
   .tab.active{ color:var(--ink); }
@@ -330,11 +330,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.12.4";
+var APP_VERSION = "1.12.5";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.12.5", lines:["タブの丸いスタンプを、元のサイズ(32px)に戻しました。"] },
   { v:"1.12.4", lines:["上部をコンパクトにしました(タイトル周り・進捗バー・タブ・備えのヒント文の余白と文字を小さく)。用品リストをより多く表示できます。"] },
   { v:"1.12.3", lines:["保管場所のチップをコンパクトにしました(高さ36→26px、文字12px)。タップできる範囲は見た目より広く確保しています。"] },
   { v:"1.12.2", lines:["ピン留め欄を、バンドマン持ち物リストのようなコンパクトなサイズ感にしました(高さ・文字・余白を小さくしました)。"] },
