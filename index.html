@@ -321,11 +321,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.10.0";
+var APP_VERSION = "1.11.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.11.0", lines:["アプリを開いたときと、開いている間の数分おきに、新しい版がないか自動で確認します。あれば上に「再読み込み」のお知らせが出ます。","設定の「アプリの更新」に「更新を確認」ボタンを追加しました。"] },
   { v:"1.10.0", lines:["ピン留めした用品を、トップの説明文の下に「ピン留め」として集めて表示します(何次かも分かります)。ここでチェックもでき、右スワイプで解除できます。","用品の行のアイコンの間隔を詰めて、品名が広く使えるようにしました。"] },
   { v:"1.9.0", lines:["書き出すファイルの名前に、端末と環境(例: iPhone-Safari)を入れました。","取り込みの確認に、ファイル名・書き出した端末・取り込み先・取り込み方を表示します。"] },
   { v:"1.8.3", lines:["トップの説明文の言い回しを「どの防災用品がどこにあるか？」に直しました。"] },
@@ -659,6 +660,32 @@ function replaceState(next, label){
 
 var updateNotes = null;      // 表示する更新内容(閉じたら null)
 var swUpdated = false;       // 新しい版を取得済み → 再読み込みをすすめる
+var newVersion = "";         // 見つかった新しい版の番号
+var updateMsg = null;        // 設定の「更新を確認」の結果表示
+var lastUpdateCheck = 0, updateChecking = false;
+var UPDATE_CHECK_MS = 5 * 60 * 1000;   // 開いている間、これくらいの間隔で最新版を確認する
+/* サーバーの index.html から最新の版番号を読み、いまの版より新しければ「再読み込み」のお知らせを出す */
+function checkForUpdate(manual){
+  if(updateChecking) return Promise.resolve();
+  updateChecking = true; lastUpdateCheck = Date.now();
+  if(manual){ updateMsg = { type:"", text:"確認中…" }; render(); }
+  try{ if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){ navigator.serviceWorker.getRegistration().then(function(r){ if(r) r.update().catch(function(){}); }).catch(function(){}); } }catch(e){}
+  return fetch("index.html?_=" + Date.now(), { cache:"no-store" }).then(function(r){
+    if(!r.ok) throw new Error("http " + r.status);
+    return r.text();
+  }).then(function(t){
+    var m = /var APP_VERSION = "(\d+\.\d+\.\d+)"/.exec(t);
+    if(!m) throw new Error("no version");
+    if(cmpVer(m[1], APP_VERSION) > 0){
+      newVersion = m[1]; swUpdated = true;
+      if(manual) updateMsg = { type:"ok", text:"新しいバージョン " + m[1] + " があります。上の「再読み込み」で更新できます。" };
+    } else if(manual){
+      updateMsg = { type:"ok", text:"最新です(" + APP_VERSION + ")。" };
+    }
+  }).catch(function(){
+    if(manual) updateMsg = { type:"error", text:"確認できませんでした。オフラインか、通信が不安定かもしれません。" };
+  }).then(function(){ updateChecking = false; if(state && (manual || swUpdated)) render(); });
+}
 function prepareUpdateNotice(hadData){
   var last = lsGet(SEEN_KEY);
   if(!last){ if(hadData) last = "1.0.0"; else { lsSet(SEEN_KEY, APP_VERSION); return; } }
@@ -668,7 +695,7 @@ function prepareUpdateNotice(hadData){
 }
 function noticesHtml(){
   var h = "";
-  if(swUpdated) h += '<div class="notice" role="status"><div class="notice-body">新しいバージョンがあります。</div><button type="button" class="btn" data-act="reload-app">再読み込み</button></div>';
+  if(swUpdated) h += '<div class="notice" role="status"><div class="notice-body">新しいバージョン' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + 'があります。</div><button type="button" class="btn" data-act="reload-app">再読み込み</button></div>';
   if(updateNotes){
     h += '<div class="notice" role="status"><div class="notice-body"><b>v' + esc(APP_VERSION) + ' にアップデートしました</b>';
     updateNotes.forEach(function(n){ n.lines.forEach(function(l){ h += '<div>・' + esc(l) + '</div>'; }); });
@@ -1366,6 +1393,11 @@ function buildSettingsHtml(){
     + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li></ul>')
+    + '<div class="settings-section"><h2 class="settings-title">アプリの更新</h2>'
+    + '<p class="note">ホーム画面のアプリは、閉じても裏で止まっているだけで、自動では新しくなりません。開いたときと数分おきに最新版を確認しますが、すぐ知りたいときはここで確認できます。</p>'
+    + '<button type="button" class="settings-btn" data-act="check-update">更新を確認</button>'
+    + (swUpdated ? '<button type="button" class="settings-btn" data-act="reload-app">再読み込みして更新する' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + '</button>' : '')
+    + msgHtml(updateMsg) + '</div>'
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
@@ -1488,6 +1520,7 @@ var ACTIONS = {
     grp.locations.push(name); render(); save();
   },
   "dismiss-update": function(){ updateNotes = null; lsSet(SEEN_KEY, APP_VERSION); render(); },
+  "check-update": function(){ checkForUpdate(true); },
   "reload-app": function(){ try{ window.location.reload(); }catch(e){} },
   "req-del-loc": function(t){ pendingDeleteLoc = getGroup(t) + ":" + parseInt(t.getAttribute("data-li"), 10); render(); },
   "cancel-del-loc": function(){ pendingDeleteLoc = null; render(); },
@@ -1827,6 +1860,11 @@ load().catch(function(err){
   console.error(err);
 });
 
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "visible" && Date.now() - lastUpdateCheck > 20 * 1000) checkForUpdate(false);
+});
+window.addEventListener("pageshow", function(e){ if(e.persisted && Date.now() - lastUpdateCheck > 20 * 1000) checkForUpdate(false); });
+setInterval(function(){ if(document.visibilityState === "visible" && Date.now() - lastUpdateCheck > UPDATE_CHECK_MS - 5000) checkForUpdate(false); }, 60 * 1000);
 if("serviceWorker" in navigator){
   var hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener("controllerchange", function(){ if(hadController && !swUpdated){ swUpdated = true; render(); } });

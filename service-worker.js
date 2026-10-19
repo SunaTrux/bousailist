@@ -1,8 +1,9 @@
 // Offline support for the checklist.
-// - Pages (HTML) are fetched network-first, so a new version reaches users on the next online visit.
+// - Pages (HTML) are fetched network-first and always bypass the HTTP/CDN cache (GitHub Pages caches ~10 min),
+//   so a new version reaches users on the next online visit.
 // - Everything else (icons, manifest, web fonts) is served cache-first and filled in as it is used.
 // Bump CACHE_NAME when you want to force every client to drop its old cache.
-const CACHE_NAME = "bousai-list-1.10.0";
+const CACHE_NAME = "bousai-list-1.11.0";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -41,13 +42,14 @@ function putInCache(request, response){
 self.addEventListener("fetch", function(event){
   var request = event.request;
   if(request.method !== "GET") return;
+  if(request.cache === "no-store") return;   // the app's own "is there a newer version?" check: go straight to the network
 
   var isPage = request.mode === "navigate" ||
     (request.headers.get("accept") || "").indexOf("text/html") !== -1;
 
   if(isPage){
     event.respondWith(
-      fetch(request).then(function(response){
+      fetch(request.url + (request.url.indexOf("?") < 0 ? "?" : "&") + "_=" + Date.now(), { cache:"no-store" }).then(function(response){
         putInCache(request, response);
         return response;
       }).catch(function(){
