@@ -178,17 +178,18 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     background:var(--teal); color:var(--on-accent); font-size:15px; font-weight:700; text-align:center;
   }
   .item-top{ display:flex; align-items:center; gap:2px; min-height:48px; }
-  .row-btn{ width:40px; height:48px; border-radius:8px; }
-  @media (max-width:360px){ .row-btn{ width:34px; } .item-top{ gap:0; } }
+  .row-btn{ width:34px; height:48px; border-radius:8px; }
+  @media (max-width:360px){ .row-btn{ width:30px; } .item-top{ gap:0; } .item-top .drag-handle{ width:28px; } }
   /* スマホの横向き: 画面を広く使い、用品を2列に並べる(並べ替えのドラッグは縦1列の前提なので、横向きでは持ち手を隠す) */
   @media (orientation:landscape) and (max-height:520px) and (min-width:560px){
     #app{ max-width:none; }
     .items{ display:grid; grid-template-columns:1fr 1fr; column-gap:28px; align-items:start; }
     .loc-group{ display:grid; grid-template-columns:1fr 1fr; column-gap:28px; align-content:start; }
     .loc-group > .loc-group-title, .loc-group > .note{ grid-column:1 / -1; }
+    .pin-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; }
     .item-top .drag-handle{ display:none; }
   }
-  .drag-handle{ flex-shrink:0; width:38px; height:48px; margin-left:0; margin-right:-6px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; }
+  .drag-handle{ flex-shrink:0; width:30px; height:48px; margin-left:0; margin-right:-4px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; }
   .item.drag-lifted{ position:relative; z-index:6; background:var(--paper); box-shadow:0 6px 18px rgba(0,0,0,.28); transition:none; }
   .item.drag-lifted .swipe-content{ background:var(--paper); }
   .items.dragging-list .item:not(.drag-lifted){ transition:transform .15s ease; }
@@ -232,6 +233,16 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .import-sum{ margin:0; padding:10px 12px; border-bottom:1px solid var(--line); font-size:13px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
   .import-sum dt{ color:var(--ink-soft); }
   .import-sum dd{ margin:0; min-width:0; overflow-wrap:anywhere; }
+  .pins{ padding:12px 20px 8px; background:var(--paper); border-bottom:1px solid var(--line); }
+  .pins-title{ display:flex; align-items:center; gap:6px; margin:0 0 8px; font-size:14px; font-weight:900; color:var(--ink); }
+  .pins-title svg{ width:18px; height:18px; }
+  .pin-list{ display:flex; flex-direction:column; gap:8px; }
+  .pin-card{ border:1px solid var(--line); border-radius:10px; background:var(--card); overflow:hidden; }
+  .pin-card .swipe-pin{ border-radius:0; }
+  .pin-content{ display:flex; align-items:center; gap:6px; padding:2px 4px 2px 10px; min-height:52px; background:var(--card); }
+  .pin-content .item-name{ flex:1; min-width:0; }
+  .pin-tag{ flex:none; min-width:2.9em; text-align:center; padding:2px 0; border-radius:6px; color:var(--on-accent,#fff); font-size:12px; font-weight:700; }
+  .pins-hint{ margin:6px 0 0; font-size:12px; color:var(--ink-soft); text-align:right; }
   .pin-btn{ color:var(--ink-soft); }
   .pin-btn.on{ color:var(--ink); }
   .pin-mark{ display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--ink-soft); }
@@ -310,11 +321,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.9.0";
+var APP_VERSION = "1.10.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.10.0", lines:["ピン留めした用品を、トップの説明文の下に「ピン留め」として集めて表示します(何次かも分かります)。ここでチェックもでき、右スワイプで解除できます。","用品の行のアイコンの間隔を詰めて、品名が広く使えるようにしました。"] },
   { v:"1.9.0", lines:["書き出すファイルの名前に、端末と環境(例: iPhone-Safari)を入れました。","取り込みの確認に、ファイル名・書き出した端末・取り込み先・取り込み方を表示します。"] },
   { v:"1.8.3", lines:["トップの説明文の言い回しを「どの防災用品がどこにあるか？」に直しました。"] },
   { v:"1.8.2", lines:["絞り込みの行が、狭い画面でも1行に収まるように、文字と余白を調整しました。"] },
@@ -523,7 +535,6 @@ function sanitizeState(raw){
       usedIds[id] = true;
       items.push({ id:id, name:name, checked:it.checked === true, hidden:it.hidden === true, pinned:it.pinned === true, locations:locs });
     });
-    items = items.filter(function(x){ return x.pinned; }).concat(items.filter(function(x){ return !x.pinned; }));  // ピン留めは常に先頭
     out.groups[g] = { desc:desc, locations:locations, items:items };
   });
   return out;
@@ -1124,6 +1135,30 @@ function buildMasterHtml(){
   });
   return h;
 }
+function buildPinnedHtml(){
+  var cards = [], total = 0;
+  GROUP_ORDER.forEach(function(g){
+    var meta = GROUP_META[g];
+    state.groups[g].items.forEach(function(it){
+      if(!it.pinned) return;
+      total++;
+      if(!isShown(it)) return;
+      var id = esc(it.id), c = it.checked, open = openSwipeId === "p:" + it.id;
+      cards.push('<div class="pin-card"><div class="swipe-wrap">'
+        + '<button type="button" class="swipe-pin" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">ピン解除</button>'
+        + '<div class="swipe-content pin-content' + (open ? " open-l" : "") + '" data-swipe-id="p:' + id + '" data-pin="1" data-noleft="1" style="' + accentStyle(meta) + '">'
+        + '<span class="pin-tag" style="background:' + meta.accent + '">' + meta.num + '次</span>'
+        + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック(' + meta.num + '次)"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
+        + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(it.name) + '</div>'
+        + '<button type="button" class="icon-btn row-btn pin-btn on" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(it.name) + 'のピン留めを外す">' + ICON_PIN_ON + '</button>'
+        + '</div></div></div>');
+    });
+  });
+  if(!total) return '';
+  return '<section class="pins" aria-label="ピン留め"><h2 class="pins-title">' + ICON_PIN_ON + 'ピン留め(' + total + ')</h2>'
+    + (cards.length ? '<div class="pin-list">' + cards.join("") + '</div>' : '<p class="pins-hint" style="text-align:left">いまの絞り込みでは、ピン留めの用品は表示されません。</p>')
+    + '<p class="pins-hint">右にスワイプでピン留めを解除</p></section>';
+}
 function buildItemsHtml(g, meta){
   var grp = state.groups[g];
   if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。下から追加してください。</div>';
@@ -1169,6 +1204,7 @@ function renderMain(){
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
     + '<p>0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。</p></div>'
+    + buildPinnedHtml()
     + '<div class="overview">' + buildOverviewHtml() + locEditControlHtml(g, meta) + '</div>'
     + buildLocEditorHtml(g, meta)
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
@@ -1470,11 +1506,8 @@ var ACTIONS = {
   "set-filter": function(t){ var want = t.getAttribute("data-f") === "unchecked"; if(want === onlyUnchecked) return; onlyUnchecked = want; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, onlyUnchecked ? "1" : "0"); closeSwipe(); render(); },
   "toggle-only-unchecked": function(){ onlyUnchecked = !onlyUnchecked; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, onlyUnchecked ? "1" : "0"); closeSwipe(); render(); },
   "toggle-pin": function(t){
-    var g = getGroup(t), grp = state.groups[g], it = findItem(g, t.getAttribute("data-id")); if(!it) return;
-    var idx = grp.items.indexOf(it); grp.items.splice(idx, 1);
-    var pinnedN = grp.items.filter(function(x){ return x.pinned; }).length;
+    var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return;
     it.pinned = !it.pinned;
-    grp.items.splice(pinnedN, 0, it);   // ピン留め→ピン先頭群の末尾 / 解除→通常の先頭
     closeSwipe(); render(); save();
   },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
@@ -1615,8 +1648,6 @@ function visibleIds(g){
 function reorderVisible(g, id, to){
   var grp = state.groups[g], vis = visibleIds(g), from = vis.indexOf(id);
   if(from === -1 || to < 0 || to >= vis.length || to === from) return false;
-  var pinOf = {}; grp.items.forEach(function(it){ pinOf[it.id] = it.pinned === true; });
-  if(pinOf[vis[to]] !== pinOf[id]) return false;   // ピン留めの境界はまたげない
   var slots = [];
   grp.items.forEach(function(it, i){ if(vis.indexOf(it.id) !== -1) slots.push(i); });
   var byId = {}; grp.items.forEach(function(it){ byId[it.id] = it; });
@@ -1736,7 +1767,7 @@ function closeSwipe(){
   var id = openSwipeId; openSwipeId = null;
   setSwipeOpen(id, false);
 }
-function swipeOffset(sw, x){ return Math.max(-OPEN_W - 24, Math.min(sw.pin ? OPEN_W + 24 : 0, sw.base + (x - sw.x0))); }
+function swipeOffset(sw, x){ return Math.max(sw.noLeft ? 0 : -OPEN_W - 24, Math.min(sw.pin ? OPEN_W + 24 : 0, sw.base + (x - sw.x0))); }
 
 appEl.addEventListener("pointerdown", function(e){
   if(e.pointerType === "mouse" && e.button !== 0) return;
@@ -1747,7 +1778,7 @@ appEl.addEventListener("pointerdown", function(e){
   if(openSwipeId && !onDel && (!content || content.getAttribute("data-swipe-id") !== openSwipeId)) closeSwipe();
   if(!content || onDel || content.getAttribute("data-noswipe") || target.closest("input,textarea,.drag-handle")) return;
   var id = content.getAttribute("data-swipe-id");
-  swipe = { id:id, el:content, pid:e.pointerId, x0:e.clientX, y0:e.clientY, pin:!!content.getAttribute("data-pin"), base:(openSwipeId === id ? (openSwipeSide === "l" ? OPEN_W : -OPEN_W) : 0), dragging:false, off:0 };
+  swipe = { id:id, el:content, pid:e.pointerId, x0:e.clientX, y0:e.clientY, pin:!!content.getAttribute("data-pin"), noLeft:!!content.getAttribute("data-noleft"), base:(openSwipeId === id ? (openSwipeSide === "l" ? OPEN_W : -OPEN_W) : 0), dragging:false, off:0 };
 });
 appEl.addEventListener("pointermove", function(e){
   if(!swipe || e.pointerId !== swipe.pid) return;
@@ -1768,7 +1799,7 @@ function finishSwipe(e){
   if(!sw.dragging) return;
   suppressClickUntil = Date.now() + 400;   // マウスでドラッグした直後の「クリック」で閉じ直さない
   try{ sw.el.releasePointerCapture(e.pointerId); }catch(err){}
-  var side = sw.off < -OPEN_W * 0.45 ? "r" : (sw.pin && sw.off > OPEN_W * 0.45 ? "l" : null);
+  var side = !sw.noLeft && sw.off < -OPEN_W * 0.45 ? "r" : (sw.pin && sw.off > OPEN_W * 0.45 ? "l" : null);
   if(side){
     if(openSwipeId && openSwipeId !== sw.id) closeSwipe();
     openSwipeId = sw.id; openSwipeSide = side; setSwipeOpen(sw.id, true, side);
