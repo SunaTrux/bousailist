@@ -205,11 +205,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .item-name{ flex:1; min-width:0; padding:8px 4px; font-size:16px; font-weight:500; line-height:1.4; cursor:pointer; overflow-wrap:anywhere; }
   .item-name.checked{ color:var(--ink-soft); text-decoration:line-through; text-decoration-color:var(--ink-soft); }
   .edit-input{ flex:1 1 auto; min-width:0; }
-  .locations{ display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 0 35px; }
+  .locations{ display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 0 35px; }
   .loc-pill{
-    min-height:36px; padding:0 12px; border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
-    border-radius:18px; font-size:13px; max-width:100%; overflow-wrap:anywhere; text-align:center;
+    position:relative; min-height:26px; padding:0 10px; border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+    border-radius:13px; font-size:12px; line-height:1.2; max-width:100%; overflow-wrap:anywhere; text-align:center;
   }
+  .loc-pill::after{ content:""; position:absolute; inset:-5px -2px; } /* 見た目は小さく、タップ範囲は広く */
   .loc-pill.active{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent); font-weight:700; }
   .hint{ margin:2px 0 0 35px; font-size:12.5px; color:var(--ink-soft); }
   .confirm-row{
@@ -329,11 +330,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.12.2";
+var APP_VERSION = "1.12.3";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.12.3", lines:["保管場所のチップをコンパクトにしました(高さ36→26px、文字12px)。タップできる範囲は見た目より広く確保しています。"] },
   { v:"1.12.2", lines:["ピン留め欄を、バンドマン持ち物リストのようなコンパクトなサイズ感にしました(高さ・文字・余白を小さくしました)。"] },
   { v:"1.12.1", lines:["ピン留め欄の表示が崩れていた不具合を直しました(1.12.0 で見た目の設定が抜けていました)。","取り込み確認の4行表示の見た目も、あわせて戻しました。"] },
   { v:"1.12.0", lines:["設定に「アプリのヒント文」を追加。トップのタイトル下の説明文を、自由に書き換えられます。","表示の行(すべて/未チェックだけ/非表示も表示)の余白を広げ、数字を全角のかっこにして見やすくしました。"] },
