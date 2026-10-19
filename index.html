@@ -222,29 +222,16 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .add-row{ display:flex; gap:8px; padding:16px 20px 8px; }
   .add-row input{ flex:1 1 auto; min-width:0; }
   .add-row .btn{ flex-shrink:0; }
-  .filter-bar{ display:flex; flex-wrap:nowrap; align-items:center; gap:0 4px; padding:6px 10px; border-bottom:1px solid var(--line); font-size:clamp(10.5px,3.3vw,13px); color:var(--ink-soft); white-space:nowrap; }
+  .filter-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; padding:10px 14px; border-bottom:1px solid var(--line); font-size:11px; color:var(--ink-soft); }
   .fb-label{ flex:none; }
-  .fb-chips{ display:flex; flex:none; gap:4px; }
-  .chip{ min-height:34px; padding:0 .65em; border:1.5px solid var(--line); border-radius:17px; background:var(--card); color:var(--ink-soft); font-size:1em; font-weight:500; white-space:nowrap; }
+  .fb-chips{ display:flex; flex:none; gap:8px; }
+  .chip{ min-height:30px; padding:0 13px; border:1.5px solid var(--line); border-radius:15px; background:var(--card); color:var(--ink-soft); font-size:1em; font-weight:500; white-space:nowrap; }
   .chip.on{ background:var(--accent-soft,var(--card)); border-color:var(--accent,var(--ink)); color:var(--ink); font-weight:700; }
-  .fb-check{ display:inline-flex; flex:none; align-items:center; gap:3px; min-height:34px; padding:0 2px; background:transparent; color:var(--ink-soft); font-size:1em; white-space:nowrap; }
-  .fb-box{ display:inline-flex; align-items:center; justify-content:center; width:1.3em; height:1.3em; border:1.5px solid var(--ink-soft); border-radius:4px; flex:none; }
-  .fb-box svg{ width:80%; height:80%; }
+  .fb-check{ display:inline-flex; flex:none; align-items:center; gap:5px; min-height:30px; padding:0; background:transparent; color:var(--ink-soft); font-size:1em; white-space:nowrap; }
+  .fb-box{ display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border:2px solid var(--ink-soft); border-radius:4px; flex:none; }
+  .fb-box svg{ width:10px; height:10px; }
   .fb-check.on{ color:var(--ink); }
   .fb-check.on .fb-box{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent,#fff); }
-  .import-sum{ margin:0; padding:10px 12px; border-bottom:1px solid var(--line); font-size:13px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
-  .import-sum dt{ color:var(--ink-soft); }
-  .import-sum dd{ margin:0; min-width:0; overflow-wrap:anywhere; }
-  .pins{ padding:12px 20px 8px; background:var(--paper); border-bottom:1px solid var(--line); }
-  .pins-title{ display:flex; align-items:center; gap:6px; margin:0 0 8px; font-size:14px; font-weight:900; color:var(--ink); }
-  .pins-title svg{ width:18px; height:18px; }
-  .pin-list{ display:flex; flex-direction:column; gap:8px; }
-  .pin-card{ border:1px solid var(--line); border-radius:10px; background:var(--card); overflow:hidden; }
-  .pin-card .swipe-pin{ border-radius:0; }
-  .pin-content{ display:flex; align-items:center; gap:6px; padding:2px 4px 2px 10px; min-height:52px; background:var(--card); }
-  .pin-content .item-name{ flex:1; min-width:0; }
-  .pin-tag{ flex:none; min-width:2.9em; text-align:center; padding:2px 0; border-radius:6px; color:var(--on-accent,#fff); font-size:12px; font-weight:700; }
-  .pins-hint{ margin:6px 0 0; font-size:12px; color:var(--ink-soft); text-align:right; }
   .pin-btn{ color:var(--ink-soft); }
   .pin-btn.on{ color:var(--ink); }
   .pin-mark{ display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--ink-soft); }
@@ -323,11 +310,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.11.1";
+var APP_VERSION = "1.12.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.12.0", lines:["設定に「アプリのヒント文」を追加。トップのタイトル下の説明文を、自由に書き換えられます。","表示の行(すべて/未チェックだけ/非表示も表示)の余白を広げ、数字を全角のかっこにして見やすくしました。"] },
   { v:"1.11.1", lines:["「保管場所を編集」を、ボタンから文字のリンクに変え、各次の説明文の最後の行に移しました。"] },
   { v:"1.11.0", lines:["アプリを開いたときと、開いている間の数分おきに、新しい版がないか自動で確認します。あれば上に「再読み込み」のお知らせが出ます。","設定の「アプリの更新」に「更新を確認」ボタンを追加しました。"] },
   { v:"1.10.0", lines:["ピン留めした用品を、トップの説明文の下に「ピン留め」として集めて表示します(何次かも分かります)。ここでチェックもでき、右スワイプで解除できます。","用品の行のアイコンの間隔を詰めて、品名が広く使えるようにしました。"] },
@@ -389,6 +377,8 @@ var GROUP_META = {
   g1:{ num:"1", label:"1次の備え", accent:"var(--amber)", soft:"var(--amber-soft)" },
   g2:{ num:"2", label:"2次の備え", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
+var DEFAULT_APP_HINT = "0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
+var MAX_HINT = 200;
 var DEFAULT_DESC = {
   g0:"0次の備えは、普段の「持ち歩き」です。外出時の災害に備えて、最低限の防災用品を携帯しましょう。",
   g1:"1次の備えは、非常時に自宅から即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
@@ -492,7 +482,7 @@ function defaultData(){
       items: DEFAULT_ITEMS[g].map(function(n){ return { id:newId(), name:n, checked:false, locations:[] }; })
     };
   });
-  return { activeTab:"g0", contentVersion:CONTENT_VERSION, groups:groups };
+  return { activeTab:"g0", contentVersion:CONTENT_VERSION, appHint:"", groups:groups };
 }
 
 function cleanLocationList(arr){
@@ -513,7 +503,8 @@ function sanitizeState(raw){
   var legacyLocs = Array.isArray(raw.locations) ? raw.locations : null;
   var usedIds = dict();
   var cv = (typeof raw.contentVersion === "number" && isFinite(raw.contentVersion)) ? Math.max(0, Math.min(99, Math.floor(raw.contentVersion))) : 0;
-  var out = { activeTab: GROUP_ORDER.indexOf(raw.activeTab) !== -1 ? raw.activeTab : "g0", contentVersion: cv, groups:{} };
+  var hint = cleanText(raw.appHint, MAX_HINT);
+  var out = { activeTab: GROUP_ORDER.indexOf(raw.activeTab) !== -1 ? raw.activeTab : "g0", contentVersion: cv, appHint: (hint && hint !== DEFAULT_APP_HINT) ? hint : "", groups:{} };
 
   GROUP_ORDER.forEach(function(g){
     var src = hasOwn(raw.groups, g) ? raw.groups[g] : undefined;
@@ -1230,7 +1221,7 @@ function renderMain(){
     + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
-    + '<p>0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。</p></div>'
+    + '<p>' + esc(state.appHint || DEFAULT_APP_HINT).replace(/\n/g, "<br>") + '</p></div>'
     + buildPinnedHtml()
     + '<div class="overview">' + buildOverviewHtml() + '</div>'
     + buildLocEditorHtml(g, meta)
@@ -1244,8 +1235,8 @@ function renderMain(){
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '"><span class="fb-label">表示</span>'
     + '<div class="fb-chips" role="group" aria-label="表示する防災用品">'
     + '<button type="button" class="chip' + (!onlyUnchecked ? " on" : "") + '" aria-pressed="' + !onlyUnchecked + '" data-act="set-filter" data-f="all">すべて</button>'
-    + '<button type="button" class="chip' + (onlyUnchecked ? " on" : "") + '" aria-pressed="' + onlyUnchecked + '" data-act="set-filter" data-f="unchecked">未チェックだけ(' + remain + ')</button></div>'
-    + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示も表示(' + hiddenCount + ')</button></div>';
+    + '<button type="button" class="chip' + (onlyUnchecked ? " on" : "") + '" aria-pressed="' + onlyUnchecked + '" data-act="set-filter" data-f="unchecked">未チェックだけ（' + remain + '）</button></div>'
+    + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示も表示（' + hiddenCount + '）</button></div>';
   if(viewMode === "item"){
     html += '<div class="items" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
@@ -1380,6 +1371,10 @@ function buildSettingsHtml(){
       + '</section>';
   }
   var themeBody = '<div class="seg">' + seg + '</div>';
+  var curHint = state.appHint || DEFAULT_APP_HINT;
+  var hintBody = '<p class="note">トップ画面のタイトルの下に出る説明文です。自由に書き換えられます(' + MAX_HINT + '文字まで・改行できます)。空にすると、初期の文に戻ります。</p>'
+    + '<textarea class="desc-textarea" id="app-hint-input" maxlength="' + MAX_HINT + '" data-change="app-hint" aria-label="アプリのヒント文">' + esc(curHint) + '</textarea>'
+    + (state.appHint ? '<button type="button" class="settings-btn" data-act="reset-hint">初期の文に戻す</button>' : '<p class="note" style="margin:0">いまは初期の文です。</p>');
   var shareBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
     + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport
     + '<h3 class="acc-sub">自分用の完全バックアップ(JSON)</h3>' + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport;
@@ -1389,6 +1384,7 @@ function buildSettingsHtml(){
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
     + acc("theme", "テーマ", themeName, themeBody)
+    + acc("hint", "アプリのヒント文", state.appHint ? "編集済み" : "初期の文", hintBody)
     + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
     + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
@@ -1520,6 +1516,7 @@ var ACTIONS = {
     grp.locations.push(name); render(); save();
   },
   "dismiss-update": function(){ updateNotes = null; lsSet(SEEN_KEY, APP_VERSION); render(); },
+  "reset-hint": function(){ state.appHint = ""; save(); render(); },
   "check-update": function(){ checkForUpdate(true); },
   "reload-app": function(){ try{ window.location.reload(); }catch(e){} },
   "req-del-loc": function(t){ pendingDeleteLoc = getGroup(t) + ":" + parseInt(t.getAttribute("data-li"), 10); render(); },
@@ -1662,7 +1659,12 @@ appEl.addEventListener("change", function(e){
   var t = e.target;
   if(!t || !t.getAttribute) return;
   var kind = t.getAttribute("data-change");
-  if(kind === "desc"){
+  if(kind === "app-hint"){
+    var h = cleanText(t.value, MAX_HINT);
+    state.appHint = (h && h !== DEFAULT_APP_HINT) ? h : "";
+    save();
+    if(!state.appHint) render();
+  } else if(kind === "desc"){
     var g = getGroup(t);
     state.groups[g].desc = cleanText(t.value, MAX_DESC) || DEFAULT_DESC[g];
     save();
