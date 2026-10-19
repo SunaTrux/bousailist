@@ -76,10 +76,10 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   input[type="file"]{ max-width:100%; font-size:14px; color:var(--ink-soft); }
 
   /* ---------- Header / overview ---------- */
-  .header{ padding:24px 20px 16px; border-bottom:1px solid var(--line); }
+  .header{ padding:16px 20px 10px; border-bottom:1px solid var(--line); }
   .header-top{ display:flex; align-items:center; gap:12px; }
   .header h1{ flex:1; min-width:0; font-size:22px; font-weight:900; margin:0; letter-spacing:.02em; overflow-wrap:anywhere; }
-  .header p{ margin:6px 0 0; font-size:13px; color:var(--ink-soft); }
+  .header p{ margin:4px 0 0; font-size:12.5px; line-height:1.5; color:var(--ink-soft); }
   .gear-btn{
     flex-shrink:0; display:flex; align-items:center; gap:6px; min-height:44px; padding:0 14px;
     border:1px solid var(--line); background:var(--card); border-radius:22px; font-size:13px; font-weight:700;
@@ -90,10 +90,10 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .notice-x{ flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
   .banner{ margin:0; padding:10px 20px; font-size:13px; background:var(--clay-soft); border-bottom:1px solid var(--clay); }
 
-  .overview{ padding:16px 20px 8px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
-  .ov-row{ display:flex; align-items:center; gap:10px; }
+  .overview{ padding:8px 20px 8px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:5px; }
+  .ov-row{ display:flex; align-items:center; gap:10px; line-height:1.2; }
   .ov-label{ font-size:12px; font-weight:700; width:60px; flex-shrink:0; }
-  .ov-track{ flex:1; min-width:0; height:8px; background:var(--card); border:1px solid var(--line); overflow:hidden; }
+  .ov-track{ flex:1; min-width:0; height:6px; background:var(--card); border:1px solid var(--line); overflow:hidden; }
   .ov-fill{ height:100%; transition:width .3s ease; }
   .ov-count{ font-size:11px; color:var(--ink-soft); width:44px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
   .edit-ctl{ align-self:flex-start; max-width:100%; }
@@ -141,21 +141,21 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
   /* ---------- Tabs / description / view toggle ---------- */
   .tabs{ display:flex; border-bottom:1px solid var(--line); }
-  .tab{ flex:1; min-width:0; padding:12px 4px 10px; text-align:center; position:relative; color:var(--ink-soft); }
+  .tab{ flex:1; min-width:0; padding:8px 4px 7px; text-align:center; position:relative; color:var(--ink-soft); }
   .tab .stamp{
-    width:32px; height:32px; border-radius:50%; border:2px solid currentColor; margin:0 auto 4px;
-    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px;
+    width:26px; height:26px; border-radius:50%; border:2px solid currentColor; margin:0 auto 2px;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px;
   }
   .tab .tlabel{ font-size:12px; font-weight:700; }
   .tab.active{ color:var(--ink); }
   .tab.active::after{ content:''; position:absolute; left:0; right:0; bottom:-1px; height:3px; background:var(--accent,var(--ink)); }
   .tab.active .stamp{ background:var(--accent-soft,var(--card)); border-color:var(--accent,var(--ink)); }
   .group-desc{
-    padding:16px 20px; font-size:14px; color:var(--ink-soft); line-height:1.7; background:var(--card);
+    padding:8px 20px 6px; font-size:12.5px; color:var(--ink-soft); line-height:1.5; background:var(--card);
     border-bottom:1px solid var(--line); border-left:4px solid var(--accent,var(--ink)); overflow-wrap:anywhere;
   }
-  .desc-link{ margin-top:6px; }
-  .text-link{ display:inline-block; min-height:36px; padding:6px 0; background:none; color:var(--ink); font-size:14px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+  .desc-link{ margin-top:0; }
+  .text-link{ display:inline-block; min-height:32px; padding:6px 0 4px; background:none; color:var(--ink); font-size:13px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
   .view-toggle{ display:flex; border-bottom:1px solid var(--line); }
   .view-toggle button{ flex:1; min-height:44px; text-align:center; background:var(--card); font-size:13px; font-weight:700; color:var(--ink-soft); }
   .view-toggle button.active{ background:var(--paper); color:var(--ink); box-shadow:inset 0 -3px 0 var(--accent,var(--ink)); }
@@ -330,11 +330,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.12.3";
+var APP_VERSION = "1.12.4";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.12.4", lines:["上部をコンパクトにしました(タイトル周り・進捗バー・タブ・備えのヒント文の余白と文字を小さく)。用品リストをより多く表示できます。"] },
   { v:"1.12.3", lines:["保管場所のチップをコンパクトにしました(高さ36→26px、文字12px)。タップできる範囲は見た目より広く確保しています。"] },
   { v:"1.12.2", lines:["ピン留め欄を、バンドマン持ち物リストのようなコンパクトなサイズ感にしました(高さ・文字・余白を小さくしました)。"] },
   { v:"1.12.1", lines:["ピン留め欄の表示が崩れていた不具合を直しました(1.12.0 で見た目の設定が抜けていました)。","取り込み確認の4行表示の見た目も、あわせて戻しました。"] },
