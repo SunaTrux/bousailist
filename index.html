@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="0次・1次・2次の備えの防災用品と保管場所を管理するチェックリスト">
+<meta name="description" content="持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理するチェックリスト">
 <meta name="theme-color" id="meta-theme-color" content="#FAF6EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -330,11 +330,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.12.6";
+var APP_VERSION = "1.12.7";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.12.7", lines:["「0次・1次・2次の備え」の呼び方を「持ち歩き・持ち出し・備蓄」に変更しました(タブ・進捗バー・ピン留めのタグ・初期の説明文など)。丸いスタンプは0・1・2のままです。","CSVの1列目の見出しは「区分」になりました。以前の「0次の備え」などの書き方のCSVも、そのまま取り込めます。","編集していない初期の説明文とアプリのヒント文は、自動で新しい文に置き換わります。"] },
   { v:"1.12.6", lines:["ヒント文(アプリのヒントと各次の備えのヒント)の文字サイズ・行間を元に戻しました。上下の余白は詰めたままです。"] },
   { v:"1.12.5", lines:["タブの丸いスタンプを、元のサイズ(32px)に戻しました。"] },
   { v:"1.12.4", lines:["上部をコンパクトにしました(タイトル周り・進捗バー・タブ・備えのヒント文の余白と文字を小さく)。用品リストをより多く表示できます。"] },
@@ -392,20 +393,27 @@ function isShown(it){
   return true;
 }
 var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
-var CONTENT_VERSION = 6;
+var CONTENT_VERSION = 7;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
 
 var GROUP_ORDER = ["g0","g1","g2"];
 var GROUP_META = {
-  g0:{ num:"0", label:"0次の備え", accent:"var(--clay)",  soft:"var(--clay-soft)" },
-  g1:{ num:"1", label:"1次の備え", accent:"var(--amber)", soft:"var(--amber-soft)" },
-  g2:{ num:"2", label:"2次の備え", accent:"var(--teal)",  soft:"var(--teal-soft)" }
+  g0:{ num:"0", label:"持ち歩き", accent:"var(--clay)",  soft:"var(--clay-soft)" },
+  g1:{ num:"1", label:"持ち出し", accent:"var(--amber)", soft:"var(--amber-soft)" },
+  g2:{ num:"2", label:"備蓄", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
-var DEFAULT_APP_HINT = "0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
+var DEFAULT_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
+var OLD_DEFAULT_APP_HINT = "0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
 var MAX_HINT = 200;
 var DEFAULT_DESC = {
+  g0:"持ち歩きは、普段のカバンに入れて携帯する備えです。外出時の災害に備えて、最低限の防災用品を持ち歩きましょう。",
+  g1:"持ち出しは、非常時に自宅から即座に持ち出せる備えです。1〜2日は行動できるようにしましょう。",
+  g2:"備蓄は、長期避難や在宅避難を支える備えです。1〜2週間はライフラインが停止しても行動できるように備えましょう。"
+};
+/* 1.12.6 までの初期文言(0次・1次・2次の呼び方) */
+var V6_DEFAULT_DESC = {
   g0:"0次の備えは、普段の「持ち歩き」です。外出時の災害に備えて、最低限の防災用品を携帯しましょう。",
   g1:"1次の備えは、非常時に自宅から即座に持ち出せる「持ち出し品」です。1〜2日は行動できるようにしましょう。",
   g2:"2次の備えは、長期避難や在宅避難を支える「備蓄用」です。1〜2週間はライフラインが停止しても行動できるように備えましょう。"
@@ -530,7 +538,7 @@ function sanitizeState(raw){
   var usedIds = dict();
   var cv = (typeof raw.contentVersion === "number" && isFinite(raw.contentVersion)) ? Math.max(0, Math.min(99, Math.floor(raw.contentVersion))) : 0;
   var hint = cleanText(raw.appHint, MAX_HINT);
-  var out = { activeTab: GROUP_ORDER.indexOf(raw.activeTab) !== -1 ? raw.activeTab : "g0", contentVersion: cv, appHint: (hint && hint !== DEFAULT_APP_HINT) ? hint : "", groups:{} };
+  var out = { activeTab: GROUP_ORDER.indexOf(raw.activeTab) !== -1 ? raw.activeTab : "g0", contentVersion: cv, appHint: (hint && hint !== DEFAULT_APP_HINT && hint !== OLD_DEFAULT_APP_HINT) ? hint : "", groups:{} };
 
   GROUP_ORDER.forEach(function(g){
     var src = hasOwn(raw.groups, g) ? raw.groups[g] : undefined;
@@ -614,6 +622,14 @@ function migrate(st){
     GROUP_ORDER.forEach(function(g){
       if(PREV_DEFAULT_DESC[g].indexOf(st.groups[g].desc) !== -1) st.groups[g].desc = DEFAULT_DESC[g];
     });
+  }
+  if(v < 7){
+    // 0次・1次・2次 → 持ち歩き・持ち出し・備蓄(初期の文のままなら新しい文に)
+    GROUP_ORDER.forEach(function(g){
+      var d = st.groups[g].desc;
+      if(d === V6_DEFAULT_DESC[g] || PREV_DEFAULT_DESC[g].indexOf(d) !== -1) st.groups[g].desc = DEFAULT_DESC[g];
+    });
+    if(st.appHint === OLD_DEFAULT_APP_HINT) st.appHint = "";
   }
   st.contentVersion = CONTENT_VERSION;
 }
@@ -769,9 +785,9 @@ function csvCell(v){
   if(/[",\r\n]/.test(s) || /^\s|\s$/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
-/* columns: 次, 品名, チェック(済/未), 保管場所(;区切り). A row with an empty 品名 registers a location only. */
+/* columns: 区分, 品名, チェック(済/未), 保管場所(;区切り). A row with an empty 品名 registers a location only. */
 function buildCsvText(){
-  var rows = [["次","品名","チェック","保管場所"]];
+  var rows = [["区分","品名","チェック","保管場所"]];
   GROUP_ORDER.forEach(function(g){
     var grp = state.groups[g], label = GROUP_META[g].label;
     grp.locations.forEach(function(loc){ rows.push([label, "", "", loc]); });   // locations first: keeps their order
@@ -806,8 +822,12 @@ function parseCsvRows(text){
 }
 
 function parseGroupKey(cell){
-  var m = keyOf(cell == null ? "" : cell).match(/^(?:g([012])|([012])\s*次.*)$/);
-  return m ? "g" + (m[1] || m[2]) : null;
+  var m = keyOf(cell == null ? "" : cell).match(/^(?:g([012])|([012])\s*次.*|(持ち歩き).*|(持ち出し).*|(備蓄).*)$/);
+  if(!m) return null;
+  if(m[3]) return "g0";
+  if(m[4]) return "g1";
+  if(m[5]) return "g2";
+  return "g" + (m[1] || m[2]);
 }
 var TRUE_WORDS = ["済","済み","○","◯","〇","✓","✔","☑","1","true","yes","y","x","はい","完了","チェック済"];
 var FALSE_WORDS = ["","未","未済","未完了","×","✕","☐","0","false","no","n","いいえ","-","ー"];
@@ -827,7 +847,7 @@ function splitLocations(cell){
 }
 
 var HEADER_WORDS = {
-  group:["次","次数","避難","次避難","備え","次の備え","group"],
+  group:["区分","分類","次","次数","避難","次避難","備え","次の備え","group"],
   name:["アイテム名","アイテム","品名","名前","name","item"],
   check:["チェック","チェック状態","状態","準備","check","done"],
   loc:["保管場所","場所","保管","location"]
@@ -902,7 +922,7 @@ function planCsvImport(text, mode, cur){
   if(!rows.length){ plan.fatal.push("取り込める行がありません。"); return plan; }
 
   var cols = detectColumns(rows);
-  if(cols.unknown){ plan.fatal.push("このCSVは形式が違うようです。1行目に「次・品名・チェック・保管場所」の見出しが必要です(このアプリから書き出したCSVをご利用ください)。"); return plan; }
+  if(cols.unknown){ plan.fatal.push("このCSVは形式が違うようです。1行目に「区分・品名・チェック・保管場所」の見出しが必要です(このアプリから書き出したCSVをご利用ください)。"); return plan; }
   var per = {};
   GROUP_ORDER.forEach(function(g){ per[g] = { present:false, entries:[], byKey:dict(), locOrder:[], locSeen:dict() }; });
   var unknownChecks = dict(), dupCount = 0, truncated = 0;
@@ -912,7 +932,7 @@ function planCsvImport(text, mode, cur){
     if(i === 0 && cols.headerRow) return;
     var g = parseGroupKey(cellAt(r, cols.group));
     if(!g){
-      plan.skipped.push({ row:i + 1, reason:"「次」の列が 0次・1次・2次 のどれでもありません(" + clampStr(String(cellAt(r, cols.group)).trim(), 12) + ")" });
+      plan.skipped.push({ row:i + 1, reason:"「区分」の列が 持ち歩き・持ち出し・備蓄 のどれでもありません(" + clampStr(String(cellAt(r, cols.group)).trim(), 12) + ")" });
       return;
     }
     var p = per[g];
@@ -937,7 +957,7 @@ function planCsvImport(text, mode, cur){
   });
 
   if(!GROUP_ORDER.some(function(g){ return per[g].present; })){
-    plan.fatal.push("取り込める行が見つかりませんでした。1列目に「0次の備え」「1次の備え」「2次の備え」のどれかが入った行が必要です。");
+    plan.fatal.push("取り込める行が見つかりませんでした。1列目に「持ち歩き」「持ち出し」「備蓄」のどれかが入った行が必要です。");
     if(plan.skipped.length) plan.fatal.push("認識できなかった行: " + plan.skipped.length + "行");
     return plan;
   }
@@ -1001,13 +1021,13 @@ function planCsvImport(text, mode, cur){
     var ex = plan.skipped.slice(0, 3).map(function(s){ return s.row + "行目"; }).join("、");
     plan.warnings.push("認識できない行を " + plan.skipped.length + "行 スキップします(" + ex + (plan.skipped.length > 3 ? " など" : "") + ")。");
   }
-  if(dupCount) plan.warnings.push("同じ次の中に同じ名前の行が重複しています(" + dupCount + "件)。最後の行の内容を使います。");
+  if(dupCount) plan.warnings.push("同じ区分の中に同じ名前の行が重複しています(" + dupCount + "件)。最後の行の内容を使います。");
   if(truncated) plan.warnings.push("長すぎる品名を " + truncated + "件、" + MAX_NAME + "文字に切り詰めます。");
   var unk = Object.keys(unknownChecks);
   if(unk.length) plan.warnings.push("チェック列に認識できない値があります(" + unk.slice(0, 3).map(function(u){ return "「" + clampStr(u, 8) + "」"; }).join("") + ")。未チェックとして扱います。");
   if(!cols.hasLoc) plan.warnings.push("保管場所の列がないため、保管場所は変更しません。");
   if(!cols.hasCheck) plan.warnings.push("チェックの列がないため、チェック状態は変更しません。");
-  plan.groups.forEach(function(gi){ if(gi.capped) plan.warnings.push(gi.label + ": 1つの次に登録できるのは " + MAX_ITEMS + "件までのため、" + gi.capped + "件は追加しません。"); });
+  plan.groups.forEach(function(gi){ if(gi.capped) plan.warnings.push(gi.label + ": 1つの区分に登録できるのは " + MAX_ITEMS + "件までのため、" + gi.capped + "件は追加しません。"); });
 
   var clean = sanitizeState(next);
   if(!clean){ plan.fatal.push("取り込み結果を作れませんでした(内部エラー)。"); return plan; }
@@ -1149,7 +1169,7 @@ function buildItemRow(g, meta, item, locations){
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
     + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top
-    + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「' + GROUP_META[g].num + '次の保管場所を編集」で追加できます)</div>')
+    + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「' + GROUP_META[g].label + 'の保管場所を編集」で追加できます)</div>')
     + '</div></div></div>';
 }
 function buildMasterRow(g, item){
@@ -1194,8 +1214,8 @@ function buildPinnedHtml(){
       cards.push('<div class="pin-card"><div class="swipe-wrap">'
         + '<button type="button" class="swipe-pin" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">ピン解除</button>'
         + '<div class="swipe-content pin-content' + (open ? " open-l" : "") + '" data-swipe-id="p:' + id + '" data-pin="1" data-noleft="1" style="' + accentStyle(meta) + '">'
-        + '<span class="pin-tag" style="background:' + meta.accent + '">' + meta.num + '次</span>'
-        + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック(' + meta.num + '次)"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
+        + '<span class="pin-tag" style="background:' + meta.accent + '">' + meta.label + '</span>'
+        + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック(' + meta.label + ')"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
         + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(it.name) + '</div>'
         + '<button type="button" class="icon-btn row-btn pin-btn on" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(it.name) + 'のピン留めを外す">' + ICON_PIN_ON + '</button>'
         + '</div></div></div>');
@@ -1239,7 +1259,7 @@ function buildByLocationHtml(g, meta){
 }
 
 function locEditLinkHtml(g, meta){
-  return '<div class="desc-link"><button type="button" class="text-link" data-act="toggle-loc-editor">' + (showLocEditor ? '一覧に戻る' : meta.num + '次の保管場所を編集') + '</button></div>';
+  return '<div class="desc-link"><button type="button" class="text-link" data-act="toggle-loc-editor">' + (showLocEditor ? '一覧に戻る' : meta.label + 'の保管場所を編集') + '</button></div>';
 }
 function renderMain(){
   var g = state.activeTab, meta = GROUP_META[g], grp = state.groups[g];
@@ -1339,12 +1359,12 @@ function buildSettingsHtml(){
   var csvImport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvImport">' + (panels.csvImport ? "CSVインポートを閉じる" : "CSVからインポート") + '</button>';
   if(panels.csvImport){
     csvImport += '<div class="panel">'
-      + '<p class="note">取り込む前に、何がどう変わるかを必ず表示します(確認してから取り込めます)。<br><b>マージ</b>:同じ次・同じ品名は更新し、新しいものだけ追加します。自分の防災用品は消えません。<br><b>上書き</b>:CSVに含まれる次のリストを、CSVの内容にそろえます(CSVにない防災用品は削除)。</p>'
+      + '<p class="note">取り込む前に、何がどう変わるかを必ず表示します(確認してから取り込めます)。<br><b>マージ</b>:同じ区分・同じ品名は更新し、新しいものだけ追加します。自分の防災用品は消えません。<br><b>上書き</b>:CSVに含まれる区分のリストを、CSVの内容にそろえます(CSVにない防災用品は削除)。</p>'
       + '<div class="seg" style="margin-bottom:12px"><button type="button" class="' + (csv.mode === "merge" ? "active" : "") + '" data-act="csv-mode" data-mode="merge">マージ(おすすめ)</button><button type="button" class="' + (csv.mode === "overwrite" ? "active" : "") + '" data-act="csv-mode" data-mode="overwrite">上書き</button></div>'
       + '<p class="field-title">CSVファイルを選ぶ</p><input type="file" accept=".csv,.txt,text/csv,text/plain" data-change="csv-file" style="margin-bottom:12px">'
       + (csv.file ? '<p class="note">読み込んだファイル: ' + esc(csv.file) + '(文字コード: ' + esc(csv.enc) + ')</p>' : '')
       + '<p class="field-title">またはCSVのテキストを貼り付け</p>'
-      + '<textarea class="code-box" id="csv-import-text" data-input="csv-text" placeholder="次,品名,チェック,保管場所" aria-label="CSVのテキスト">' + esc(csv.text) + '</textarea>'
+      + '<textarea class="code-box" id="csv-import-text" data-input="csv-text" placeholder="区分,品名,チェック,保管場所" aria-label="CSVのテキスト">' + esc(csv.text) + '</textarea>'
       + '<div class="btn-row"><button type="button" class="btn" data-act="csv-preview">内容を確認する</button></div>'
       + '<div id="csv-preview">' + (csv.plan ? buildCsvPreviewHtml(csv.plan) : "") + '</div>' + msgHtml(csv.msg) + '</div>';
   }
@@ -1404,7 +1424,7 @@ function buildSettingsHtml(){
   var shareBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
     + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport
     + '<h3 class="acc-sub">自分用の完全バックアップ(JSON)</h3>' + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport;
-  var dangerBody = restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">0次・1次・2次すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
+  var dangerBody = restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">持ち歩き・持ち出し・備蓄すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
   var dangerSummary = prevSnap ? prevBefore() + "前に戻す・初期化" : "初期化";
 
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
