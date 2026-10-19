@@ -232,6 +232,19 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .fb-box svg{ width:10px; height:10px; }
   .fb-check.on{ color:var(--ink); }
   .fb-check.on .fb-box{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent,#fff); }
+  .import-sum{ margin:0; padding:10px 12px; border-bottom:1px solid var(--line); font-size:13px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
+  .import-sum dt{ color:var(--ink-soft); }
+  .import-sum dd{ margin:0; min-width:0; overflow-wrap:anywhere; }
+  .pins{ padding:12px 20px 8px; background:var(--paper); border-bottom:1px solid var(--line); }
+  .pins-title{ display:flex; align-items:center; gap:6px; margin:0 0 8px; font-size:14px; font-weight:900; color:var(--ink); }
+  .pins-title svg{ width:18px; height:18px; }
+  .pin-list{ display:flex; flex-direction:column; gap:8px; }
+  .pin-card{ border:1px solid var(--line); border-radius:10px; background:var(--card); overflow:hidden; }
+  .pin-card .swipe-pin{ border-radius:0; }
+  .pin-content{ display:flex; align-items:center; gap:6px; padding:2px 4px 2px 10px; min-height:52px; background:var(--card); }
+  .pin-content .item-name{ flex:1; min-width:0; }
+  .pin-tag{ flex:none; min-width:2.9em; text-align:center; padding:2px 0; border-radius:6px; color:var(--on-accent,#fff); font-size:12px; font-weight:700; }
+  .pins-hint{ margin:6px 0 0; font-size:12px; color:var(--ink-soft); text-align:right; }
   .pin-btn{ color:var(--ink-soft); }
   .pin-btn.on{ color:var(--ink); }
   .pin-mark{ display:inline-flex; vertical-align:-3px; margin-right:4px; color:var(--ink-soft); }
@@ -310,11 +323,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.12.0";
+var APP_VERSION = "1.12.1";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.12.1", lines:["ピン留め欄の表示が崩れていた不具合を直しました(1.12.0 で見た目の設定が抜けていました)。","取り込み確認の4行表示の見た目も、あわせて戻しました。"] },
   { v:"1.12.0", lines:["設定に「アプリのヒント文」を追加。トップのタイトル下の説明文を、自由に書き換えられます。","表示の行(すべて/未チェックだけ/非表示も表示)の余白を広げ、数字を全角のかっこにして見やすくしました。"] },
   { v:"1.11.1", lines:["「保管場所を編集」を、ボタンから文字のリンクに変え、各次の説明文の最後の行に移しました。"] },
   { v:"1.11.0", lines:["アプリを開いたときと、開いている間の数分おきに、新しい版がないか自動で確認します。あれば上に「再読み込み」のお知らせが出ます。","設定の「アプリの更新」に「更新を確認」ボタンを追加しました。"] },
