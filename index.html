@@ -349,11 +349,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.14.0";
+var APP_VERSION = "1.15.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.15.0", lines:["「保管場所ごと」のチェックを、用品ごとのチェックではなく「その保管場所にあるか」のチェックに変えました。同じ用品でも、保管場所ごとに別々にチェックでき、チェックすると「用品ごと」の保管場所チップが点灯します。保管場所ごとの見出しは(あった数/用品の数)で表示します。","全データの初期化、「前に戻す」を実行したあとに、完了メッセージを出すようにしました(CSV・JSONの取り込みは、もともと完了メッセージが出ます)。"] },
   { v:"1.14.0", lines:["用品の初期リストを、公的資料(消防庁の持出品・備蓄品チェックシート、東京都の防災アクション、農林水産省の家庭備蓄の解説)をもとに見直しました。数量が資料にあるものは品名に入れています(例:飲料水は1人1日3L、カセットボンベは1人1週間で約6本、簡易トイレは1人1日5回分)。","用品に「食品・生活・その他」の分類を追加しました。設定の「防災用品マスタ」で、区分ごとに分類のアコーディオンで見られます。分類は ✎ の編集で変えられます。用品一覧の画面は変わりません。","CSVの書き出しに「分類」の列を追加しました(旧形式のCSVもそのまま取り込めます)。","すでにある用品は、品名から分類を自動で推測して設定します。リストの中身は変えません。"] },
   { v:"1.13.2", lines:["持ち出しの保管場所に、ワンタップで足せる候補「職場に保管」を追加しました。"] },
   { v:"1.13.1", lines:["保管場所の初期値を、1人暮らし・子どもなし・仕事や学校の有無を問わない名前に整理しました(持ち歩き:いつものバッグ・防災ポーチ/持ち出し:防災リュック・玄関/備蓄:リビング・寝室・押し入れ)。","ワンタップで足せる候補も見直しました。すでに登録済みの保管場所は変わりません(新しくインストールしたときと、設定の「初期化」をしたときに反映されます)。"] },
@@ -417,11 +418,20 @@ var keepVisible = {};   // 絞り込み中にチェックした用品は、絞�
 function isShown(it){
   if(it.hidden && !showHidden) return false;
   if(onlyUnchecked && it.checked && !keepVisible[it.id]) return false;
-  if(searchKey){
-    var hay = searchNorm(it.name + " " + (it.locations || []).join(" "));
-    var words = searchKey.split(" ");
-    for(var w = 0; w < words.length; w++){ if(words[w] && hay.indexOf(words[w]) === -1) return false; }
-  }
+  return matchesSearch(it);
+}
+function matchesSearch(it){
+  if(!searchKey) return true;
+  var hay = searchNorm(it.name + " " + (it.locations || []).join(" "));
+  var words = searchKey.split(" ");
+  for(var w = 0; w < words.length; w++){ if(words[w] && hay.indexOf(words[w]) === -1) return false; }
+  return true;
+}
+/* 「保管場所ごと」では、用品×保管場所の組み合わせごとにチェック(=その場所にある)を付ける */
+function locEntryShown(it, loc){
+  if(it.hidden && !showHidden) return false;
+  if(!matchesSearch(it)) return false;
+  if(onlyUnchecked && it.locations.indexOf(loc) !== -1 && !keepVisible[it.id + "|" + loc]) return false;
   return true;
 }
 var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
@@ -1130,7 +1140,7 @@ var showLocEditor = false;
 var showSettings = false;
 var openSwipeSide = "r";   // 開いているスワイプの側: "r"=右側のボタン(非表示/削除) "l"=左側のボタン(ピン留め)
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
-var pendingReset = false, pendingRestore = false, resetBackupMsg = null;
+var pendingReset = false, pendingRestore = false, resetBackupMsg = null, dangerMsg = null;
 var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
 var mdMsg = null;
 var panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
@@ -1142,7 +1152,7 @@ function resetSettingsUi(){
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
-  pendingReset = false; pendingRestore = false; resetBackupMsg = null; openSecs = [];
+  pendingReset = false; pendingRestore = false; resetBackupMsg = null; dangerMsg = null; openSecs = [];
 }
 
 /* ================= Rendering ================= */
@@ -1159,7 +1169,7 @@ var ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 var ICON_TICK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 
 function accentStyle(meta){ return "--accent:" + meta.accent + ";--accent-soft:" + meta.soft + ";"; }
-function msgHtml(m){ return m ? '<div class="msg ' + (m.type === "error" ? "error" : m.type === "warn" ? "warn" : "") + '" role="status">' + esc(m.text) + '</div>' : ""; }
+function msgHtml(m, id){ return m ? '<div' + (id ? ' id="' + id + '"' : '') + ' class="msg ' + (m.type === "error" ? "error" : m.type === "warn" ? "warn" : "") + '" role="status">' + esc(m.text) + '</div>' : ""; }
 
 function buildOverviewHtml(){
   return GROUP_ORDER.map(function(g){
@@ -1317,22 +1327,22 @@ function buildItemsHtml(g, meta){
 function buildByLocationHtml(g, meta){
   var grp = state.groups[g];
   if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。「用品ごと」から追加できます。</div>';
-  function row(it){
-    var c = it.checked, id = esc(it.id);
+  function row(it, loc, li){
+    var on = it.locations.indexOf(loc) !== -1, id = esc(it.id);
     return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + '">'
-      + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
-      + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
+      + '<button type="button" class="check-btn" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(it.name) + 'が' + esc(loc) + 'にある"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span></button>'
+      + '<div class="item-name' + (on ? " checked" : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
-  var html = '<div class="loc-group">';
-  var shown = grp.items.filter(isShown);
-  if(!grp.locations.length) html += '<div class="loc-group-title">保管場所が未設定です</div>';
-  grp.locations.forEach(function(loc){
-    var matched = shown.filter(function(it){ return it.locations.indexOf(loc) !== -1; });
-    html += '<div class="loc-group-title">' + esc(loc) + '(' + matched.length + ')</div>';
-    html += matched.length ? matched.map(row).join("") : '<div class="note" style="padding:10px 0;margin:0">まだ防災用品がありません</div>';
+  if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div></div>';
+  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、用品がそこにあるかをチェックします。チェックすると、「用品ごと」の保管場所チップが点灯します。</p>';
+  grp.locations.forEach(function(loc, li){
+    var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it); });
+    var lit = base.filter(function(it){ return it.locations.indexOf(loc) !== -1; }).length;
+    var shown = base.filter(function(it){ return locEntryShown(it, loc); });
+    html += '<div class="loc-group-title">' + esc(loc) + '(' + lit + '/' + base.length + ')</div>';
+    html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
+      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyUnchecked ? 'すべてチェック済みです' : '') : (searchKey ? '合う防災用品はありません' : '防災用品がありません')) + '</div>';
   });
-  var none = shown.filter(function(it){ return !it.locations.length; });
-  if(none.length) html += '<div class="loc-group-title">保管場所が未設定の防災用品(' + none.length + ')</div>' + none.map(row).join("");
   return html + '</div>';
 }
 
@@ -1503,7 +1513,7 @@ function buildSettingsHtml(){
   var shareBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
     + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport
     + '<h3 class="acc-sub">自分用の完全バックアップ(JSON)</h3>' + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport;
-  var dangerBody = restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">持ち歩き・持ち出し・備蓄すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
+  var dangerBody = msgHtml(dangerMsg, "danger-msg") + restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">持ち歩き・持ち出し・備蓄すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
   var dangerSummary = prevSnap ? prevBefore() + "前に戻す・初期化" : "初期化";
 
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
@@ -1603,6 +1613,7 @@ var ACTIONS = {
     if(!it || !(li >= 0 && li < grp.locations.length)) return;
     var loc = grp.locations[li], at = it.locations.indexOf(loc);
     if(at === -1) it.locations.push(loc); else it.locations.splice(at, 1);
+    if(onlyUnchecked && viewMode === "location"){ var kk = it.id + "|" + loc; if(at === -1) keepVisible[kk] = true; else delete keepVisible[kk]; }
     render(); save();
   },
   "add-item": function(t){
@@ -1734,22 +1745,27 @@ var ACTIONS = {
     render();
   },
 
-  "req-restore": function(){ pendingRestore = true; render(); },
+  "req-restore": function(){ dangerMsg = null; pendingRestore = true; render(); },
   "cancel-restore": function(){ pendingRestore = false; render(); },
   "do-restore": function(){
     var restored = null;
     try{ restored = prevSnap ? sanitizeState(JSON.parse(prevSnap.text)) : null; }catch(e){ restored = null; }
     pendingRestore = false;
+    var doneLabel = prevSnap ? prevSnap.label : "";
     if(!restored){ prevSnap = null; lsDel(PREV_KEY); render(); return; }
     migrate(restored);
     state = restored; prevSnap = null; lsDel(PREV_KEY); clearTransient(); save();
-    csv.msg = null; json.msg = null; render();
+    csv.msg = null; json.msg = null;
+    dangerMsg = { type:"ok", text:"完了しました。「" + doneLabel + "」の前の状態に戻しました。" };
+    render(); scrollToId("danger-msg");
   },
-  "req-reset": function(){ resetBackupMsg = null; pendingReset = true; render(); },
+  "req-reset": function(){ resetBackupMsg = null; dangerMsg = null; pendingReset = true; render(); },
   "cancel-reset": function(){ resetBackupMsg = null; pendingReset = false; render(); },
   "do-reset": function(){
     rememberPrev("全データの初期化");
-    state = defaultData(); migrate(state); clearTransient(); pendingReset = false; save(); render();
+    state = defaultData(); migrate(state); clearTransient(); pendingReset = false; resetBackupMsg = null; save();
+    dangerMsg = { type:"ok", text:"完了しました。全データを初期化しました。初期の用品・保管場所に戻っています(「危険な操作」の「前に戻す」で、初期化の前の状態にも戻せます)。" };
+    render(); scrollToId("danger-msg");
   }
 };
 
