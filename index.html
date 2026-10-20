@@ -291,6 +291,15 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .acc-ch{ flex:none; display:inline-flex; color:var(--ink-soft); transition:transform .18s ease; }
   .acc-btn[aria-expanded="true"] .acc-ch{ transform:rotate(90deg); }
   .acc-body{ padding:2px 20px 20px; }
+  .cat-acc{ border-bottom:1px solid var(--line); }
+  .cat-btn{ display:flex; align-items:center; gap:6px; width:100%; min-height:44px; padding:0 2px; background:none; color:var(--ink); font-size:14px; font-weight:700; text-align:left; }
+  .cat-btn small{ margin-left:auto; font-size:12px; font-weight:500; color:var(--ink-soft); }
+  .cat-ch{ display:inline-flex; color:var(--ink-soft); transition:transform .18s ease; }
+  .cat-ch svg{ width:14px; height:14px; }
+  .cat-btn[aria-expanded="true"] .cat-ch{ transform:rotate(90deg); }
+  .cat-body{ padding:0 0 8px 10px; }
+  .cat-edit{ display:flex; align-items:center; gap:8px; margin:4px 0 8px; font-size:13px; color:var(--ink-soft); }
+  .cat-edit select{ -webkit-appearance:none; appearance:none; min-height:40px; padding:0 28px 0 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); font:inherit; font-size:16px; }
   .acc-sub{ font-size:13px; font-weight:900; margin:18px 0 6px; padding-top:14px; border-top:1px dashed var(--line); }
   .acc-sub:first-child{ margin-top:0; padding-top:0; border-top:0; }
   .acc-sub + .note{ margin-top:0; }
@@ -340,11 +349,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.13.2";
+var APP_VERSION = "1.14.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.14.0", lines:["用品の初期リストを、公的資料(消防庁の持出品・備蓄品チェックシート、東京都の防災アクション、農林水産省の家庭備蓄の解説)をもとに見直しました。数量が資料にあるものは品名に入れています(例:飲料水は1人1日3L、カセットボンベは1人1週間で約6本、簡易トイレは1人1日5回分)。","用品に「食品・生活・その他」の分類を追加しました。設定の「防災用品マスタ」で、区分ごとに分類のアコーディオンで見られます。分類は ✎ の編集で変えられます。用品一覧の画面は変わりません。","CSVの書き出しに「分類」の列を追加しました(旧形式のCSVもそのまま取り込めます)。","すでにある用品は、品名から分類を自動で推測して設定します。リストの中身は変えません。"] },
   { v:"1.13.2", lines:["持ち出しの保管場所に、ワンタップで足せる候補「職場に保管」を追加しました。"] },
   { v:"1.13.1", lines:["保管場所の初期値を、1人暮らし・子どもなし・仕事や学校の有無を問わない名前に整理しました(持ち歩き:いつものバッグ・防災ポーチ/持ち出し:防災リュック・玄関/備蓄:リビング・寝室・押し入れ)。","ワンタップで足せる候補も見直しました。すでに登録済みの保管場所は変わりません(新しくインストールしたときと、設定の「初期化」をしたときに反映されます)。"] },
   { v:"1.13.0", lines:["絞り込みバーの右端に、小さな検索窓を追加しました。品名・保管場所の一部を入力すると、その場で絞り込めます(ひらがな・カタカナの違いは区別しません。空白で区切ると、すべてを含むものだけ)。","チップ名を「全」「未チェック」に、「非表示も表示」を「非表示」に変更しました。"] },
@@ -415,7 +425,7 @@ function isShown(it){
   return true;
 }
 var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
-var CONTENT_VERSION = 7;
+var CONTENT_VERSION = 8;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
@@ -453,11 +463,33 @@ var DEFAULT_LOCATIONS = {
   g1:["防災リュック","玄関"],
   g2:["リビング","寝室","押し入れ"]
 };
+/* 初期の用品。出典は消防庁「非常用持出品チェックシート」「備蓄品チェックシート」、東京都「今やろう防災アクション」、農林水産省の家庭備蓄の解説。数量は資料に書かれているものだけ品名に入れています。
+   [品名, 分類] 分類: f=食品 l=生活 o=その他 */
 var DEFAULT_ITEMS = {
-  g0:["ホイッスル・防犯ブザー","携帯ライト","モバイルバッテリー","お薬手帳・常備薬","マスク","小銭・現金","非常食","絆創膏","アルコール消毒"],
-  g1:["飲料水(500ml×数本)","非常食(2〜3食分)","懐中電灯","携帯ラジオ","救急セット","軍手","レインコート","防災ヘルメット・頭巾","モバイルバッテリー・充電器","着替え一式(防水袋とセット)","紙類(防水袋とセット)","身分証明書のコピー","タオル","ビニール袋","携帯トイレ"],
-  g2:["飲料水(3日分)","保存食(3日分)","カセットコンロ・ガスボンベ","簡易トイレ(多め)","生活用水","毛布・寝袋","衛生用品","常備薬の予備","給水タンク"]
+  g0:[["ホイッスル","o"],["ライト","l"],["モバイルバッテリー・充電器","l"],["携帯ラジオ","l"],["現金(小銭)","o"],["マスク","l"],["手指消毒・ウェットティッシュ","l"],["常備薬・お薬手帳","o"],["栄養補助食品・飴","f"],["携帯トイレ","l"]],
+  g1:[["飲料水","f"],["非常食(乾パン・缶詰・栄養補助食品)","f"],["懐中電灯・予備の乾電池","l"],["携帯ラジオ","l"],["ヘルメット・防災ずきん","o"],["軍手(厚手の手袋)","l"],["毛布","l"],["携帯トイレ","l"],["救急セット","o"],["常備薬・処方箋の控え","o"],["生理用品","l"],["マスク・手指消毒・体温計","l"],["着替え(下着・靴下・長袖長ズボン)","l"],["雨具・防寒着","l"],["携帯カイロ","l"],["缶切り・ライター・ナイフ","l"],["貴重品(現金・通帳・印鑑・保険証・免許証)","o"]],
+  g2:[["飲料水(1人1日3L・3日〜1週間分)","f"],["主食(アルファ米・レトルトごはん・乾麺)","f"],["主菜(缶詰・レトルト食品)","f"],["加熱せず食べられるもの・菓子","f"],["野菜ジュース・栄養補助食品","f"],["調味料(しょうゆ・塩など)","f"],["カセットコンロ","l"],["カセットボンベ(1人1週間で約6本)","l"],["簡易トイレ(1人1日5回分)","l"],["生活用水(ポリタンクに水道水)","l"],["トイレットペーパー・ティッシュ・ウェットティッシュ","l"],["ラップ・紙皿・紙コップ・割り箸","l"],["ポリ袋・ゴミ袋","l"],["使い捨てカイロ","l"],["懐中電灯・ランタン・乾電池","l"],["充電式ラジオ","l"],["モバイルバッテリー","l"],["長靴","l"],["常備薬の予備・救急箱","o"],["衛生用品(生理用品・水のいらないシャンプー)","l"]]
 };
+var CATS = [["food","食品"],["life","生活"],["other","その他"]];
+var CAT_BY_LETTER = { f:"food", l:"life", o:"other" };
+function catKey(v){ for(var i = 0; i < CATS.length; i++){ if(CATS[i][0] === v) return v; } return ""; }
+function catLabel(v){ for(var i = 0; i < CATS.length; i++){ if(CATS[i][0] === v) return CATS[i][1]; } return "その他"; }
+function parseCatWord(w){
+  var k = keyOf(w == null ? "" : w);
+  if(k === "食品" || k === "食" || k === "food") return "food";
+  if(k === "生活" || k === "生活用品" || k === "life") return "life";
+  if(k === "その他" || k === "他" || k === "other") return "other";
+  return "";
+}
+/* 分類が未設定の用品は、品名から推測します(あとでマスタで変更できます) */
+var CAT_LIFE_RE = /生活用水|タンク|トイレ|ティッシュ|ペーパー|ウェット|消毒|カイロ|ラップ|紙皿|紙コップ|割り箸|ポリ袋|ビニール|ゴミ|電池|ライト|ランタン|ラジオ|バッテリー|充電|コンロ|ボンベ|毛布|寝袋|手袋|軍手|長靴|タオル|着替え|雨具|レイン|防寒|下着|衣|マスク|生理|石けん|石鹸|シャンプー|缶切|ライター|ロウソク|ろうそく/;
+var CAT_FOOD_RE = /水|食|缶詰|米|ごはん|ご飯|飯|麺|飴|アメ|菓子|ジュース|栄養|チーズ|かまぼこ|調味|乾パン|レトルト|チョコ|お茶|ビスケット/;
+function guessCat(name){
+  var n = String(name || "").normalize("NFKC");
+  if(CAT_LIFE_RE.test(n)) return "life";
+  if(CAT_FOOD_RE.test(n)) return "food";
+  return "other";
+}
 var LOC_SUGGEST = {
   g0:["サブバッグ","通勤","通学"],
   g1:["車","非常持ち出し袋","職場に保管"],
@@ -535,7 +567,7 @@ function defaultData(){
     groups[g] = {
       desc: DEFAULT_DESC[g],
       locations: DEFAULT_LOCATIONS[g].slice(),
-      items: DEFAULT_ITEMS[g].map(function(n){ return { id:newId(), name:n, checked:false, locations:[] }; })
+      items: DEFAULT_ITEMS[g].map(function(d){ return { id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:[] }; })
     };
   });
   return { activeTab:"g0", contentVersion:CONTENT_VERSION, appHint:"", groups:groups };
@@ -584,7 +616,7 @@ function sanitizeState(raw){
       });
       var id = (typeof it.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(it.id) && !usedIds[it.id]) ? it.id : newId();
       usedIds[id] = true;
-      items.push({ id:id, name:name, checked:it.checked === true, hidden:it.hidden === true, pinned:it.pinned === true, locations:locs });
+      items.push({ id:id, name:name, checked:it.checked === true, hidden:it.hidden === true, pinned:it.pinned === true, cat:catKey(it.cat), locations:locs });
     });
     out.groups[g] = { desc:desc, locations:locations, items:items };
   });
@@ -652,6 +684,10 @@ function migrate(st){
       if(d === V6_DEFAULT_DESC[g] || PREV_DEFAULT_DESC[g].indexOf(d) !== -1) st.groups[g].desc = DEFAULT_DESC[g];
     });
     if(st.appHint === OLD_DEFAULT_APP_HINT) st.appHint = "";
+  }
+  if(v < 8){
+    // 分類(食品・生活・その他)を追加。未設定の用品は品名から推測
+    GROUP_ORDER.forEach(function(g){ st.groups[g].items.forEach(function(it){ if(!catKey(it.cat)) it.cat = guessCat(it.name); }); });
   }
   st.contentVersion = CONTENT_VERSION;
 }
@@ -807,13 +843,13 @@ function csvCell(v){
   if(/[",\r\n]/.test(s) || /^\s|\s$/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
-/* columns: 区分, 品名, チェック(済/未), 保管場所(;区切り). A row with an empty 品名 registers a location only. */
+/* columns: 区分, 品名, チェック(済/未), 保管場所(;区切り), 分類(食品/生活/その他). A row with an empty 品名 registers a location only. */
 function buildCsvText(){
-  var rows = [["区分","品名","チェック","保管場所"]];
+  var rows = [["区分","品名","チェック","保管場所","分類"]];
   GROUP_ORDER.forEach(function(g){
     var grp = state.groups[g], label = GROUP_META[g].label;
-    grp.locations.forEach(function(loc){ rows.push([label, "", "", loc]); });   // locations first: keeps their order
-    grp.items.forEach(function(it){ rows.push([label, it.name, it.checked ? "済" : "未", it.locations.join(";")]); });
+    grp.locations.forEach(function(loc){ rows.push([label, "", "", loc, ""]); });   // locations first: keeps their order
+    grp.items.forEach(function(it){ rows.push([label, it.name, it.checked ? "済" : "未", it.locations.join(";"), catLabel(it.cat)]); });
   });
   return rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n") + "\r\n";
 }
@@ -869,24 +905,25 @@ function splitLocations(cell){
 }
 
 var HEADER_WORDS = {
-  group:["区分","分類","次","次数","避難","次避難","備え","次の備え","group"],
+  group:["区分","次","次数","避難","次避難","備え","次の備え","group"],
   name:["アイテム名","アイテム","品名","名前","name","item"],
   check:["チェック","チェック状態","状態","準備","check","done"],
-  loc:["保管場所","場所","保管","location"]
+  loc:["保管場所","場所","保管","location"],
+  cat:["分類","カテゴリ","カテゴリー","category"]
 };
 function detectColumns(rows){
   var first = rows[0] || [];
   if(parseGroupKey(first[0])){
     return { headerRow:false, group:0, name:1, check:2, loc:3,
-             hasCheck:rows.some(function(r){ return r.length > 2; }), hasLoc:rows.some(function(r){ return r.length > 3; }) };
+             hasCheck:rows.some(function(r){ return r.length > 2; }), hasLoc:rows.some(function(r){ return r.length > 3; }), cat:-1, hasCat:false };
   }
-  var map = { group:-1, name:-1, check:-1, loc:-1 };
+  var map = { group:-1, name:-1, check:-1, loc:-1, cat:-1 };
   first.forEach(function(cell, i){
     var k = keyOf(cell);
-    ["group","name","check","loc"].forEach(function(f){ if(map[f] === -1 && HEADER_WORDS[f].indexOf(k) !== -1) map[f] = i; });
+    ["group","name","check","loc","cat"].forEach(function(f){ if(map[f] === -1 && HEADER_WORDS[f].indexOf(k) !== -1) map[f] = i; });
   });
   if(map.group !== -1 && map.name !== -1){
-    return { headerRow:true, group:map.group, name:map.name, check:map.check, loc:map.loc, hasCheck:map.check !== -1, hasLoc:map.loc !== -1 };
+    return { headerRow:true, group:map.group, name:map.name, check:map.check, loc:map.loc, hasCheck:map.check !== -1, hasLoc:map.loc !== -1, cat:map.cat, hasCat:map.cat !== -1 };
   }
   // unknown first row: the file does not look like ours
   return { unknown:true, headerRow:true, group:0, name:1, check:2, loc:3,
@@ -947,7 +984,7 @@ function planCsvImport(text, mode, cur){
   if(cols.unknown){ plan.fatal.push("このCSVは形式が違うようです。1行目に「区分・品名・チェック・保管場所」の見出しが必要です(このアプリから書き出したCSVをご利用ください)。"); return plan; }
   var per = {};
   GROUP_ORDER.forEach(function(g){ per[g] = { present:false, entries:[], byKey:dict(), locOrder:[], locSeen:dict() }; });
-  var unknownChecks = dict(), dupCount = 0, truncated = 0;
+  var unknownChecks = dict(), unknownCats = dict(), dupCount = 0, truncated = 0;
   function cellAt(r, i){ return i >= 0 && i < r.length ? r[i] : ""; }
 
   rows.forEach(function(r, i){
@@ -972,8 +1009,11 @@ function planCsvImport(text, mode, cur){
       if(parsed === null){ unknownChecks[String(cellAt(r, cols.check)).trim()] = true; parsed = false; }
       chk = parsed;
     }
+    var catWord = cols.hasCat ? String(cellAt(r, cols.cat)).trim() : "";
+    var cat = catWord ? parseCatWord(catWord) : "";
+    if(catWord && !cat) unknownCats[clampStr(catWord, 8)] = true;
     var key = keyOf(name);
-    var entry = { name:name, checked:chk, locs:locs };
+    var entry = { name:name, checked:chk, locs:locs, cat:cat };
     if(p.byKey[key]){ dupCount++; p.entries[p.byKey[key].idx] = entry; entry.idx = p.byKey[key].idx; p.byKey[key] = entry; }
     else { entry.idx = p.entries.length; p.entries.push(entry); p.byKey[key] = entry; }
   });
@@ -1014,13 +1054,14 @@ function planCsvImport(text, mode, cur){
         var newLocs = cols.hasLoc ? resolved : existing.locations.slice();
         if(newChecked !== existing.checked) changes.push("チェック " + checkWord(existing.checked) + "→" + checkWord(newChecked));
         if(!sameLocSet(existing.locations, newLocs)) changes.push("保管場所 " + (existing.locations.join("・") || "なし") + "→" + (newLocs.join("・") || "なし"));
+        if(cols.hasCat && e.cat && e.cat !== catKey(existing.cat)){ changes.push("分類 " + catLabel(catKey(existing.cat) || guessCat(existing.name)) + "→" + catLabel(e.cat)); existing.cat = e.cat; }
         if(changes.length) info.updated.push({ name:existing.name, changes:changes }); else info.unchanged++;
         existing.checked = newChecked;
         existing.locations = newLocs.filter(function(l){ return findLoc(grp.locations, l) !== -1; });
         if(mode === "overwrite") newItems.push(existing);
       } else {
         if(grp.items.length + (mode === "overwrite" ? newItems.length : 0) >= MAX_ITEMS){ info.capped++; return; }
-        var it = { id:newId(), name:e.name, checked:cols.hasCheck ? e.checked : false, locations:resolved };
+        var it = { id:newId(), name:e.name, checked:cols.hasCheck ? e.checked : false, cat:e.cat || guessCat(e.name), locations:resolved };
         info.added.push(e.name);
         if(mode === "overwrite") newItems.push(it); else grp.items.push(it);
       }
@@ -1047,6 +1088,9 @@ function planCsvImport(text, mode, cur){
   if(truncated) plan.warnings.push("長すぎる品名を " + truncated + "件、" + MAX_NAME + "文字に切り詰めます。");
   var unk = Object.keys(unknownChecks);
   if(unk.length) plan.warnings.push("チェック列に認識できない値があります(" + unk.slice(0, 3).map(function(u){ return "「" + clampStr(u, 8) + "」"; }).join("") + ")。未チェックとして扱います。");
+  var unkCat = Object.keys(unknownCats);
+  if(unkCat.length) plan.warnings.push("分類列に認識できない値があります(" + unkCat.slice(0, 3).map(function(u){ return "「" + u + "」"; }).join("") + ")。新しい用品は品名から自動で分け、すでにある用品は変更しません。");
+  if(!cols.hasCat) plan.warnings.push("分類の列がないため、分類は変更しません(新しい用品は品名から自動で分けます)。");
   if(!cols.hasLoc) plan.warnings.push("保管場所の列がないため、保管場所は変更しません。");
   if(!cols.hasCheck) plan.warnings.push("チェックの列がないため、チェック状態は変更しません。");
   plan.groups.forEach(function(gi){ if(gi.capped) plan.warnings.push(gi.label + ": 1つの区分に登録できるのは " + MAX_ITEMS + "件までのため、" + gi.capped + "件は追加しません。"); });
@@ -1202,7 +1246,8 @@ function buildMasterRow(g, item){
     top = '<div class="item-top">'
       + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
       + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
-      + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
+      + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>'
+      + '<div class="cat-edit"><label for="edit-cat-input">分類</label><select id="edit-cat-input">' + CATS.map(function(c){ return '<option value="' + c[0] + '"' + ((catKey(item.cat) || guessCat(item.name)) === c[0] ? ' selected' : '') + '>' + c[1] + '</option>'; }).join('') + '</select></div>';
   } else {
     top = '<div class="item-top"><div class="item-name" style="cursor:default;padding-left:0">' + esc(item.name) + (item.hidden ? ' <span class="tag-hidden">非表示中</span>' : '') + '</div>'
       + '<button type="button" class="icon-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
@@ -1216,12 +1261,21 @@ function buildMasterRow(g, item){
     + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top + confirm + '</div></div></div>';
 }
+var openCats = {};   // マスタで開いている分類(区分+分類)。保存しない
 function buildMasterHtml(){
-  var h = '<p class="note">防災用品を完全に削除するのは、ここです。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。メイン画面で非表示にした用品も、ここに表示されます。</p>';
+  var h = '<p class="note">防災用品を完全に削除するのは、ここです。区分ごとに「食品・生活・その他」へ分けてあります(分類は ✎ の編集で変えられます)。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。メイン画面で非表示にした用品も、ここに表示されます。</p>';
   GROUP_ORDER.forEach(function(g){
     var grp = state.groups[g];
     h += '<div class="loc-group-title">' + GROUP_META[g].label + '(' + grp.items.length + ')</div>';
-    h += grp.items.length ? grp.items.map(function(it){ return buildMasterRow(g, it); }).join("") : '<div class="note" style="padding:6px 0;margin:0">防災用品がありません</div>';
+    if(!grp.items.length){ h += '<div class="note" style="padding:6px 0;margin:0">防災用品がありません</div>'; return; }
+    CATS.forEach(function(c){
+      var list = grp.items.filter(function(it){ return (catKey(it.cat) || "other") === c[0]; });
+      var key = g + ":" + c[0];
+      var busy = list.some(function(it){ return it.id === editingItemId || it.id === pendingDeleteId || it.id === openSwipeId; });
+      var open = !!openCats[key] || busy;
+      h += '<div class="cat-acc"><button type="button" class="cat-btn" data-act="toggle-cat" data-key="' + key + '" aria-expanded="' + open + '"><span class="cat-ch" aria-hidden="true">' + ICON_CHEV + '</span>' + c[1] + '<small>' + list.length + '件</small></button>'
+        + (open ? '<div class="cat-body">' + (list.length ? list.map(function(it){ return buildMasterRow(g, it); }).join("") : '<div class="note" style="padding:6px 0;margin:0">なし</div>') + '</div>' : '') + '</div>';
+    });
   });
   return h;
 }
@@ -1555,16 +1609,19 @@ var ACTIONS = {
     var g = getGroup(t), input = document.getElementById("new-item-input");
     var name = input ? cleanLine(input.value, MAX_NAME) : "";
     if(!name || state.groups[g].items.length >= MAX_ITEMS) return;
-    state.groups[g].items.push({ id:newId(), name:name, checked:false, locations:[] });
+    state.groups[g].items.push({ id:newId(), name:name, checked:false, cat:guessCat(name), locations:[] });
     render(); save(); focusId("new-item-input");
   },
   "start-edit": function(t){ clearTransient(); editingItemId = t.getAttribute("data-id"); render(); focusId("edit-name-input"); var el = document.getElementById("edit-name-input"); if(el && el.select) el.select(); },
   "save-edit": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), input = document.getElementById("edit-name-input");
     var name = input ? cleanLine(input.value, MAX_NAME) : "";
+    var csel = document.getElementById("edit-cat-input");
     if(it && name) it.name = name;
+    if(it && csel && catKey(csel.value)) it.cat = csel.value;
     editingItemId = null; render(); save();
   },
+  "toggle-cat": function(t){ var k = t.getAttribute("data-key"); openCats[k] = !openCats[k]; closeSwipe(); render(); },
   "cancel-edit": function(){ editingItemId = null; render(); },
   "req-del": function(t){ clearTransient(); pendingDeleteId = t.getAttribute("data-id"); render(); },
   "swipe-del": function(t){ clearTransient(); pendingDeleteId = t.getAttribute("data-id"); render(); },
