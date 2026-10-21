@@ -418,11 +418,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.18.1";
+var APP_VERSION = "1.19.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.19.0", lines:["初期値を整理しました。保管場所は、持ち歩き=「いつものバッグ」「ポーチ」、持ち出し=「リュック」「職場置き」。ワンタップ追加の候補は、持ち歩き=「サブバッグ」「通学バッグ」「通勤バッグ」、持ち出し=「非常持ち出し袋」「玄関」「車」です。","アプリのヒント文と、持ち歩き・持ち出し・備蓄の初期のヒント文を、新しい文言にしました。編集していなければ、自動で新しい文に置き換わります(自分で書き換えた文はそのままです)。","すでに登録している保管場所は変わりません。新しい初期値は、新規インストールと「初期化」のときに反映されます。"] },
   { v:"1.18.1", lines:["デザイン案の試し: タブの丸い印を数字(0・1・2)に戻しました。","「保管場所ごと」の切り替えのアイコンを、いま開いている区分のアイコン(持ち歩き=スニーカー、持ち出し=リュック、備蓄=家)に置き換えました。"] },
   { v:"1.18.0", lines:["アプリのヒント文と、持ち歩き・持ち出し・備蓄のヒント文を、右の矢印で閉じられるようにしました。閉じた状態は覚えていて、初期は開いています(備えのヒント文は3つの区分で共通です)。閉じても「保管場所を編集」は使えます。","「保管場所ごと」の画面の場所の見出しを、「用品ごと」の保管場所チップと同じ形(色つきの丸い印)にして、連動していることが分かりやすくしました。数は「あった数/用品の数」です。","ピン留め欄の区分のタグ(持ち歩き・持ち出し・備蓄)の横幅をそろえました。"] },
   { v:"1.17.1", lines:["スマホを横向きにしたときに、上の部分(タイトル・ピン留め・進捗バー・タブ・ヒント文)を低くして、用品の一覧を広く見せるようにしました。"] },
@@ -513,7 +514,7 @@ function locEntryShown(it, loc){
   return true;
 }
 var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
-var CONTENT_VERSION = 8;
+var CONTENT_VERSION = 9;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
@@ -535,10 +536,18 @@ var GROUP_META = {
   g1:{ num:"1", label:"持ち出し", accent:"var(--amber)", soft:"var(--amber-soft)" },
   g2:{ num:"2", label:"備蓄", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
-var DEFAULT_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
+var DEFAULT_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくそう。";
 var OLD_DEFAULT_APP_HINT = "0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
+var V8_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";   // 1.12.7〜1.18.x の初期の文
+function isOldAppHint(h){ return h === OLD_DEFAULT_APP_HINT || h === V8_APP_HINT; }
 var MAX_HINT = 200;
 var DEFAULT_DESC = {
+  g0:"外出時の災害に備えて、最低限の防災用品を常に携帯しよう。",
+  g1:"非常時に自宅や出先からすぐ持ち出せる備え。1〜2日は行動できるようにしよう。",
+  g2:"長期の避難や在宅避難を支える備え。ライフラインが3日〜2週間停止しても行動できるようにしよう。"
+};
+/* 1.12.7〜1.18.x の初期文言(編集されていなければ新しい初期文言に置き換える) */
+var V8_DEFAULT_DESC = {
   g0:"持ち歩きは、普段のカバンに入れて携帯する備えです。外出時の災害に備えて、最低限の防災用品を持ち歩きましょう。",
   g1:"持ち出しは、非常時に自宅から即座に持ち出せる備えです。1〜2日は行動できるようにしましょう。",
   g2:"備蓄は、長期避難や在宅避難を支える備えです。1〜2週間はライフラインが停止しても行動できるように備えましょう。"
@@ -558,8 +567,8 @@ var PREV_DEFAULT_DESC = {
 var OLD_DEFAULT_DESC_G0 = "0次の備えは、普段使いのカバンに最小限のグッズを入れて常に携帯する「持ち歩き用」です。";
 var OLD_DEFAULT_DESC_G1 = "1次の備えは、緊急時に即座に持ち出せる「避難用」です。1〜2日は行動できるようにしましょう。";
 var DEFAULT_LOCATIONS = {
-  g0:["いつものバッグ","防災ポーチ"],
-  g1:["防災リュック","玄関"],
+  g0:["いつものバッグ","ポーチ"],
+  g1:["リュック","職場置き"],
   g2:["リビング","寝室","押し入れ"]
 };
 /* 初期の用品。出典は消防庁「非常用持出品チェックシート」「備蓄品チェックシート」、東京都「今やろう防災アクション」、農林水産省の家庭備蓄の解説。数量は資料に書かれているものだけ品名に入れています。
@@ -590,11 +599,11 @@ function guessCat(name){
   return "other";
 }
 var LOC_SUGGEST = {
-  g0:["サブバッグ","通勤","通学"],
-  g1:["車","非常持ち出し袋","職場に保管"],
+  g0:["サブバッグ","通学バッグ","通勤バッグ"],
+  g1:["非常持ち出し袋","玄関","車"],
   g2:["キッチン","ベランダ","レンタル倉庫"]
 };
-var LOC_INPUT_EXAMPLE = { g0:"防災ポーチ", g1:"家族のリュック", g2:"玄関" };
+var LOC_INPUT_EXAMPLE = { g0:"防災ポーチ", g1:"車のトランク", g2:"玄関" };
 
 /* ================= Small helpers ================= */
 var ESC_MAP = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
@@ -691,7 +700,7 @@ function sanitizeState(raw){
   var usedIds = dict();
   var cv = (typeof raw.contentVersion === "number" && isFinite(raw.contentVersion)) ? Math.max(0, Math.min(99, Math.floor(raw.contentVersion))) : 0;
   var hint = cleanText(raw.appHint, MAX_HINT);
-  var out = { activeTab: GROUP_ORDER.indexOf(raw.activeTab) !== -1 ? raw.activeTab : "g0", contentVersion: cv, appHint: (hint && hint !== DEFAULT_APP_HINT && hint !== OLD_DEFAULT_APP_HINT) ? hint : "", groups:{} };
+  var out = { activeTab: GROUP_ORDER.indexOf(raw.activeTab) !== -1 ? raw.activeTab : "g0", contentVersion: cv, appHint: (hint && hint !== DEFAULT_APP_HINT && !isOldAppHint(hint)) ? hint : "", groups:{} };
 
   GROUP_ORDER.forEach(function(g){
     var src = hasOwn(raw.groups, g) ? raw.groups[g] : undefined;
@@ -782,11 +791,15 @@ function migrate(st){
       var d = st.groups[g].desc;
       if(d === V6_DEFAULT_DESC[g] || PREV_DEFAULT_DESC[g].indexOf(d) !== -1) st.groups[g].desc = DEFAULT_DESC[g];
     });
-    if(st.appHint === OLD_DEFAULT_APP_HINT) st.appHint = "";
+    if(isOldAppHint(st.appHint)) st.appHint = "";
   }
   if(v < 8){
     // 分類(食品・生活・その他)を追加。未設定の用品は品名から推測
     GROUP_ORDER.forEach(function(g){ st.groups[g].items.forEach(function(it){ if(!catKey(it.cat)) it.cat = guessCat(it.name); }); });
+  }
+  if(v < 9){
+    // 初期の説明文を新しい文言に(編集されていないものだけ)
+    GROUP_ORDER.forEach(function(g){ if(st.groups[g].desc === V8_DEFAULT_DESC[g]) st.groups[g].desc = DEFAULT_DESC[g]; });
   }
   st.contentVersion = CONTENT_VERSION;
 }
