@@ -158,7 +158,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .desc-link{ margin-top:0; }
   .text-link{ display:inline-block; min-height:32px; padding:6px 0 4px; background:none; color:var(--ink); font-size:14px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
   .view-toggle{ display:flex; border-bottom:1px solid var(--line); }
-  .view-toggle button{ flex:1; min-height:44px; text-align:center; background:var(--card); font-size:13px; font-weight:700; color:var(--ink-soft); }
+  .view-toggle button svg{ width:18px; height:18px; flex:none; }
+  .view-toggle button{ display:flex; align-items:center; justify-content:center; gap:6px; flex:1; min-height:44px; text-align:center; background:var(--card); font-size:13px; font-weight:700; color:var(--ink-soft); }
   .view-toggle button.active{ background:var(--paper); color:var(--ink); box-shadow:inset 0 -3px 0 var(--accent,var(--ink)); }
 
   /* ---------- Items ---------- */
@@ -364,11 +365,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.16.0";
+var APP_VERSION = "1.16.1";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.16.1", lines:["「用品ごと」「保管場所ごと」の切り替えに、アイコンを付けました(用品ごと=リスト、保管場所ごと=場所のマーク)。"] },
   { v:"1.16.0", lines:["タブの丸い印を、数字(0・1・2)から、持ち歩き=スニーカー、持ち出し=リュック、備蓄=家のアイコンに変えました(絵文字ではなく、アプリの線のデザインに合わせた絵です)。"] },
   { v:"1.15.3", lines:["✎(編集)を押したとき、品名の入力欄と保管場所チップが重なって見えて編集しづらかった表示を直しました(入力欄の下に余白を入れ、入力中の枠も内側に収めました)。"] },
   { v:"1.15.2", lines:["スワイプで操作できるタッチ端末では、用品ごとの行の📌(ピン留め)と👁(非表示)のアイコンを出さないようにしました。ピン留めは右スワイプ、非表示は左スワイプです。並べ替えのハンドルと✎(編集)だけを、右上に小さくまとめて、品名の幅を広げました。パソコンなど、マウスの端末では今までどおりアイコンも表示します。"] },
@@ -462,6 +464,10 @@ var OPEN_W = 88;
 var GROUP_ORDER = ["g0","g1","g2"];
 /* タブの印(線のアイコン。持ち歩き=スニーカー、持ち出し=リュック、備蓄=家) */
 function tabIcon(inner){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + inner + '</svg>'; }
+var VIEW_ICONS = {
+  item:tabIcon('<path d="M9 6.5h11M9 12h11M9 17.5h11"/><path d="M4 6.5h.01M4 12h.01M4 17.5h.01" stroke-width="3"/>'),
+  location:tabIcon('<path d="M12 21s-6.5-5.6-6.5-11A6.5 6.5 0 0 1 18.5 10c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>')
+};
 var TAB_ICONS = {
   g0:tabIcon('<path d="M3 17v-4.5c0-.7.5-1.3 1.2-1.5l3.3-.8 1.8 1.9c.9.9 2.1 1.4 3.3 1.4H18c1.7 0 3 1.3 3 3V17c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1z"/><path d="M3 20.5h18"/><path d="M9.8 10.2l1.2 1.2M12.3 11.2l1 1"/>'),
   g1:tabIcon('<path d="M9 7V5.5a3 3 0 0 1 6 0V7"/><path d="M7.5 7h9A2.5 2.5 0 0 1 19 9.5v9a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5v-9A2.5 2.5 0 0 1 7.5 7z"/><path d="M9 14h6v4H9z"/><path d="M5 12.5h14"/>'),
@@ -1388,8 +1394,8 @@ function renderMain(){
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
     + '<div class="group-desc" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + locEditLinkHtml(g, meta) + '</div>'
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
-    + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">用品ごと</button>'
-    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">保管場所ごと</button></div>';
+    + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">' + VIEW_ICONS.item + '用品ごと</button>'
+    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + VIEW_ICONS.location + '保管場所ごと</button></div>';
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   var remain = grp.items.filter(function(it){ return !it.hidden && !it.checked; }).length;
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '"><span class="fb-label">表示</span>'
