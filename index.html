@@ -193,6 +193,43 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .pin-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; }
     .item-top .drag-handle{ display:none; }
   }
+  /* 広い画面(パソコン・タブレット・スマホ横): 画面の幅に合わせて、用品を自動で段組みにする。
+     並べ替えのドラッグは縦1列の前提なので、段組みのあいだは持ち手を隠す */
+  @media (min-width:760px){
+    body{ background:var(--card); }
+    #app{ max-width:1200px; border-left:1px solid var(--line); border-right:1px solid var(--line); }
+    #app.is-settings{ max-width:680px; }
+    .header{ padding:20px 28px 12px; }
+    .overview{ flex-direction:row; gap:28px; padding:12px 28px; }
+    .ov-row{ flex:1 1 0; min-width:0; }
+    .group-desc{ padding-left:28px; padding-right:28px; }
+    .filter-bar{ padding-left:28px; padding-right:28px; }
+    .filter-bar .fb-search{ max-width:240px; }
+    .items{ padding:0 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-items:start; }
+    .loc-group{ padding:0 28px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-content:start; }
+    .loc-group > .loc-group-title, .loc-group > .note{ grid-column:1 / -1; }
+    .pins{ padding-left:28px; padding-right:28px; }
+    .pin-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 400px)); gap:5px 20px; }
+    .add-row{ padding-left:28px; padding-right:28px; max-width:640px; }
+    .items .item-top .drag-handle{ display:none; }
+  }
+  /* スマホ横向きなど、高さが足りない画面: 上の部分を低くして、用品の一覧を広く見せる */
+  @media (orientation:landscape) and (max-height:520px){
+    .header{ padding:8px 28px 6px; }
+    .header h1{ font-size:18px; }
+    .header p{ margin-top:2px; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #app .header-top .settings-open, .header .btn{ min-height:36px; }
+    .pins{ padding-top:6px; padding-bottom:4px; }
+    .pins-hint{ display:none; }
+    .overview{ padding:6px 28px; }
+    .tab{ display:flex; align-items:center; justify-content:center; gap:8px; padding:5px 4px 4px; }
+    .tab .stamp{ margin:0; width:26px; height:26px; }
+    .tab .stamp svg{ width:17px; height:17px; }
+    .group-desc{ padding-top:6px; padding-bottom:2px; font-size:12px; line-height:1.5; }
+    .text-link{ min-height:30px; padding:4px 0 2px; }
+    .view-toggle button{ min-height:36px; }
+    .filter-bar{ padding-top:6px; padding-bottom:6px; }
+  }
   .hint-coarse{ display:none; }
   /* タッチ端末(スワイプで操作できる)では、ピン留め・非表示のアイコンは出さず、並べ替えと編集だけを右上に小さく置く */
   @media (pointer:coarse){
@@ -365,11 +402,13 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.16.1";
+var APP_VERSION = "1.17.1";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.17.1", lines:["スマホを横向きにしたときに、上の部分(タイトル・ピン留め・進捗バー・タブ・ヒント文)を低くして、用品の一覧を広く見せるようにしました。"] },
+  { v:"1.17.0", lines:["パソコン・タブレット・スマホ横向きなど、広い画面で見やすくしました。画面の幅(最大1200px)に合わせて、用品の一覧と保管場所ごとの一覧、ピン留めが自動で段組みに並びます。","広い画面では、3つの区分の進捗バーを横に並べ、設定画面は読みやすい幅にしています。","段組みのあいだは、並べ替えのドラッグ(持ち手)を隠します。並べ替えは、幅の狭い縦向きの画面で行えます。"] },
   { v:"1.16.1", lines:["「用品ごと」「保管場所ごと」の切り替えに、アイコンを付けました(用品ごと=リスト、保管場所ごと=場所のマーク)。"] },
   { v:"1.16.0", lines:["タブの丸い印を、数字(0・1・2)から、持ち歩き=スニーカー、持ち出し=リュック、備蓄=家のアイコンに変えました(絵文字ではなく、アプリの線のデザインに合わせた絵です)。"] },
   { v:"1.15.3", lines:["✎(編集)を押したとき、品名の入力欄と保管場所チップが重なって見えて編集しづらかった表示を直しました(入力欄の下に余白を入れ、入力中の枠も内側に収めました)。"] },
@@ -1566,6 +1605,7 @@ function buildSettingsHtml(){
 
 function render(){
   if(!state) return;
+  appEl.className = showSettings ? "is-settings" : "";
   appEl.innerHTML = noticesHtml() + (showSettings ? buildSettingsHtml() : renderMain());
 }
 
