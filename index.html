@@ -403,6 +403,17 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .tag.add{ background:var(--teal); } .tag.upd{ background:var(--amber); } .tag.del{ background:var(--clay); }
   .tag.keep{ background:var(--ink-soft); }
   .danger-zone .settings-title{ color:var(--clay); }
+  .set-card{ border:1px solid var(--line); border-radius:6px; background:var(--card); margin:0 0 8px; overflow:hidden; }
+  .set-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; padding:8px 14px; background:none; border:0; color:var(--ink); font:inherit; font-weight:700; text-align:left; cursor:pointer; }
+  .set-t small{ margin-left:8px; font-weight:500; font-size:12.5px; color:var(--ink-soft); }
+  .set-head[aria-expanded="true"] .acc-ch{ transform:rotate(90deg); }
+  .set-body{ padding:0 14px 14px; border-top:1px solid var(--line); padding-top:10px; }
+  .set-list{ list-style:none; margin:0; padding:0; }
+  .set-row{ display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:4px 0; background:none; border:0; color:var(--ink); font:inherit; font-size:15px; text-align:left; cursor:pointer; }
+  .set-row.done{ color:var(--ink-soft); cursor:default; }
+  .set-name{ flex:1; min-width:0; overflow-wrap:anywhere; }
+  .set-cat{ font-size:12px; color:var(--ink-soft); white-space:nowrap; }
+  .btn:disabled{ opacity:.45; cursor:default; }
   .refs{ margin:0; padding-left:1.2em; font-size:14px; line-height:1.8; overflow-wrap:anywhere; }
   .refs a{ color:var(--ink); text-decoration:underline; }
   .version{ padding:20px 20px 4px; text-align:center; font-size:13px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
@@ -418,11 +429,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.19.2";
-var APP_VERSION_DATE = "2026-10-17";
+var APP_VERSION = "1.20.0";
+var APP_VERSION_DATE = "2026-10-22";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.20.0", lines:["設定に「追加セット」を追加しました。「職場に保管セット」(非常食・常備薬・携帯電話の充電器の職場用)、「乳児用セット」、「高齢者用セット」を開いて、必要な用品だけ選んで「追加」できます。同じ名前の用品はすでにあれば追加されません。","設定の「参考にしたもの」に、東京都「帰宅困難者対策ハンドブック」と内閣府「特集 オフィスの防災」を追加しました。"] },
   { v:"1.19.2", lines:["持ち出しの初期の保管場所「職場置き」を「職場に保管」に変えました。","持ち出しの初期の用品に、「歩きやすい靴(職場用)」と「帰宅ルートの地図(職場用)」を追加しました。","すでにある保管場所・用品は変わりません(新規インストールと「初期化」のときに反映されます)。"] },
   { v:"1.19.1", lines:["備蓄の初期の用品「飲料水」の名前を、「飲料水(1人1日3L)」に変えました。すでにある用品の名前は変わりません(新規インストールと「初期化」のときに反映されます)。"] },
   { v:"1.19.0", lines:["初期値を整理しました。保管場所は、持ち歩き=「いつものバッグ」「ポーチ」、持ち出し=「リュック」「職場置き」。ワンタップ追加の候補は、持ち歩き=「サブバッグ」「通学バッグ」「通勤バッグ」、持ち出し=「非常持ち出し袋」「玄関」「車」です。","アプリのヒント文と、持ち歩き・持ち出し・備蓄の初期のヒント文を、新しい文言にしました。編集していなければ、自動で新しい文に置き換わります(自分で書き換えた文はそのままです)。","すでに登録している保管場所は変わりません。新しい初期値は、新規インストールと「初期化」のときに反映されます。"] },
@@ -516,6 +528,15 @@ function locEntryShown(it, loc){
   return true;
 }
 var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
+/* 追加セット(設定から選んで追加できる用品のまとまり)。品名は公的な資料の記載にそろえ、数量は入れない */
+var ADD_SETS = [
+  { id:"work", title:"職場に保管セット", note:"職場に置いておく備え(持ち出しに追加します)。「職場に保管」の保管場所があれば、自動でそこにも置いた印をつけます。", src:"内閣府「オフィスの防災」・東京都「帰宅困難者対策ハンドブック」", g:"g1", loc:"職場に保管",
+    items:[["非常食(職場用)","f"],["常備薬(職場用)","l"],["携帯電話の充電器(職場用)","l"]] },
+  { id:"baby", title:"乳児用セット", note:"乳児がいる家庭向け(持ち出しに追加します)。", src:"東京都防災ホームページ・内閣府「あかちゃんとママを守る防災ノート」", g:"g1",
+    items:[["おむつ","l"],["お尻ふき","l"],["ミルクセット","f"],["離乳食","f"],["母子健康手帳","o"]] },
+  { id:"elder", title:"高齢者用セット", note:"高齢の方がいる家庭向け(持ち出しに追加します)。", src:"東京都防災ホームページ「高齢者の地震対策」", g:"g1",
+    items:[["常時服用している薬","l"],["処方箋","o"],["入れ歯","l"],["入れ歯洗浄剤","l"],["老眼鏡","l"],["補聴器","l"],["補聴器用電池","l"],["おかゆ","f"]] }
+];
 var CONTENT_VERSION = 9;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
@@ -1245,6 +1266,7 @@ var showSettings = false;
 var openSwipeSide = "r";   // 開いているスワイプの側: "r"=右側のボタン(非表示/削除) "l"=左側のボタン(ピン留め)
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
 var pendingReset = false, pendingRestore = false, resetBackupMsg = null, dangerMsg = null;
+var setOpen = null, setPick = {}, setMsg = {};  // 追加セット: 開いているセット・選択中の品・完了メッセージ
 var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
 var mdMsg = null;
 var panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
@@ -1621,6 +1643,28 @@ function buildSettingsHtml(){
       + (open ? '<div class="acc-body" id="sec-' + key + '">' + body + '</div>' : '')
       + '</section>';
   }
+  var setsBody = '<p class="note">場面に合わせた用品を、まとめて追加できます。追加したい用品を選んで「追加」を押してください。すでにある同じ名前の用品は追加されません。</p>'
+    + ADD_SETS.map(function(set){
+      var open = setOpen === set.id, pick = setPick[set.id] || {};
+      var grp = state.groups[set.g], meta = GROUP_META[set.g];
+      var h = '<div class="set-card"><button type="button" class="set-head" data-act="toggle-set" data-set="' + set.id + '" aria-expanded="' + open + '"><span class="set-t">' + esc(set.title) + '<small>' + set.items.length + '件</small></span><span class="acc-ch" aria-hidden="true">' + ICON_CHEV + '</span></button>';
+      if(open){
+        var n = 0;
+        h += '<div class="set-body"><p class="note" style="margin-bottom:8px">' + esc(set.note) + '</p><ul class="set-list">'
+          + set.items.map(function(d, i){
+            var exists = grp.items.some(function(it){ return keyOf(it.name) === keyOf(d[0]); });
+            var on = !exists && pick[i] !== false;
+            if(on) n++;
+            return '<li><button type="button" class="set-row' + (exists ? " done" : "") + '" data-act="toggle-set-item" data-set="' + set.id + '" data-i="' + i + '"' + (exists ? " disabled" : "") + ' role="checkbox" aria-checked="' + on + '">'
+              + '<span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span>'
+              + '<span class="set-name">' + esc(d[0]) + '</span><span class="set-cat">' + (exists ? "追加ずみ" : esc(catLabel(CAT_BY_LETTER[d[1]]))) + '</span></button></li>';
+          }).join('')
+          + '</ul><p class="note" style="margin:8px 0 0">参考: ' + esc(set.src) + '</p>'
+          + '<div class="btn-row"><button type="button" class="btn" data-act="add-set" data-set="' + set.id + '"' + (n ? "" : " disabled") + '>選んだ用品を追加(' + n + '件)</button></div>'
+          + msgHtml(setMsg[set.id]) + '</div>';
+      }
+      return h + '</div>';
+    }).join('');
   var themeBody = '<div class="seg">' + seg + '</div>';
   var curHint = state.appHint || DEFAULT_APP_HINT;
   var hintBody = '<p class="note">トップ画面のタイトルの下に出る説明文です。自由に書き換えられます(' + MAX_HINT + '文字まで・改行できます)。空にすると、初期の文に戻ります。</p>'
@@ -1636,10 +1680,11 @@ function buildSettingsHtml(){
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
     + acc("theme", "テーマ", themeName, themeBody)
     + acc("hint", "アプリのヒント文", state.appHint ? "編集済み" : "初期の文", hintBody)
+    + acc("sets", "追加セット", "職場に保管・乳児用・高齢者用", setsBody)
     + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
     + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
-    + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li></ul>')
+    + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
     + '<div class="settings-section"><h2 class="settings-title">アプリの更新</h2>'
     + '<p class="note">ホーム画面のアプリは、閉じても裏で止まっているだけで、自動では新しくなりません。開いたときと数分おきに最新版を確認しますが、すぐ知りたいときはここで確認できます。</p>'
     + '<button type="button" class="settings-btn" data-act="check-update">更新を確認</button>'
@@ -1799,6 +1844,31 @@ var ACTIONS = {
   },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
+  "toggle-set": function(t){ var id = t.getAttribute("data-set"); setOpen = setOpen === id ? null : id; setMsg = {}; render(); },
+  "toggle-set-item": function(t){
+    var id = t.getAttribute("data-set"), i = parseInt(t.getAttribute("data-i"), 10);
+    if(!setPick[id]) setPick[id] = {};
+    setPick[id][i] = setPick[id][i] === false; setMsg[id] = null; render();
+  },
+  "add-set": function(t){
+    var id = t.getAttribute("data-set"), set = null;
+    ADD_SETS.forEach(function(x){ if(x.id === id) set = x; });
+    if(!set) return;
+    var grp = state.groups[set.g], pick = setPick[id] || {}, added = 0, full = false;
+    set.items.forEach(function(d, i){
+      if(pick[i] === false) return;
+      if(grp.items.some(function(it){ return keyOf(it.name) === keyOf(d[0]); })) return;
+      if(grp.items.length >= MAX_ITEMS){ full = true; return; }
+      var locs = [];
+      if(set.loc){ var at = findLoc(grp.locations, set.loc); if(at !== -1) locs.push(grp.locations[at]); }
+      grp.items.push({ id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:locs });
+      added++;
+    });
+    setPick[id] = {};
+    setMsg[id] = added ? { type:"ok", text:added + "件を「" + GROUP_META[set.g].label + "」に追加しました。" + (full ? "(上限に達したため、一部は追加できませんでした)" : "") }
+      : { type:"warn", text: full ? "用品の数が上限に達しているため、追加できませんでした。" : "追加できる用品がありません。" };
+    render(); if(added) save();
+  },
   "toggle-sec": function(t){
     var k = t.getAttribute("data-sec"), idx = openSecs.indexOf(k);
     var pend = { master: !!(pendingDeleteId || pendingDeleteLoc), share: !!(csv.plan || json.plan), danger: !!(pendingReset || pendingRestore) };
