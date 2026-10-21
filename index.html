@@ -418,11 +418,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.18.0";
+var APP_VERSION = "1.18.1";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.18.1", lines:["デザイン案の試し: タブの丸い印を数字(0・1・2)に戻しました。","「保管場所ごと」の切り替えのアイコンを、いま開いている区分のアイコン(持ち歩き=スニーカー、持ち出し=リュック、備蓄=家)に置き換えました。"] },
   { v:"1.18.0", lines:["アプリのヒント文と、持ち歩き・持ち出し・備蓄のヒント文を、右の矢印で閉じられるようにしました。閉じた状態は覚えていて、初期は開いています(備えのヒント文は3つの区分で共通です)。閉じても「保管場所を編集」は使えます。","「保管場所ごと」の画面の場所の見出しを、「用品ごと」の保管場所チップと同じ形(色つきの丸い印)にして、連動していることが分かりやすくしました。数は「あった数/用品の数」です。","ピン留め欄の区分のタグ(持ち歩き・持ち出し・備蓄)の横幅をそろえました。"] },
   { v:"1.17.1", lines:["スマホを横向きにしたときに、上の部分(タイトル・ピン留め・進捗バー・タブ・ヒント文)を低くして、用品の一覧を広く見せるようにしました。"] },
   { v:"1.17.0", lines:["パソコン・タブレット・スマホ横向きなど、広い画面で見やすくしました。画面の幅(最大1200px)に合わせて、用品の一覧と保管場所ごとの一覧、ピン留めが自動で段組みに並びます。","広い画面では、3つの区分の進捗バーを横に並べ、設定画面は読みやすい幅にしています。","段組みのあいだは、並べ替えのドラッグ(持ち手)を隠します。並べ替えは、幅の狭い縦向きの画面で行えます。"] },
@@ -1273,7 +1274,7 @@ function buildTabsHtml(){
   return GROUP_ORDER.map(function(g){
     var m = GROUP_META[g], on = g === state.activeTab;
     return '<button type="button" class="tab' + (on ? " active" : "") + '" style="' + (on ? accentStyle(m) : "") + '" data-act="tab" data-g="' + g + '"'
-      + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + TAB_ICONS[g] + '</div><div class="tlabel">' + m.label + '</div></button>';
+      + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + m.num + '</div><div class="tlabel">' + m.label + '</div></button>';
   }).join("");
 }
 function buildLocEditorHtml(g, meta){
@@ -1463,7 +1464,7 @@ function renderMain(){
         : '<div class="group-desc fold-box" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + locEditLinkHtml(g, meta) + '<button type="button" class="fold-x" data-act="toggle-fold" data-key="desc" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>')
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">' + VIEW_ICONS.item + '用品ごと</button>'
-    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + VIEW_ICONS.location + '保管場所ごと</button></div>';
+    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + '保管場所ごと</button></div>';
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   var remain = grp.items.filter(function(it){ return !it.hidden && !it.checked; }).length;
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '"><span class="fb-label">表示</span>'
