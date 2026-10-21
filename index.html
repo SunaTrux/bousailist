@@ -202,6 +202,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .items .item-top .row-btn svg{ width:19px; height:19px; }
     .items .item-top .drag-handle{ width:26px; height:40px; margin-right:0; }
   }
+  .items .item-top.editing{ align-items:center; gap:2px; min-height:52px; margin-bottom:10px; }   /* 編集中は、入力欄と保管場所チップを離す */
+  .item-top.editing .edit-input{ outline-offset:-2px; }
   .drag-handle{ flex-shrink:0; width:30px; height:48px; margin-left:0; margin-right:-4px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; }
   .item.drag-lifted{ position:relative; z-index:6; background:var(--paper); box-shadow:0 6px 18px rgba(0,0,0,.28); transition:none; }
   .item.drag-lifted .swipe-content{ background:var(--paper); }
@@ -361,11 +363,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.15.2";
+var APP_VERSION = "1.15.3";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.15.3", lines:["✎(編集)を押したとき、品名の入力欄と保管場所チップが重なって見えて編集しづらかった表示を直しました(入力欄の下に余白を入れ、入力中の枠も内側に収めました)。"] },
   { v:"1.15.2", lines:["スワイプで操作できるタッチ端末では、用品ごとの行の📌(ピン留め)と👁(非表示)のアイコンを出さないようにしました。ピン留めは右スワイプ、非表示は左スワイプです。並べ替えのハンドルと✎(編集)だけを、右上に小さくまとめて、品名の幅を広げました。パソコンなど、マウスの端末では今までどおりアイコンも表示します。"] },
   { v:"1.15.1", lines:["「保管場所ごと」のチェックを、四角ではなく丸い印に変えました(用品ごとの四角いチェックと見分けやすくするためです)。"] },
   { v:"1.15.0", lines:["「保管場所ごと」のチェックを、用品ごとのチェックではなく「その保管場所にあるか」のチェックに変えました。同じ用品でも、保管場所ごとに別々にチェックでき、チェックすると「用品ごと」の保管場所チップが点灯します。保管場所ごとの見出しは(あった数/用品の数)で表示します。","全データの初期化、「前に戻す」を実行したあとに、完了メッセージを出すようにしました(CSV・JSONの取り込みは、もともと完了メッセージが出ます)。"] },
@@ -1237,7 +1240,7 @@ function buildItemRow(g, meta, item, locations){
   var id = esc(item.id), checked = item.checked, hid = item.hidden === true;
   var top;
   if(editing){
-    top = '<div class="item-top">'
+    top = '<div class="item-top editing">'
       + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
       + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
