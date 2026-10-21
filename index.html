@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理するチェックリスト">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="theme-color" id="meta-theme-color" content="#FAF6EE">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -429,11 +431,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.20.0";
+var APP_VERSION = "1.20.1";
 var APP_VERSION_DATE = "2026-10-22";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.20.1", lines:["安全対策を強化しました。外部への通信や外部の読み込みを禁止する設定(CSP)を追加し、万一おかしな文字が入っても情報が外に送られないようにしました。","CSVの書き出しで、品名が「=」「+」「-」「@」で始まる場合に、Excelなどで数式として実行されないようにしました(取り込み時は元に戻ります)。"] },
   { v:"1.20.0", lines:["設定に「追加セット」を追加しました。「職場に保管セット」(非常食・常備薬・携帯電話の充電器の職場用)、「乳児用セット」、「高齢者用セット」を開いて、必要な用品だけ選んで「追加」できます。同じ名前の用品はすでにあれば追加されません。","設定の「参考にしたもの」に、東京都「帰宅困難者対策ハンドブック」と内閣府「特集 オフィスの防災」を追加しました。"] },
   { v:"1.19.2", lines:["持ち出しの初期の保管場所「職場置き」を「職場に保管」に変えました。","持ち出しの初期の用品に、「歩きやすい靴(職場用)」と「帰宅ルートの地図(職場用)」を追加しました。","すでにある保管場所・用品は変わりません(新規インストールと「初期化」のときに反映されます)。"] },
   { v:"1.19.1", lines:["備蓄の初期の用品「飲料水」の名前を、「飲料水(1人1日3L)」に変えました。すでにある用品の名前は変わりません(新規インストールと「初期化」のときに反映されます)。"] },
@@ -975,6 +978,7 @@ function setThemePref(p){
 /* ================= CSV: parse / build ================= */
 function csvCell(v){
   var s = String(v == null ? "" : v);
+  if(/^[=+\-@\t\r]/.test(s)) s = "'" + s;  // Excel等で数式として実行されないよう、先頭に ' を付ける(取り込み時に外す)
   if(/[",\r\n]/.test(s) || /^\s|\s$/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
@@ -1111,7 +1115,7 @@ function planCsvImport(text, mode, cur){
   if(t0 === "{" || t0 === "["){
     try{ JSON.parse(text); plan.fatal.push("これはJSONバックアップです。CSVではありません。「全データのバックアップ(JSON)」の「データをインポート」から取り込んでください。"); return plan; }catch(e){}
   }
-  var rows = parseCsvRows(text);
+  var rows = parseCsvRows(text).map(function(r){ return r.map(function(c){ return /^'[=+\-@]/.test(c) ? c.slice(1) : c; }); });
   if(rows.length > MAX_CSV_ROWS){ plan.fatal.push("行数が多すぎます(上限 " + MAX_CSV_ROWS + "行)。"); return plan; }
   if(!rows.length){ plan.fatal.push("取り込める行がありません。"); return plan; }
 
