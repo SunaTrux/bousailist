@@ -202,6 +202,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .checkbox.checked{ background:var(--accent,var(--teal)); border-color:var(--accent,var(--teal)); }
   .checkbox svg{ display:block; }
+  .loc-group-item .checkbox{ border-radius:50%; }   /* 保管場所のチェックは丸(用品ごとの四角いチェックと見分ける) */
   .item-name{ flex:1; min-width:0; padding:8px 4px; font-size:16px; font-weight:500; line-height:1.4; cursor:pointer; overflow-wrap:anywhere; }
   .item-name.checked{ color:var(--ink-soft); text-decoration:line-through; text-decoration-color:var(--ink-soft); }
   .edit-input{ flex:1 1 auto; min-width:0; }
@@ -349,11 +350,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.15.0";
+var APP_VERSION = "1.15.1";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.15.1", lines:["「保管場所ごと」のチェックを、四角ではなく丸い印に変えました(用品ごとの四角いチェックと見分けやすくするためです)。"] },
   { v:"1.15.0", lines:["「保管場所ごと」のチェックを、用品ごとのチェックではなく「その保管場所にあるか」のチェックに変えました。同じ用品でも、保管場所ごとに別々にチェックでき、チェックすると「用品ごと」の保管場所チップが点灯します。保管場所ごとの見出しは(あった数/用品の数)で表示します。","全データの初期化、「前に戻す」を実行したあとに、完了メッセージを出すようにしました(CSV・JSONの取り込みは、もともと完了メッセージが出ます)。"] },
   { v:"1.14.0", lines:["用品の初期リストを、公的資料(消防庁の持出品・備蓄品チェックシート、東京都の防災アクション、農林水産省の家庭備蓄の解説)をもとに見直しました。数量が資料にあるものは品名に入れています(例:飲料水は1人1日3L、カセットボンベは1人1週間で約6本、簡易トイレは1人1日5回分)。","用品に「食品・生活・その他」の分類を追加しました。設定の「防災用品マスタ」で、区分ごとに分類のアコーディオンで見られます。分類は ✎ の編集で変えられます。用品一覧の画面は変わりません。","CSVの書き出しに「分類」の列を追加しました(旧形式のCSVもそのまま取り込めます)。","すでにある用品は、品名から分類を自動で推測して設定します。リストの中身は変えません。"] },
   { v:"1.13.2", lines:["持ち出しの保管場所に、ワンタップで足せる候補「職場に保管」を追加しました。"] },
