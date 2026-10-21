@@ -191,6 +191,17 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .pin-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; }
     .item-top .drag-handle{ display:none; }
   }
+  .hint-coarse{ display:none; }
+  /* タッチ端末(スワイプで操作できる)では、ピン留め・非表示のアイコンは出さず、並べ替えと編集だけを右上に小さく置く */
+  @media (pointer:coarse){
+    .hint-fine{ display:none; }
+    .hint-coarse{ display:inline; }
+    .items .item-top{ align-items:flex-start; gap:0; min-height:44px; }
+    .items .item-top .pin-btn, .items .item-top [data-act="toggle-hide"]{ display:none; }
+    .items .item-top .row-btn{ width:30px; height:40px; }
+    .items .item-top .row-btn svg{ width:19px; height:19px; }
+    .items .item-top .drag-handle{ width:26px; height:40px; margin-right:0; }
+  }
   .drag-handle{ flex-shrink:0; width:30px; height:48px; margin-left:0; margin-right:-4px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; }
   .item.drag-lifted{ position:relative; z-index:6; background:var(--paper); box-shadow:0 6px 18px rgba(0,0,0,.28); transition:none; }
   .item.drag-lifted .swipe-content{ background:var(--paper); }
@@ -350,11 +361,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.15.1";
+var APP_VERSION = "1.15.2";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.15.2", lines:["スワイプで操作できるタッチ端末では、用品ごとの行の📌(ピン留め)と👁(非表示)のアイコンを出さないようにしました。ピン留めは右スワイプ、非表示は左スワイプです。並べ替えのハンドルと✎(編集)だけを、右上に小さくまとめて、品名の幅を広げました。パソコンなど、マウスの端末では今までどおりアイコンも表示します。"] },
   { v:"1.15.1", lines:["「保管場所ごと」のチェックを、四角ではなく丸い印に変えました(用品ごとの四角いチェックと見分けやすくするためです)。"] },
   { v:"1.15.0", lines:["「保管場所ごと」のチェックを、用品ごとのチェックではなく「その保管場所にあるか」のチェックに変えました。同じ用品でも、保管場所ごとに別々にチェックでき、チェックすると「用品ごと」の保管場所チップが点灯します。保管場所ごとの見出しは(あった数/用品の数)で表示します。","全データの初期化、「前に戻す」を実行したあとに、完了メッセージを出すようにしました(CSV・JSONの取り込みは、もともと完了メッセージが出ます)。"] },
   { v:"1.14.0", lines:["用品の初期リストを、公的資料(消防庁の持出品・備蓄品チェックシート、東京都の防災アクション、農林水産省の家庭備蓄の解説)をもとに見直しました。数量が資料にあるものは品名に入れています(例:飲料水は1人1日3L、カセットボンベは1人1週間で約6本、簡易トイレは1人1日5回分)。","用品に「食品・生活・その他」の分類を追加しました。設定の「防災用品マスタ」で、区分ごとに分類のアコーディオンで見られます。分類は ✎ の編集で変えられます。用品一覧の画面は変わりません。","CSVの書き出しに「分類」の列を追加しました(旧形式のCSVもそのまま取り込めます)。","すでにある用品は、品名から分類を自動で推測して設定します。リストの中身は変えません。"] },
@@ -1378,7 +1390,7 @@ function renderMain(){
     html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br>左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります(削除は設定の「防災用品マスタ」から)</div>';
+      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br><span class="hint-fine">左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>(削除は設定の「防災用品マスタ」から)</div>';
   } else {
     html += '<div id="list-area" style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
