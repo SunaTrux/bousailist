@@ -146,6 +146,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     width:32px; height:32px; border-radius:50%; border:2px solid currentColor; margin:0 auto 4px;
     display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px;
   }
+  .tab .stamp svg{ width:21px; height:21px; display:block; }
   .tab .tlabel{ font-size:12px; font-weight:700; }
   .tab.active{ color:var(--ink); }
   .tab.active::after{ content:''; position:absolute; left:0; right:0; bottom:-1px; height:3px; background:var(--accent,var(--ink)); }
@@ -363,11 +364,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.15.3";
+var APP_VERSION = "1.16.0";
 var APP_VERSION_DATE = "2026-10-17";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.16.0", lines:["タブの丸い印を、数字(0・1・2)から、持ち歩き=スニーカー、持ち出し=リュック、備蓄=家のアイコンに変えました(絵文字ではなく、アプリの線のデザインに合わせた絵です)。"] },
   { v:"1.15.3", lines:["✎(編集)を押したとき、品名の入力欄と保管場所チップが重なって見えて編集しづらかった表示を直しました(入力欄の下に余白を入れ、入力中の枠も内側に収めました)。"] },
   { v:"1.15.2", lines:["スワイプで操作できるタッチ端末では、用品ごとの行の📌(ピン留め)と👁(非表示)のアイコンを出さないようにしました。ピン留めは右スワイプ、非表示は左スワイプです。並べ替えのハンドルと✎(編集)だけを、右上に小さくまとめて、品名の幅を広げました。パソコンなど、マウスの端末では今までどおりアイコンも表示します。"] },
   { v:"1.15.1", lines:["「保管場所ごと」のチェックを、四角ではなく丸い印に変えました(用品ごとの四角いチェックと見分けやすくするためです)。"] },
@@ -458,6 +460,13 @@ var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_
 var OPEN_W = 88;
 
 var GROUP_ORDER = ["g0","g1","g2"];
+/* タブの印(線のアイコン。持ち歩き=スニーカー、持ち出し=リュック、備蓄=家) */
+function tabIcon(inner){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + inner + '</svg>'; }
+var TAB_ICONS = {
+  g0:tabIcon('<path d="M3 17v-4.5c0-.7.5-1.3 1.2-1.5l3.3-.8 1.8 1.9c.9.9 2.1 1.4 3.3 1.4H18c1.7 0 3 1.3 3 3V17c0 .6-.4 1-1 1H4c-.6 0-1-.4-1-1z"/><path d="M3 20.5h18"/><path d="M9.8 10.2l1.2 1.2M12.3 11.2l1 1"/>'),
+  g1:tabIcon('<path d="M9 7V5.5a3 3 0 0 1 6 0V7"/><path d="M7.5 7h9A2.5 2.5 0 0 1 19 9.5v9a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5v-9A2.5 2.5 0 0 1 7.5 7z"/><path d="M9 14h6v4H9z"/><path d="M5 12.5h14"/>'),
+  g2:tabIcon('<path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/>')
+};
 var GROUP_META = {
   g0:{ num:"0", label:"持ち歩き", accent:"var(--clay)",  soft:"var(--clay-soft)" },
   g1:{ num:"1", label:"持ち出し", accent:"var(--amber)", soft:"var(--amber-soft)" },
@@ -1202,7 +1211,7 @@ function buildTabsHtml(){
   return GROUP_ORDER.map(function(g){
     var m = GROUP_META[g], on = g === state.activeTab;
     return '<button type="button" class="tab' + (on ? " active" : "") + '" style="' + (on ? accentStyle(m) : "") + '" data-act="tab" data-g="' + g + '"'
-      + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + m.num + '</div><div class="tlabel">' + m.label + '</div></button>';
+      + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + TAB_ICONS[g] + '</div><div class="tlabel">' + m.label + '</div></button>';
   }).join("");
 }
 function buildLocEditorHtml(g, meta){
