@@ -240,6 +240,13 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .group-desc .fold-x{ top:2px; right:4px; }
   .fold-x svg{ width:18px; height:18px; transform:rotate(-90deg); }
   .fold-row{ margin-top:2px; }
+  .view-fold.view-note{ padding:4px 20px 0; margin:0; }
+  .loc-group > .view-fold{ grid-column:1 / -1; margin:0; padding:4px 0 0; }
+  .view-note.fold-box{ padding-right:48px; }
+  .view-note .fold-x{ top:4px; right:14px; }
+  .loc-note.fold-box{ padding-right:34px; }
+  .loc-note .fold-x{ top:-6px; right:-8px; }
+  @media (min-width:760px){ .view-fold.view-note{ padding-left:28px; padding-right:28px; } .view-note .fold-x{ right:22px; } }
   .fold-btn{ display:inline-flex; align-items:center; gap:2px; min-height:32px; padding:0 8px 0 0; background:none; color:var(--ink-soft); font-size:12px; font-weight:700; }
   .fold-btn svg{ width:16px; height:16px; flex:none; }
   .group-desc.closed{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:2px; padding-bottom:2px; }
@@ -447,11 +454,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.26.2";
+var APP_VERSION = "1.26.3";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.26.3", lines:["「防災用品」と「どこにある？」の説明文を、右の矢印で開け閉めできるようにしました。初期は閉じていて、開閉は覚えています。","「どこにある？」の説明文を「場所ごとに揃ったらチェック。全場所に揃うと進捗バーが進みます。」に変えました。"] },
   { v:"1.26.2", lines:["「保管場所未設定」の見出しを「場所未定」に変えました。","「防災用品」タブの説明文を、「場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。」に変えました。"] },
   { v:"1.26.1", lines:["初期の保管場所を変えました。持ち歩き=「いつものバッグ」「サブバッグ」、備蓄=「リビング」「寝室」「キッチン」。ワンタップ追加の候補は、持ち歩き=「防災ポーチ」「衛生ポーチ」「通学バッグ」「通勤バッグ」、備蓄=「押し入れ」「ベランダ」「レンタル倉庫」です(すでにある保管場所は変わりません)。","ヒント文の言い回しを短くしました。"] },
   { v:"1.26.0", lines:["用品ごとに「必要な場所すべてにそろったら準備済み」を管理できるようにしました。保管場所のチップは、タップするたびに 置く場所(枠線)→そろった(塗りつぶし)→なし と切り替わります。","「どこにある？」の場所ごとのチェック(丸)は、その場所にそろったかどうかです。すべての場所にそろうと、「防災用品」タブのチェックが自動で付き、一部だけのときは途中の印(ー)になります。「防災用品」タブのチェックを押すと、すべての場所にそろった/なしをまとめて切り替えます。","CSVに「そろった場所」の列を追加しました。この列がない古いCSVは、チェックが済のとき全部そろった扱いで取り込みます。","以前のデータは、チェック済みの用品はすべての場所にそろった扱い、未チェックの用品は置く場所のみ(まだそろっていない)になります。"] },
@@ -1453,14 +1461,18 @@ function buildMasterRow(g, item){
     + '<div class="swipe-content' + (open ? " open" : "") + '" data-swipe-id="' + id + '"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top + confirm + '</div></div></div>';
 }
-/* ヒント文の開閉(閉じた状態を覚える。初期は開いている) */
+/* ヒント文の開閉(状態を覚える。app・descは初期は開、vitem・vloc(各表示の説明)は初期は閉) */
 var FOLD_KEY = "bousai-fold-closed";
 var foldClosed = (function(){
-  var o = { app:false, desc:false };
-  try{ var v = JSON.parse(window.localStorage.getItem("bousai-fold-closed") || "{}"); if(v && v.app === true) o.app = true; if(v && v.desc === true) o.desc = true; }catch(e){}
+  var o = { app:false, desc:false, vitem:true, vloc:true };
+  try{ var v = JSON.parse(window.localStorage.getItem("bousai-fold-closed") || "{}"); if(v && v.app === true) o.app = true; if(v && v.desc === true) o.desc = true; if(v && v.vitem === false) o.vitem = false; if(v && v.vloc === false) o.vloc = false; }catch(e){}
   return o;
 })();
 var openCats = {};   // マスタで開いている分類(区分+分類)。保存しない
+function viewNoteHtml(key, text, cls){
+  if(foldClosed[key]) return '<div class="fold-row view-fold ' + cls + '"><button type="button" class="fold-btn" data-act="toggle-fold" data-key="' + key + '" aria-expanded="false">' + ICON_CHEV + 'ヒントを開く</button></div>';
+  return '<div class="note fold-box ' + cls + '"><span>' + text + '</span><button type="button" class="fold-x" data-act="toggle-fold" data-key="' + key + '" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>';
+}
 function buildMasterHtml(){
   var h = '<p class="note">防災用品を完全に削除するのは、ここです。区分ごとに「食品・生活・その他」へ分けてあります(分類は ✎ の編集で変えられます)。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。メイン画面で非表示にした用品も、ここに表示されます。</p>';
   GROUP_ORDER.forEach(function(g){
@@ -1537,7 +1549,7 @@ function buildByLocationHtml(g, meta){
       }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべてチェック済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
-  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、そろったらチェックします。すべての場所にそろうと準備済みになります。「場所未定」のチェックは、準備済みの意味です。</p>';
+  var html = '<div class="loc-group">'+ viewNoteHtml("vloc", "場所ごとに揃ったらチェック。全場所に揃うと進捗バーが進みます。", "loc-note");
   grp.locations.forEach(function(loc, li){
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && it.locations.indexOf(loc) !== -1; });
     var done = base.filter(function(it){ return (it.have || []).indexOf(loc) !== -1; }).length;
@@ -1582,7 +1594,7 @@ function renderMain(){
     + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示（' + hiddenCount + '）</button>'
     + '<div class="fb-search">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder="検索" maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += '<p class="note view-note">場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。</p>'
+    html += viewNoteHtml("vitem", "場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。", "view-note")
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
@@ -1903,7 +1915,7 @@ var ACTIONS = {
     if(it && csel && catKey(csel.value)) it.cat = csel.value;
     editingItemId = null; render(); save();
   },
-  "toggle-fold": function(t){ var k = t.getAttribute("data-key"); if(k !== "app" && k !== "desc") return; editingDescG = null; foldClosed[k] = !foldClosed[k]; lsSet(FOLD_KEY, JSON.stringify(foldClosed)); closeSwipe(); render(); },
+  "toggle-fold": function(t){ var k = t.getAttribute("data-key"); if(k !== "app" && k !== "desc" && k !== "vitem" && k !== "vloc") return; editingDescG = null; foldClosed[k] = !foldClosed[k]; lsSet(FOLD_KEY, JSON.stringify(foldClosed)); closeSwipe(); render(); },
   "toggle-cat": function(t){ var k = t.getAttribute("data-key"); openCats[k] = !openCats[k]; closeSwipe(); render(); },
   "cancel-edit": function(){ editingItemId = null; render(); },
   "req-del": function(t){ clearTransient(); pendingDeleteId = t.getAttribute("data-id"); render(); },
