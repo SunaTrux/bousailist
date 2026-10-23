@@ -457,11 +457,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.27.0";
+var APP_VERSION = "1.27.1";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.27.1", lines:["設定に「ガイド」を追加しました。「ガイドをもう一度見る」を押すと、はじめての案内(チップを枠線にしたときの吹き出し)をもう一度表示できます。"] },
   { v:"1.27.0", lines:["初めて保管場所のチップを枠線にしたときだけ、「揃えられたら、もう一度タップしよう(点灯します)」と案内を出すようにしました。「わかった」を押すか、ほかの操作をすると消えます。2回目以降は出ません。"] },
   { v:"1.26.3", lines:["「防災用品」と「どこにある？」の説明文を、右の矢印で開け閉めできるようにしました。初期は閉じていて、開閉は覚えています。","「どこにある？」の説明文を「場所ごとに揃ったらチェック。全場所に揃うと進捗バーが進みます。」に変えました。"] },
   { v:"1.26.2", lines:["「保管場所未設定」の見出しを「場所未定」に変えました。","「防災用品」タブの説明文を、「場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。」に変えました。"] },
@@ -1327,6 +1328,7 @@ function planJsonImport(text, cur){
 
 /* ================= UI state ================= */
 var viewMode = "item";
+var guideMsg = null;
 var coachItemId = null, COACH_KEY = "bousai-coach-plan-seen";  // 初めて枠線にしたときだけ出す案内(出したら記録)
 var locEditorFor = null, editingDescG = null;  // 保管場所のチップ編集を開いている場所(用品のid / "__loc")、ヒント文を編集中の区分
 var showSettings = false;
@@ -1341,7 +1343,7 @@ var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled
 var json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
 var appEl = document.getElementById("app");
 
-function resetSettingsUi(){
+function resetSettingsUi(){ guideMsg = null;
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
@@ -1755,6 +1757,8 @@ function buildSettingsHtml(){
       }
       return h + '</div>';
     }).join('');
+  var guideBody = '<p class="note">はじめて使う人向けの案内(保管場所のチップを枠線にしたとき「揃えられたら、もう一度タップしよう」と出る吹き出し)を、もう一度表示します。</p>'
+    + '<button type="button" class="settings-btn" data-act="reset-guide">ガイドをもう一度見る</button>' + msgHtml(guideMsg);
   var themeBody = '<div class="seg">' + seg + '</div>';
   var curHint = state.appHint || DEFAULT_APP_HINT;
   var hintBody = '<p class="note">トップ画面のタイトルの下に出る説明文です。自由に書き換えられます(' + MAX_HINT + '文字まで・改行できます)。空にすると、初期の文に戻ります。</p>'
@@ -1769,6 +1773,7 @@ function buildSettingsHtml(){
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
     + acc("theme", "テーマ", themeName, themeBody)
+    + acc("guide", "ガイド", "はじめての案内", guideBody)
     + acc("hint", "アプリのヒント文", state.appHint ? "編集済み" : "初期の文", hintBody)
     + acc("sets", "拡張パック", "職場・乳児用・高齢者用・Ex", setsBody)
     + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
@@ -1896,6 +1901,7 @@ var ACTIONS = {
     if(it.locations.indexOf(loc) !== -1 && it.have.indexOf(loc) === -1 && !lsGet(COACH_KEY)){ coachItemId = it.id; lsSet(COACH_KEY, "1"); }
     render(); save();
   },
+  "reset-guide": function(){ try{ window.localStorage.removeItem(COACH_KEY); }catch(e){} guideMsg = { type:"", text:"ガイドを元に戻しました。「防災用品」タブで保管場所のチップを枠線にすると、案内が出ます。" }; render(); },
   "dismiss-coach": function(){ coachItemId = null; render(); },
   "toggle-have": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
