@@ -447,11 +447,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.26.0";
+var APP_VERSION = "1.26.1";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.26.1", lines:["初期の保管場所を変えました。持ち歩き=「いつものバッグ」「サブバッグ」、備蓄=「リビング」「寝室」「キッチン」。ワンタップ追加の候補は、持ち歩き=「防災ポーチ」「衛生ポーチ」「通学バッグ」「通勤バッグ」、備蓄=「押し入れ」「ベランダ」「レンタル倉庫」です(すでにある保管場所は変わりません)。","ヒント文の言い回しを短くしました。"] },
   { v:"1.26.0", lines:["用品ごとに「必要な場所すべてにそろったら準備済み」を管理できるようにしました。保管場所のチップは、タップするたびに 置く場所(枠線)→そろった(塗りつぶし)→なし と切り替わります。","「どこにある？」の場所ごとのチェック(丸)は、その場所にそろったかどうかです。すべての場所にそろうと、「防災用品」タブのチェックが自動で付き、一部だけのときは途中の印(ー)になります。「防災用品」タブのチェックを押すと、すべての場所にそろった/なしをまとめて切り替えます。","CSVに「そろった場所」の列を追加しました。この列がない古いCSVは、チェックが済のとき全部そろった扱いで取り込みます。","以前のデータは、チェック済みの用品はすべての場所にそろった扱い、未チェックの用品は置く場所のみ(まだそろっていない)になります。"] },
   { v:"1.25.0", lines:["「どこにある？」を、保管場所ごとに用品を並べて見る画面にしました。チェックはすべて四角で、「防災用品」タブのチェック(用意できたか)と同じです。どちらで付けても連動し、進捗バーにも数えられます。","各場所には、その場所のチップを点灯させた用品だけが出ます(複数の場所にある用品は、それぞれに出ます)。どこにも置いていない用品は、一番下の「保管場所未設定」に出ます。","保管場所を決めるのは、「防災用品」タブのチップです(1.15.0の「その場所にあるかのチェック」は廃止しました)。"] },
   { v:"1.24.1", lines:["「どこにある？」で、保管場所のチップがひとつも点灯していない用品は、各場所の一覧には出さず、一番下の「保管場所未設定」だけに出すようにしました。保管場所を最初に決めるのは「防災用品」タブのチップです。"] },
@@ -613,9 +614,9 @@ var PREV_DEFAULT_DESC = {
 var OLD_DEFAULT_DESC_G0 = "0次の備えは、普段使いのカバンに最小限のグッズを入れて常に携帯する「持ち歩き用」です。";
 var OLD_DEFAULT_DESC_G1 = "1次の備えは、緊急時に即座に持ち出せる「避難用」です。1〜2日は行動できるようにしましょう。";
 var DEFAULT_LOCATIONS = {
-  g0:["いつものバッグ","ポーチ"],
+  g0:["いつものバッグ","サブバッグ"],
   g1:["リュック","職場に保管"],
-  g2:["リビング","寝室","押し入れ"]
+  g2:["リビング","寝室","キッチン"]
 };
 /* 初期の用品。出典は消防庁「非常用持出品チェックシート」「備蓄品チェックシート」、東京都「今やろう防災アクション」、農林水産省の家庭備蓄の解説。数量は資料に書かれているものだけ品名に入れています。
    [品名, 分類] 分類: f=食品 l=生活 o=その他 */
@@ -645,11 +646,11 @@ function guessCat(name){
   return "other";
 }
 var LOC_SUGGEST = {
-  g0:["サブバッグ","通学バッグ","通勤バッグ"],
+  g0:["防災ポーチ","衛生ポーチ","通学バッグ","通勤バッグ"],
   g1:["非常持ち出し袋","玄関","車"],
-  g2:["キッチン","ベランダ","レンタル倉庫"]
+  g2:["押し入れ","ベランダ","レンタル倉庫"]
 };
-var LOC_INPUT_EXAMPLE = { g0:"防災ポーチ", g1:"車のトランク", g2:"玄関" };
+var LOC_INPUT_EXAMPLE = { g0:"サコッシュ", g1:"車のトランク", g2:"玄関" };
 
 /* ================= Small helpers ================= */
 var ESC_MAP = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
@@ -1535,14 +1536,14 @@ function buildByLocationHtml(g, meta){
       }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべてチェック済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
-  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、置く用品を並べて見ます。そこにそろったらチェックします。すべての場所にそろうと、「防災用品」タブで準備済みになります。どこにも置いていない用品は、一番下の「保管場所未設定」に出ます(四角のチェックは、用意できたかのチェックです)。</p>';
+  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、そろったらチェックします。すべての場所にそろうと準備済みになります。「保管場所未設定」のチェックは、準備済みの意味です。</p>';
   grp.locations.forEach(function(loc, li){
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && it.locations.indexOf(loc) !== -1; });
     var done = base.filter(function(it){ return (it.have || []).indexOf(loc) !== -1; }).length;
     var shown = base.filter(function(it){ return !(onlyUnchecked && (it.have || []).indexOf(loc) !== -1 && !keepVisible[it.id + "|" + loc]); });
     html += '<div class="loc-head"><span class="loc-tag" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + done + '/' + base.length + '</span></div>';
     html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
-      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? 'すべてチェック済みです' : (searchKey ? '合う防災用品はありません' : 'ここに置いている防災用品はありません')) + '</div>';
+      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? 'すべてチェック済みです' : (searchKey ? '合う防災用品はありません' : 'ここに防災用品はありません')) + '</div>';
   });
   return html + unassignedHtml() + locAdd + '</div>';
 }
@@ -1580,7 +1581,7 @@ function renderMain(){
     + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示（' + hiddenCount + '）</button>'
     + '<div class="fb-search">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder="検索" maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += '<p class="note view-note">保管場所のチップをタップすると、置く場所(枠線)→そろった(塗りつぶし)→なし、と切り替わります。置く場所のすべてにそろうと、準備済みになります。置く場所がない用品は、名前をタップでチェックします。</p>'
+    html += '<p class="note view-note">保管場所をタップすると、置く場所(枠線)→そろった(点灯)→なし、と切り替わります。全て点灯=準備済みです。</p>'
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
