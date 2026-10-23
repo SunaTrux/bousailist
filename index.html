@@ -280,6 +280,14 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .loc-pill::after{ content:""; position:absolute; inset:-5px -2px; } /* 見た目は小さく、タップ範囲は広く */
   .loc-pill.active{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent); font-weight:700; }
+  .loc-settings.inline{ margin:8px 0 6px; padding:12px; border:1px solid var(--line); border-radius:6px; background:var(--card); }
+  .loc-add-row{ grid-column:1 / -1; padding:14px 0 4px; }
+  .loc-add-wide{ gap:6px; min-height:34px; padding:0 14px; font-size:13px; }
+  .desc-text{ overflow-wrap:anywhere; }
+  .desc-pencil{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:28px; margin-left:2px; vertical-align:middle; background:none; color:var(--ink-soft); }
+  .desc-pencil svg{ width:18px; height:18px; }
+  .desc-edit-btns{ display:flex; flex-wrap:wrap; gap:8px; }
+  .group-desc .desc-textarea{ margin-bottom:10px; background:var(--card); }
   .loc-add{ display:inline-flex; align-items:center; justify-content:center; min-width:34px; padding:0 8px; border-style:dashed; }
   .view-note{ margin:0; padding:12px 20px 4px; }
   @media (min-width:760px){ .view-note{ padding-left:28px; padding-right:28px; } }
@@ -434,11 +442,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.21.0";
+var APP_VERSION = "1.22.0";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.22.0", lines:["持ち歩き・持ち出し・備蓄のヒント文の最後に鉛筆アイコンを付けました。押すとその場で編集できます(保存・キャンセル・初期の文に戻す)。右の矢印で閉じることもできます。","保管場所の編集を、画面の上ではなく、押した「＋」チップのすぐ下に開くようにしました。「どこにあるか？」の画面では、一覧の最後の「保管場所を追加・編集」から開きます。","「保管場所を編集」のリンクと、上に出ていた編集画面はなくなりました。"] },
   { v:"1.21.0", lines:["切り替えの名前を「防災用品」「どこにあるか？」に変えました。","「防災用品」タブにも、使い方のヒント文を付けました。","各用品の保管場所チップの一番後ろに「＋」を付けました。押すと保管場所の編集画面に移動し、「一覧に戻る」で元の位置に戻ります。"] },
   { v:"1.20.1", lines:["安全対策を強化しました。外部への通信や外部の読み込みを禁止する設定(CSP)を追加し、万一おかしな文字が入っても情報が外に送られないようにしました。","CSVの書き出しで、品名が「=」「+」「-」「@」で始まる場合に、Excelなどで数式として実行されないようにしました(取り込み時は元に戻ります)。"] },
   { v:"1.20.0", lines:["設定に「追加セット」を追加しました。「職場に保管セット」(非常食・常備薬・携帯電話の充電器の職場用)、「乳児用セット」、「高齢者用セット」を開いて、必要な用品だけ選んで「追加」できます。同じ名前の用品はすでにあれば追加されません。","設定の「参考にしたもの」に、東京都「帰宅困難者対策ハンドブック」と内閣府「特集 オフィスの防災」を追加しました。"] },
@@ -1269,7 +1278,7 @@ function planJsonImport(text, cur){
 
 /* ================= UI state ================= */
 var viewMode = "item";
-var showLocEditor = false, locEditReturnY = null;
+var locEditorFor = null, editingDescG = null;  // 保管場所のチップ編集を開いている場所(用品のid / "__loc")、ヒント文を編集中の区分
 var showSettings = false;
 var openSwipeSide = "r";   // 開いているスワイプの側: "r"=右側のボタン(非表示/削除) "l"=左側のボタン(ピン留め)
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
@@ -1323,8 +1332,8 @@ function buildTabsHtml(){
       + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + m.num + '</div><div class="tlabel">' + m.label + '</div></button>';
   }).join("");
 }
-function buildLocEditorHtml(g, meta){
-  if(!showLocEditor) return "";
+function buildLocEditorHtml(g, meta, at){
+  if(locEditorFor !== at) return "";
   var grp = state.groups[g];
   var chips = grp.locations.length ? grp.locations.map(function(loc, i){
     if(pendingDeleteLoc === g + ":" + i){
@@ -1334,16 +1343,14 @@ function buildLocEditorHtml(g, meta){
     }
     return '<div class="loc-chip"><span>' + esc(loc) + '</span><button type="button" class="chip-x" data-act="req-del-loc" data-g="' + g + '" data-li="' + i + '" aria-label="' + esc(loc) + 'を削除">' + ICON_X + '</button></div>';
   }).join("") : '<span class="note">保管場所がありません</span>';
-  return '<div class="loc-settings">'
-    + '<div class="field-title">' + meta.label + 'の説明文</div>'
-    + '<textarea class="desc-textarea" maxlength="' + MAX_DESC + '" data-change="desc" data-g="' + g + '">' + esc(grp.desc) + '</textarea>'
-    + '<div class="field-title">' + meta.label + 'の保管場所</div>'
+  return '<div class="loc-settings inline">'
+    + '<div class="field-title">' + meta.label + 'の保管場所(すべての用品で共通です)</div>'
     + '<div class="loc-chips">' + chips + '</div>'
     + suggestHtml(g, grp)
     + '<div class="field-title">新しい保管場所</div>'
     + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="例:' + esc(LOC_INPUT_EXAMPLE[g]) + '" aria-label="新しい保管場所" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
     + '<button type="button" class="btn" data-act="add-loc" data-g="' + g + '">追加</button></div>'
-    + '<button type="button" class="btn btn-ghost edit-close" style="margin-top:16px" data-act="toggle-loc-editor">一覧に戻る</button></div>';
+    + '<button type="button" class="btn btn-ghost edit-close" style="margin-top:14px" data-act="toggle-loc-editor">閉じる</button></div>';
 }
 function suggestHtml(g, grp){
   var list = LOC_SUGGEST[g] || [], out = "";
@@ -1376,14 +1383,15 @@ function buildItemRow(g, meta, item, locations){
     var on = item.locations.indexOf(loc) !== -1;
     return '<button type="button" class="loc-pill' + (on ? " active" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + esc(loc) + '</button>';
   }).join("") : '';
-  var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-loc-editor" aria-label="' + GROUP_META[g].label + 'の保管場所を追加・編集">' + ICON_PLUS + '</button>';
+  var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-loc-editor" data-at="' + id + '" aria-expanded="' + (locEditorFor === item.id) + '" aria-label="' + GROUP_META[g].label + 'の保管場所を追加・編集">' + ICON_PLUS + '</button>';
   return '<div class="item' + (hid ? ' is-hidden' : '') + (item.pinned ? ' is-pinned' : '') + '"><div class="swipe-wrap">'
     + '<button type="button" class="swipe-pin" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" tabindex="' + (openL ? 0 : -1) + '" aria-hidden="' + (openL ? "false" : "true") + '">' + (item.pinned ? "ピンを外す" : "ピン留め") + '</button>'
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
-    + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing ? ' data-noswipe="1"' : "") + '>'
+    + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing || locEditorFor === item.id ? ' data-noswipe="1"' : "") + '>'
     + top
     + (pills ? '' : '<div class="hint">保管場所が未設定です(右の＋で追加できます)</div>')
     + '<div class="locations">' + pills + addPill + '</div>'
+    + buildLocEditorHtml(g, meta, item.id)
     + '</div></div></div>';
 }
 function buildMasterRow(g, item){
@@ -1477,7 +1485,8 @@ function buildByLocationHtml(g, meta){
       + '<button type="button" class="check-btn" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(it.name) + 'が' + esc(loc) + 'にある"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span></button>'
       + '<div class="item-name' + (on ? " checked" : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
-  if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div></div>';
+  var locAdd = '<div class="loc-add-row"><button type="button" class="loc-pill loc-add loc-add-wide" data-act="open-loc-editor" data-at="__loc" aria-expanded="' + (locEditorFor === "__loc") + '">' + ICON_PLUS + '<span>保管場所を追加・編集</span></button></div>' + buildLocEditorHtml(g, meta, "__loc");
+  if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + locAdd + '</div>';
   var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、用品がそこにあるかをチェックします。チェックすると、「防災用品」タブの保管場所チップが点灯します。</p>';
   grp.locations.forEach(function(loc, li){
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it); });
@@ -1487,12 +1496,9 @@ function buildByLocationHtml(g, meta){
     html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
       : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyUnchecked ? 'すべてチェック済みです' : '') : (searchKey ? '合う防災用品はありません' : '防災用品がありません')) + '</div>';
   });
-  return html + '</div>';
+  return html + locAdd + '</div>';
 }
 
-function locEditLinkHtml(g, meta){
-  return '<div class="desc-link"><button type="button" class="text-link" data-act="toggle-loc-editor">' + (showLocEditor ? '一覧に戻る' : meta.label + 'の保管場所を編集') + '</button></div>';
-}
 function renderMain(){
   var g = state.activeTab, meta = GROUP_META[g], grp = state.groups[g];
   var html = ''
@@ -1505,11 +1511,15 @@ function renderMain(){
     + '</div>'
     + buildPinnedHtml()
     + '<div class="overview">' + buildOverviewHtml() + '</div>'
-    + buildLocEditorHtml(g, meta)
     + '<div class="tabs">' + buildTabsHtml() + '</div>'
     + (foldClosed.desc
-        ? '<div class="group-desc closed" style="' + accentStyle(meta) + '"><button type="button" class="fold-btn" data-act="toggle-fold" data-key="desc" aria-expanded="false">' + ICON_CHEV + meta.label + 'のヒントを開く</button>' + locEditLinkHtml(g, meta) + '</div>'
-        : '<div class="group-desc fold-box" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + locEditLinkHtml(g, meta) + '<button type="button" class="fold-x" data-act="toggle-fold" data-key="desc" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>')
+        ? '<div class="group-desc closed" style="' + accentStyle(meta) + '"><button type="button" class="fold-btn" data-act="toggle-fold" data-key="desc" aria-expanded="false">' + ICON_CHEV + meta.label + 'のヒントを開く</button></div>'
+        : '<div class="group-desc fold-box" style="' + accentStyle(meta) + '">' + (editingDescG === g
+            ? '<textarea class="desc-textarea" id="desc-edit-input" maxlength="' + MAX_DESC + '" aria-label="' + meta.label + 'のヒント文">' + esc(grp.desc) + '</textarea>'
+              + '<div class="desc-edit-btns"><button type="button" class="btn" data-act="save-desc" data-g="' + g + '">保存</button><button type="button" class="btn btn-ghost" data-act="cancel-desc">キャンセル</button>'
+              + (grp.desc !== DEFAULT_DESC[g] ? '<button type="button" class="btn btn-ghost" data-act="reset-desc" data-g="' + g + '">初期の文に戻す</button>' : '') + '</div>'
+            : '<span class="desc-text">' + esc(grp.desc).replace(/\n/g, "<br>") + '</span><button type="button" class="desc-pencil" data-act="edit-desc" data-g="' + g + '" aria-label="' + meta.label + 'のヒント文を編集">' + ICON_EDIT + '</button>')
+          + '<button type="button" class="fold-x" data-act="toggle-fold" data-key="desc" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>')
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">' + VIEW_ICONS.item + '防災用品</button>'
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + 'どこにあるか？</button></div>';
@@ -1721,7 +1731,7 @@ function findItem(g, id){
   for(var i = 0; i < items.length; i++){ if(items[i].id === id) return items[i]; }
   return null;
 }
-function clearTransient(){ openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
+function clearTransient(){ locEditorFor = null; editingDescG = null; openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
 /* メモ・LINE・印刷向けの読み物(取り込み用ではありません)。非表示の用品は含めません。 */
 function buildMarkdownText(){
   function one(v){ return String(v).replace(/[\r\n]+/g, " ").trim(); }
@@ -1777,14 +1787,24 @@ function readFileInto(file, target, after){
 }
 
 var ACTIONS = {
-  "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); showLocEditor = false; render(); save(); },
+  "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); render(); save(); },
   "view": function(t){ viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item"; clearTransient(); render(); },
-  "toggle-loc-editor": function(){
-    if(!showLocEditor) locEditReturnY = null;
-    showLocEditor = !showLocEditor; pendingDeleteLoc = null; render();
-    if(!showLocEditor && locEditReturnY != null){ window.scrollTo(0, locEditReturnY); locEditReturnY = null; }
+  "toggle-loc-editor": function(){ locEditorFor = null; pendingDeleteLoc = null; render(); },
+  "open-loc-editor": function(t){
+    var at = t.getAttribute("data-at");
+    closeSwipe(); editingDescG = null; pendingDeleteLoc = null;
+    locEditorFor = locEditorFor === at ? null : at;
+    render();
+    var e = appEl.querySelector(".loc-settings.inline"); if(e && e.scrollIntoView) e.scrollIntoView({ block:"nearest" });
   },
-  "open-loc-editor": function(){ closeSwipe(); locEditReturnY = window.pageYOffset; showLocEditor = true; pendingDeleteLoc = null; render(); var e = appEl.querySelector(".loc-settings"); if(e && e.scrollIntoView) e.scrollIntoView({ block:"start" }); },
+  "edit-desc": function(t){ clearTransient(); editingDescG = getGroup(t); render(); focusId("desc-edit-input"); },
+  "cancel-desc": function(){ editingDescG = null; render(); },
+  "save-desc": function(t){
+    var g = getGroup(t), el = document.getElementById("desc-edit-input");
+    if(el) state.groups[g].desc = cleanText(el.value, MAX_DESC) || DEFAULT_DESC[g];
+    editingDescG = null; render(); save();
+  },
+  "reset-desc": function(t){ var g = getGroup(t); state.groups[g].desc = DEFAULT_DESC[g]; editingDescG = null; render(); save(); },
   "toggle-check": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.checked = !it.checked; if(onlyUnchecked){ if(it.checked) keepVisible[it.id] = true; else delete keepVisible[it.id]; } render(); save(); },
   "toggle-loc": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
@@ -1811,7 +1831,7 @@ var ACTIONS = {
     if(it && csel && catKey(csel.value)) it.cat = csel.value;
     editingItemId = null; render(); save();
   },
-  "toggle-fold": function(t){ var k = t.getAttribute("data-key"); if(k !== "app" && k !== "desc") return; foldClosed[k] = !foldClosed[k]; lsSet(FOLD_KEY, JSON.stringify(foldClosed)); closeSwipe(); render(); },
+  "toggle-fold": function(t){ var k = t.getAttribute("data-key"); if(k !== "app" && k !== "desc") return; editingDescG = null; foldClosed[k] = !foldClosed[k]; lsSet(FOLD_KEY, JSON.stringify(foldClosed)); closeSwipe(); render(); },
   "toggle-cat": function(t){ var k = t.getAttribute("data-key"); openCats[k] = !openCats[k]; closeSwipe(); render(); },
   "cancel-edit": function(){ editingItemId = null; render(); },
   "req-del": function(t){ clearTransient(); pendingDeleteId = t.getAttribute("data-id"); render(); },
