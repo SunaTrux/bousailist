@@ -444,11 +444,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.24.0";
+var APP_VERSION = "1.24.1";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.24.1", lines:["「どこにある？」で、保管場所のチップがひとつも点灯していない用品は、各場所の一覧には出さず、一番下の「保管場所未設定」だけに出すようにしました。保管場所を最初に決めるのは「防災用品」タブのチップです。"] },
   { v:"1.24.0", lines:["「どこにある？」の一番下に、「保管場所未設定」の見出しを追加しました。保管場所のチップがひとつも点灯していない用品が、ここに出ます。","ここのチェックは四角で、「防災用品」タブのチェック(用意できたか)と同じものです。ほかの場所の丸いチェック(その場所にあるか)とは別です。チップを点灯させると、この見出しから消えます。"] },
   { v:"1.23.0", lines:["設定の「追加セット」を「拡張パック」に、切り替えの「どこにあるか？」を「どこにある？」に変えました。","乳児用・高齢者用の用品名に「(乳児用)」「(高齢者用)」を付けて、ほかの用品と区別できるようにしました。","拡張パックに「持ち歩きEx(防犯ブザー)」「持ち出しEx(踏み抜き防止中敷き)」「備蓄Ex(ぬいぐるみ)」を追加しました。"] },
   { v:"1.22.0", lines:["持ち歩き・持ち出し・備蓄のヒント文の最後に鉛筆アイコンを付けました。押すとその場で編集できます(保存・キャンセル・初期の文に戻す)。右の矢印で閉じることもできます。","保管場所の編集を、画面の上ではなく、押した「＋」チップのすぐ下に開くようにしました。「どこにあるか？」の画面では、一覧の最後の「保管場所を追加・編集」から開きます。","「保管場所を編集」のリンクと、上に出ていた編集画面はなくなりました。"] },
@@ -1507,14 +1508,14 @@ function buildByLocationHtml(g, meta){
       }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべてチェック済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
-  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、用品がそこにあるかをチェックします。チェックすると、「防災用品」タブの保管場所チップが点灯します。どこにも置いていない用品は、一番下の「保管場所未設定」に出ます(四角のチェックは、「防災用品」タブと同じ用意できたかのチェックです)。</p>';
+  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、用品がそこにあるかをチェックします。チェックすると、「防災用品」タブの保管場所チップが点灯します。どこにも置いていない用品は、一番下の「保管場所未設定」だけに出ます(四角のチェックは、「防災用品」タブと同じ用意できたかのチェックです)。保管場所は、「防災用品」タブのチップで最初に決めます。</p>';
   grp.locations.forEach(function(loc, li){
-    var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it); });
+    var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && it.locations.length > 0; });  // どこにも置いていない用品は「保管場所未設定」だけに出す
     var lit = base.filter(function(it){ return it.locations.indexOf(loc) !== -1; }).length;
     var shown = base.filter(function(it){ return locEntryShown(it, loc); });
     html += '<div class="loc-head"><span class="loc-tag" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + lit + '/' + base.length + '</span></div>';
     html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
-      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyUnchecked ? 'すべてチェック済みです' : '') : (searchKey ? '合う防災用品はありません' : '防災用品がありません')) + '</div>';
+      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyUnchecked ? 'すべてチェック済みです' : '') : (searchKey ? '合う防災用品はありません' : '保管場所を決めた防災用品がありません')) + '</div>';
   });
   return html + unassignedHtml() + locAdd + '</div>';
 }
