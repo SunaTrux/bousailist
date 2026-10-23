@@ -280,6 +280,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .loc-pill::after{ content:""; position:absolute; inset:-5px -2px; } /* 見た目は小さく、タップ範囲は広く */
   .loc-pill.active{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent); font-weight:700; }
+  .loc-add{ display:inline-flex; align-items:center; justify-content:center; min-width:34px; padding:0 8px; border-style:dashed; }
+  .view-note{ margin:0; padding:12px 20px 4px; }
+  @media (min-width:760px){ .view-note{ padding-left:28px; padding-right:28px; } }
   .hint{ margin:2px 0 0 35px; font-size:12.5px; color:var(--ink-soft); }
   .confirm-row{
     display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0 0 35px; padding:10px 12px;
@@ -431,11 +434,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.20.1";
-var APP_VERSION_DATE = "2026-10-22";
+var APP_VERSION = "1.21.0";
+var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.21.0", lines:["切り替えの名前を「防災用品」「どこにあるか？」に変えました。","「防災用品」タブにも、使い方のヒント文を付けました。","各用品の保管場所チップの一番後ろに「＋」を付けました。押すと保管場所の編集画面に移動し、「一覧に戻る」で元の位置に戻ります。"] },
   { v:"1.20.1", lines:["安全対策を強化しました。外部への通信や外部の読み込みを禁止する設定(CSP)を追加し、万一おかしな文字が入っても情報が外に送られないようにしました。","CSVの書き出しで、品名が「=」「+」「-」「@」で始まる場合に、Excelなどで数式として実行されないようにしました(取り込み時は元に戻ります)。"] },
   { v:"1.20.0", lines:["設定に「追加セット」を追加しました。「職場に保管セット」(非常食・常備薬・携帯電話の充電器の職場用)、「乳児用セット」、「高齢者用セット」を開いて、必要な用品だけ選んで「追加」できます。同じ名前の用品はすでにあれば追加されません。","設定の「参考にしたもの」に、東京都「帰宅困難者対策ハンドブック」と内閣府「特集 オフィスの防災」を追加しました。"] },
   { v:"1.19.2", lines:["持ち出しの初期の保管場所「職場置き」を「職場に保管」に変えました。","持ち出しの初期の用品に、「歩きやすい靴(職場用)」と「帰宅ルートの地図(職場用)」を追加しました。","すでにある保管場所・用品は変わりません(新規インストールと「初期化」のときに反映されます)。"] },
@@ -1265,7 +1269,7 @@ function planJsonImport(text, cur){
 
 /* ================= UI state ================= */
 var viewMode = "item";
-var showLocEditor = false;
+var showLocEditor = false, locEditReturnY = null;
 var showSettings = false;
 var openSwipeSide = "r";   // 開いているスワイプの側: "r"=右側のボタン(非表示/削除) "l"=左側のボタン(ピン留め)
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
@@ -1286,6 +1290,7 @@ function resetSettingsUi(){
 }
 
 /* ================= Rendering ================= */
+var ICON_PLUS = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
 var ICON_CHEV = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var ICON_EDIT = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 7l4 4" stroke="currentColor" stroke-width="2"/></svg>';
 var ICON_EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
@@ -1371,12 +1376,14 @@ function buildItemRow(g, meta, item, locations){
     var on = item.locations.indexOf(loc) !== -1;
     return '<button type="button" class="loc-pill' + (on ? " active" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + esc(loc) + '</button>';
   }).join("") : '';
+  var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-loc-editor" aria-label="' + GROUP_META[g].label + 'の保管場所を追加・編集">' + ICON_PLUS + '</button>';
   return '<div class="item' + (hid ? ' is-hidden' : '') + (item.pinned ? ' is-pinned' : '') + '"><div class="swipe-wrap">'
     + '<button type="button" class="swipe-pin" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" tabindex="' + (openL ? 0 : -1) + '" aria-hidden="' + (openL ? "false" : "true") + '">' + (item.pinned ? "ピンを外す" : "ピン留め") + '</button>'
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
     + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top
-    + (pills ? '<div class="locations">' + pills + '</div>' : '<div class="hint">保管場所が未設定です(「' + GROUP_META[g].label + 'の保管場所を編集」で追加できます)</div>')
+    + (pills ? '' : '<div class="hint">保管場所が未設定です(右の＋で追加できます)</div>')
+    + '<div class="locations">' + pills + addPill + '</div>'
     + '</div></div></div>';
 }
 function buildMasterRow(g, item){
@@ -1463,7 +1470,7 @@ function buildItemsHtml(g, meta){
 }
 function buildByLocationHtml(g, meta){
   var grp = state.groups[g];
-  if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。「用品ごと」から追加できます。</div>';
+  if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。「防災用品」タブから追加できます。</div>';
   function row(it, loc, li){
     var on = it.locations.indexOf(loc) !== -1, id = esc(it.id);
     return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + '">'
@@ -1471,7 +1478,7 @@ function buildByLocationHtml(g, meta){
       + '<div class="item-name' + (on ? " checked" : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div></div>';
-  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、用品がそこにあるかをチェックします。チェックすると、「用品ごと」の保管場所チップが点灯します。</p>';
+  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、用品がそこにあるかをチェックします。チェックすると、「防災用品」タブの保管場所チップが点灯します。</p>';
   grp.locations.forEach(function(loc, li){
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it); });
     var lit = base.filter(function(it){ return it.locations.indexOf(loc) !== -1; }).length;
@@ -1504,8 +1511,8 @@ function renderMain(){
         ? '<div class="group-desc closed" style="' + accentStyle(meta) + '"><button type="button" class="fold-btn" data-act="toggle-fold" data-key="desc" aria-expanded="false">' + ICON_CHEV + meta.label + 'のヒントを開く</button>' + locEditLinkHtml(g, meta) + '</div>'
         : '<div class="group-desc fold-box" style="' + accentStyle(meta) + '">' + esc(grp.desc).replace(/\n/g, "<br>") + locEditLinkHtml(g, meta) + '<button type="button" class="fold-x" data-act="toggle-fold" data-key="desc" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>')
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
-    + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">' + VIEW_ICONS.item + '用品ごと</button>'
-    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + '保管場所ごと</button></div>';
+    + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">' + VIEW_ICONS.item + '防災用品</button>'
+    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + 'どこにあるか？</button></div>';
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   var remain = grp.items.filter(function(it){ return !it.hidden && !it.checked; }).length;
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '"><span class="fb-label">表示</span>'
@@ -1515,10 +1522,11 @@ function renderMain(){
     + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示（' + hiddenCount + '）</button>'
     + '<div class="fb-search">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder="検索" maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
+    html += '<p class="note view-note">防災用品ごとに、置いてある保管場所のチップをタップして点灯させます(複数選べます)。名前をタップでチェックです。</p>'
+      + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note">名前をタップでチェック・保管場所は複数選べます<br><span class="hint-fine">左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>(削除は設定の「防災用品マスタ」から)</div>';
+      + '<div class="footer-note"><span class="hint-fine">左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>(削除は設定の「防災用品マスタ」から)</div>';
   } else {
     html += '<div id="list-area" style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
@@ -1771,7 +1779,12 @@ function readFileInto(file, target, after){
 var ACTIONS = {
   "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); showLocEditor = false; render(); save(); },
   "view": function(t){ viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item"; clearTransient(); render(); },
-  "toggle-loc-editor": function(){ showLocEditor = !showLocEditor; pendingDeleteLoc = null; render(); },
+  "toggle-loc-editor": function(){
+    if(!showLocEditor) locEditReturnY = null;
+    showLocEditor = !showLocEditor; pendingDeleteLoc = null; render();
+    if(!showLocEditor && locEditReturnY != null){ window.scrollTo(0, locEditReturnY); locEditReturnY = null; }
+  },
+  "open-loc-editor": function(){ closeSwipe(); locEditReturnY = window.pageYOffset; showLocEditor = true; pendingDeleteLoc = null; render(); var e = appEl.querySelector(".loc-settings"); if(e && e.scrollIntoView) e.scrollIntoView({ block:"start" }); },
   "toggle-check": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.checked = !it.checked; if(onlyUnchecked){ if(it.checked) keepVisible[it.id] = true; else delete keepVisible[it.id]; } render(); save(); },
   "toggle-loc": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
