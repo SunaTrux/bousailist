@@ -304,7 +304,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   @media (min-width:760px){ .view-note{ padding-left:28px; padding-right:28px; } }
   .coach{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0 2px 35px; padding:6px 6px 6px 12px; border:1px solid var(--accent,var(--ink-soft)); border-radius:8px; background:var(--accent-soft,var(--card)); color:var(--ink); font-size:12.5px; line-height:1.5; position:relative; }
   .coach::before{ content:""; position:absolute; top:-6px; left:18px; width:10px; height:10px; background:var(--accent-soft,var(--card)); border-left:1px solid var(--accent,var(--ink-soft)); border-top:1px solid var(--accent,var(--ink-soft)); transform:rotate(45deg); }
-  .coach-ok{ flex:none; min-height:32px; padding:0 12px; border-radius:16px; background:var(--accent,var(--ink)); color:var(--on-accent,#fff); font-size:12.5px; font-weight:700; }
+  .coach-ok{ flex:none; display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 8px; background:none; color:var(--ink); font-size:12.5px; font-weight:700; }
+  .coach-box{ width:18px; height:18px; border:2px solid var(--ink-soft); border-radius:4px; background:var(--paper); }
   .hint{ margin:2px 0 0 35px; font-size:12.5px; color:var(--ink-soft); }
   .confirm-row{
     display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0 0 35px; padding:10px 12px;
@@ -457,11 +458,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.27.1";
+var APP_VERSION = "1.27.2";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.27.2", lines:["チップを枠線にしたときの案内を、「以降は表示しない」にチェックするまで毎回出るようにしました(「わかった」ボタンをチェックに変えました)。止めたあとも、設定の「ガイド」から戻せます。"] },
   { v:"1.27.1", lines:["設定に「ガイド」を追加しました。「ガイドをもう一度見る」を押すと、はじめての案内(チップを枠線にしたときの吹き出し)をもう一度表示できます。"] },
   { v:"1.27.0", lines:["初めて保管場所のチップを枠線にしたときだけ、「揃えられたら、もう一度タップしよう(点灯します)」と案内を出すようにしました。「わかった」を押すか、ほかの操作をすると消えます。2回目以降は出ません。"] },
   { v:"1.26.3", lines:["「防災用品」と「どこにある？」の説明文を、右の矢印で開け閉めできるようにしました。初期は閉じていて、開閉は覚えています。","「どこにある？」の説明文を「場所ごとに揃ったらチェック。全場所に揃うと進捗バーが進みます。」に変えました。"] },
@@ -1443,7 +1445,7 @@ function buildItemRow(g, meta, item, locations){
     + top
     + (pills ? '' : '<div class="hint">保管場所が未設定です(右の＋で追加できます)</div>')
     + '<div class="locations">' + pills + addPill + '</div>'
-    + (coachItemId === item.id ? '<div class="coach" role="status"><span>揃えられたら、もう一度タップしよう(点灯します)</span><button type="button" class="coach-ok" data-act="dismiss-coach">わかった</button></div>' : '')
+    + (coachItemId === item.id ? '<div class="coach" role="status"><span>揃えられたら、もう一度タップしよう(点灯します)</span><button type="button" class="coach-ok" data-act="dismiss-coach" role="checkbox" aria-checked="false"><span class="coach-box"></span>以降は表示しない</button></div>' : '')
     + buildLocEditorHtml(g, meta, item.id)
     + '</div></div></div>';
 }
@@ -1757,7 +1759,7 @@ function buildSettingsHtml(){
       }
       return h + '</div>';
     }).join('');
-  var guideBody = '<p class="note">はじめて使う人向けの案内(保管場所のチップを枠線にしたとき「揃えられたら、もう一度タップしよう」と出る吹き出し)を、もう一度表示します。</p>'
+  var guideBody = '<p class="note">はじめて使う人向けの案内(保管場所のチップを枠線にしたとき「揃えられたら、もう一度タップしよう」と出る吹き出し)は、吹き出しの「以降は表示しない」にチェックするまで、毎回出ます。止めたあと、もう一度出したいときはここから戻せます。</p>'
     + '<button type="button" class="settings-btn" data-act="reset-guide">ガイドをもう一度見る</button>' + msgHtml(guideMsg);
   var themeBody = '<div class="seg">' + seg + '</div>';
   var curHint = state.appHint || DEFAULT_APP_HINT;
@@ -1898,11 +1900,11 @@ var ACTIONS = {
     else { it.locations.splice(at, 1); it.have.splice(hv, 1); }                                                              // そろった → なし
     syncItem(it);
     coachItemId = null;
-    if(it.locations.indexOf(loc) !== -1 && it.have.indexOf(loc) === -1 && !lsGet(COACH_KEY)){ coachItemId = it.id; lsSet(COACH_KEY, "1"); }
+    if(it.locations.indexOf(loc) !== -1 && it.have.indexOf(loc) === -1 && !lsGet(COACH_KEY)){ coachItemId = it.id; }   // 「以降は表示しない」を押すまで、枠線にするたびに出す
     render(); save();
   },
-  "reset-guide": function(){ try{ window.localStorage.removeItem(COACH_KEY); }catch(e){} guideMsg = { type:"", text:"ガイドを元に戻しました。「防災用品」タブで保管場所のチップを枠線にすると、案内が出ます。" }; render(); },
-  "dismiss-coach": function(){ coachItemId = null; render(); },
+  "reset-guide": function(){ try{ window.localStorage.removeItem(COACH_KEY); }catch(e){} guideMsg = { type:"", text:"ガイドを元に戻しました。「防災用品」タブで保管場所のチップを枠線にするたびに、案内が出ます(吹き出しの「以降は表示しない」で止められます)。" }; render(); },
+  "dismiss-coach": function(){ lsSet(COACH_KEY, "1"); coachItemId = null; render(); },   // 「以降は表示しない」
   "toggle-have": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
     var li = parseInt(t.getAttribute("data-li"), 10);
