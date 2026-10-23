@@ -269,6 +269,10 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .checkbox.checked{ background:var(--accent,var(--teal)); border-color:var(--accent,var(--teal)); }
   .checkbox svg{ display:block; }
+  .loc-group-item .checkbox{ border-radius:50%; }   /* 場所ごとの「そろった」は丸(用品ごとの四角いチェックと見分ける) */
+  .loc-group-item.sq .checkbox{ border-radius:5px; }  /* 保管場所未設定の行は、用品ごとと同じ四角いチェック */
+  .checkbox.partial{ border-color:var(--accent,var(--ink-soft)); }
+  .checkbox.partial::after{ content:""; width:12px; height:3px; border-radius:2px; background:var(--accent,var(--ink-soft)); }
   .item-name{ flex:1; min-width:0; padding:8px 4px; font-size:16px; font-weight:500; line-height:1.4; cursor:pointer; overflow-wrap:anywhere; }
   .item-name.checked{ color:var(--ink-soft); text-decoration:line-through; text-decoration-color:var(--ink-soft); }
   .edit-input{ flex:1 1 auto; min-width:0; }
@@ -278,6 +282,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     border-radius:13px; font-size:12px; line-height:1.2; max-width:100%; overflow-wrap:anywhere; text-align:center;
   }
   .loc-pill::after{ content:""; position:absolute; inset:-5px -2px; } /* 見た目は小さく、タップ範囲は広く */
+  .loc-pill.plan{ border:2px solid var(--accent,var(--ink)); color:var(--ink); background:transparent; font-weight:700; }
   .loc-pill.active{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent); font-weight:700; }
   .loc-settings.inline{ margin:8px 0 6px; padding:12px; border:1px solid var(--line); border-radius:6px; background:var(--card); }
   .loc-add-row{ grid-column:1 / -1; padding:14px 0 4px; }
@@ -442,11 +447,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.25.0";
+var APP_VERSION = "1.26.0";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.26.0", lines:["用品ごとに「必要な場所すべてにそろったら準備済み」を管理できるようにしました。保管場所のチップは、タップするたびに 置く場所(枠線)→そろった(塗りつぶし)→なし と切り替わります。","「どこにある？」の場所ごとのチェック(丸)は、その場所にそろったかどうかです。すべての場所にそろうと、「防災用品」タブのチェックが自動で付き、一部だけのときは途中の印(ー)になります。「防災用品」タブのチェックを押すと、すべての場所にそろった/なしをまとめて切り替えます。","CSVに「そろった場所」の列を追加しました。この列がない古いCSVは、チェックが済のとき全部そろった扱いで取り込みます。","以前のデータは、チェック済みの用品はすべての場所にそろった扱い、未チェックの用品は置く場所のみ(まだそろっていない)になります。"] },
   { v:"1.25.0", lines:["「どこにある？」を、保管場所ごとに用品を並べて見る画面にしました。チェックはすべて四角で、「防災用品」タブのチェック(用意できたか)と同じです。どちらで付けても連動し、進捗バーにも数えられます。","各場所には、その場所のチップを点灯させた用品だけが出ます(複数の場所にある用品は、それぞれに出ます)。どこにも置いていない用品は、一番下の「保管場所未設定」に出ます。","保管場所を決めるのは、「防災用品」タブのチップです(1.15.0の「その場所にあるかのチェック」は廃止しました)。"] },
   { v:"1.24.1", lines:["「どこにある？」で、保管場所のチップがひとつも点灯していない用品は、各場所の一覧には出さず、一番下の「保管場所未設定」だけに出すようにしました。保管場所を最初に決めるのは「防災用品」タブのチップです。"] },
   { v:"1.24.0", lines:["「どこにある？」の一番下に、「保管場所未設定」の見出しを追加しました。保管場所のチップがひとつも点灯していない用品が、ここに出ます。","ここのチェックは四角で、「防災用品」タブのチェック(用意できたか)と同じものです。ほかの場所の丸いチェック(その場所にあるか)とは別です。チップを点灯させると、この見出しから消えます。"] },
@@ -715,7 +721,7 @@ function defaultData(){
     groups[g] = {
       desc: DEFAULT_DESC[g],
       locations: DEFAULT_LOCATIONS[g].slice(),
-      items: DEFAULT_ITEMS[g].map(function(d){ return { id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:[] }; })
+      items: DEFAULT_ITEMS[g].map(function(d){ return { id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:[], have:[] }; })
     };
   });
   return { activeTab:"g0", contentVersion:CONTENT_VERSION, appHint:"", groups:groups };
@@ -764,13 +770,23 @@ function sanitizeState(raw){
       });
       var id = (typeof it.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(it.id) && !usedIds[it.id]) ? it.id : newId();
       usedIds[id] = true;
-      items.push({ id:id, name:name, checked:it.checked === true, hidden:it.hidden === true, pinned:it.pinned === true, cat:catKey(it.cat), locations:locs });
+      var have = [];
+      if(Array.isArray(it.have)){ cleanLocationList(it.have).forEach(function(w){ var at = findLoc(locs, w); if(at !== -1 && have.indexOf(locs[at]) === -1) have.push(locs[at]); }); }
+      else if(it.checked === true){ have = locs.slice(); }
+      items.push({ id:id, name:name, checked:locs.length ? have.length === locs.length : it.checked === true, hidden:it.hidden === true, pinned:it.pinned === true, cat:catKey(it.cat), locations:locs, have:have });
     });
     out.groups[g] = { desc:desc, locations:locations, items:items };
   });
   return out;
 }
 
+/* 用品の状態: locations=置く場所(チップ)、have=そろった場所(locationsの一部)。場所があるときは、すべてそろったら checked(準備済み)になる */
+function syncItem(it){
+  if(!Array.isArray(it.have)) it.have = [];
+  it.have = it.have.filter(function(l){ return it.locations.indexOf(l) !== -1; });
+  if(it.locations.length) it.checked = it.have.length === it.locations.length;
+}
+function boxCls(it){ return it.checked ? " checked" : ((it.locations.length && it.have && it.have.length) ? " partial" : ""); }
 function findLoc(list, name){ var k = keyOf(name); for(var i = 0; i < list.length; i++){ if(keyOf(list[i]) === k) return i; } return -1; }
 
 /* One-time content updates, tracked by contentVersion so items a user deleted never come back. */
@@ -800,7 +816,7 @@ function migrate(st){
       grp.items.forEach(function(it){
         var out = [];
         it.locations.forEach(function(l){ var n = keyOf(l) === keyOf("持ち歩き用") ? "持ち歩き1" : l; if(out.indexOf(n) === -1) out.push(n); });
-        it.locations = out;
+        it.locations = out; it.have = out.filter(function(l){ return (it.have || []).indexOf(l) !== -1 || ((it.have || []).indexOf("持ち歩き用") !== -1 && l === "持ち歩き1"); });
       });
       if(findLoc(grp.locations, "持ち歩き2") === -1 && grp.locations.length < MAX_LOCATIONS){
         var at = findLoc(grp.locations, "持ち歩き1");
@@ -996,13 +1012,13 @@ function csvCell(v){
   if(/[",\r\n]/.test(s) || /^\s|\s$/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
-/* columns: 区分, 品名, チェック(済/未), 保管場所(;区切り), 分類(食品/生活/その他). A row with an empty 品名 registers a location only. */
+/* columns: 区分, 品名, チェック(済/未), 保管場所(;区切り・置く場所), 分類(食品/生活/その他), そろった場所(;区切り・保管場所の一部). A row with an empty 品名 registers a location only. */
 function buildCsvText(){
-  var rows = [["区分","品名","チェック","保管場所","分類"]];
+  var rows = [["区分","品名","チェック","保管場所","分類","そろった場所"]];
   GROUP_ORDER.forEach(function(g){
     var grp = state.groups[g], label = GROUP_META[g].label;
-    grp.locations.forEach(function(loc){ rows.push([label, "", "", loc, ""]); });   // locations first: keeps their order
-    grp.items.forEach(function(it){ rows.push([label, it.name, it.checked ? "済" : "未", it.locations.join(";"), catLabel(it.cat)]); });
+    grp.locations.forEach(function(loc){ rows.push([label, "", "", loc, "", ""]); });   // locations first: keeps their order
+    grp.items.forEach(function(it){ rows.push([label, it.name, it.checked ? "済" : "未", it.locations.join(";"), catLabel(it.cat), (it.have || []).join(";")]); });
   });
   return rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n") + "\r\n";
 }
@@ -1062,21 +1078,22 @@ var HEADER_WORDS = {
   name:["アイテム名","アイテム","品名","名前","name","item"],
   check:["チェック","チェック状態","状態","準備","check","done"],
   loc:["保管場所","場所","保管","location"],
-  cat:["分類","カテゴリ","カテゴリー","category"]
+  cat:["分類","カテゴリ","カテゴリー","category"],
+  have:["そろった場所","そろった","揃った場所","揃った","ある場所","have"]
 };
 function detectColumns(rows){
   var first = rows[0] || [];
   if(parseGroupKey(first[0])){
     return { headerRow:false, group:0, name:1, check:2, loc:3,
-             hasCheck:rows.some(function(r){ return r.length > 2; }), hasLoc:rows.some(function(r){ return r.length > 3; }), cat:-1, hasCat:false };
+             hasCheck:rows.some(function(r){ return r.length > 2; }), hasLoc:rows.some(function(r){ return r.length > 3; }), cat:-1, hasCat:false, have:-1, hasHave:false };
   }
-  var map = { group:-1, name:-1, check:-1, loc:-1, cat:-1 };
+  var map = { group:-1, name:-1, check:-1, loc:-1, cat:-1, have:-1 };
   first.forEach(function(cell, i){
     var k = keyOf(cell);
-    ["group","name","check","loc","cat"].forEach(function(f){ if(map[f] === -1 && HEADER_WORDS[f].indexOf(k) !== -1) map[f] = i; });
+    ["group","name","check","loc","cat","have"].forEach(function(f){ if(map[f] === -1 && HEADER_WORDS[f].indexOf(k) !== -1) map[f] = i; });
   });
   if(map.group !== -1 && map.name !== -1){
-    return { headerRow:true, group:map.group, name:map.name, check:map.check, loc:map.loc, hasCheck:map.check !== -1, hasLoc:map.loc !== -1, cat:map.cat, hasCat:map.cat !== -1 };
+    return { headerRow:true, group:map.group, name:map.name, check:map.check, loc:map.loc, hasCheck:map.check !== -1, hasLoc:map.loc !== -1, cat:map.cat, hasCat:map.cat !== -1, have:map.have, hasHave:map.have !== -1 };
   }
   // unknown first row: the file does not look like ours
   return { unknown:true, headerRow:true, group:0, name:1, check:2, loc:3,
@@ -1162,11 +1179,12 @@ function planCsvImport(text, mode, cur){
       if(parsed === null){ unknownChecks[String(cellAt(r, cols.check)).trim()] = true; parsed = false; }
       chk = parsed;
     }
+    var haveList = cols.hasHave ? splitLocations(cellAt(r, cols.have)) : null;
     var catWord = cols.hasCat ? String(cellAt(r, cols.cat)).trim() : "";
     var cat = catWord ? parseCatWord(catWord) : "";
     if(catWord && !cat) unknownCats[clampStr(catWord, 8)] = true;
     var key = keyOf(name);
-    var entry = { name:name, checked:chk, locs:locs, cat:cat };
+    var entry = { name:name, checked:chk, locs:locs, cat:cat, have:haveList };
     if(p.byKey[key]){ dupCount++; p.entries[p.byKey[key].idx] = entry; entry.idx = p.byKey[key].idx; p.byKey[key] = entry; }
     else { entry.idx = p.entries.length; p.entries.push(entry); p.byKey[key] = entry; }
   });
@@ -1183,6 +1201,18 @@ function planCsvImport(text, mode, cur){
     return plan;
   }
 
+  // そろった場所: 「そろった場所」列があればそれを使う。なければ、チェックが「済」のとき全部そろった扱い(古いCSV)
+  function haveFrom(e, locs, grp, existing){
+    var out = [];
+    if(cols.hasHave && e.have){
+      e.have.forEach(function(l){ var at = findLoc(locs, l); if(at !== -1 && out.indexOf(locs[at]) === -1) out.push(locs[at]); });
+    } else if(cols.hasCheck){
+      if(e.checked) out = locs.slice();
+    } else if(existing){
+      (existing.have || []).forEach(function(l){ if(locs.indexOf(l) !== -1) out.push(l); });
+    }
+    return out;
+  }
   var next = JSON.parse(JSON.stringify(cur));
   GROUP_ORDER.forEach(function(g){
     var p = per[g], info = { g:g, label:GROUP_META[g].label, present:p.present, added:[], updated:[], removed:[], unchanged:0, locAdded:[], locRemoved:[], capped:0 };
@@ -1203,18 +1233,22 @@ function planCsvImport(text, mode, cur){
       e.locs.forEach(function(l){ var r = ensureLocation(grp, l, null); if(r && resolved.indexOf(r) === -1) resolved.push(r); });
       if(existing){
         var changes = [];
-        var newChecked = cols.hasCheck ? e.checked : existing.checked;
         var newLocs = cols.hasLoc ? resolved : existing.locations.slice();
+        var newHave = haveFrom(e, newLocs, grp, existing);
+        var newChecked = newLocs.length ? newHave.length === newLocs.length : (cols.hasCheck ? e.checked : existing.checked);
         if(newChecked !== existing.checked) changes.push("チェック " + checkWord(existing.checked) + "→" + checkWord(newChecked));
+        if(!sameLocSet(existing.have || [], newHave)) changes.push("そろった場所 " + ((existing.have || []).join("・") || "なし") + "→" + (newHave.join("・") || "なし"));
         if(!sameLocSet(existing.locations, newLocs)) changes.push("保管場所 " + (existing.locations.join("・") || "なし") + "→" + (newLocs.join("・") || "なし"));
         if(cols.hasCat && e.cat && e.cat !== catKey(existing.cat)){ changes.push("分類 " + catLabel(catKey(existing.cat) || guessCat(existing.name)) + "→" + catLabel(e.cat)); existing.cat = e.cat; }
         if(changes.length) info.updated.push({ name:existing.name, changes:changes }); else info.unchanged++;
         existing.checked = newChecked;
         existing.locations = newLocs.filter(function(l){ return findLoc(grp.locations, l) !== -1; });
+        existing.have = newHave.filter(function(l){ return existing.locations.indexOf(l) !== -1; });
         if(mode === "overwrite") newItems.push(existing);
       } else {
         if(grp.items.length + (mode === "overwrite" ? newItems.length : 0) >= MAX_ITEMS){ info.capped++; return; }
-        var it = { id:newId(), name:e.name, checked:cols.hasCheck ? e.checked : false, cat:e.cat || guessCat(e.name), locations:resolved };
+        var hv = haveFrom(e, resolved, grp, null);
+        var it = { id:newId(), name:e.name, checked:resolved.length ? hv.length === resolved.length : (cols.hasCheck ? e.checked : false), cat:e.cat || guessCat(e.name), locations:resolved, have:hv };
         info.added.push(e.name);
         if(mode === "overwrite") newItems.push(it); else grp.items.push(it);
       }
@@ -1373,7 +1407,7 @@ function buildItemRow(g, meta, item, locations){
   } else {
     top = '<div class="item-top">'
       + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + checked + '" aria-label="' + esc(item.name) + 'のチェック">'
-      + '<span class="checkbox' + (checked ? " checked" : "") + '" style="' + (checked ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></button>'
+      + '<span class="checkbox' + boxCls(item) + '" style="' + (boxCls(item) ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></button>'
       + '<div class="item-name' + (checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(item.name) + '</div>'
       + '<button type="button" class="icon-btn row-btn pin-btn' + (item.pinned ? " on" : "") + '" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-pressed="' + (item.pinned === true) + '" aria-label="' + esc(item.name) + (item.pinned ? 'のピン留めを外す' : 'をピン留め(先頭に固定)') + '">' + (item.pinned ? ICON_PIN_ON : ICON_PIN) + '</button>'
       + '<button type="button" class="icon-btn row-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
@@ -1381,8 +1415,8 @@ function buildItemRow(g, meta, item, locations){
       + '<button type="button" class="drag-handle" data-drag-id="' + id + '" data-g="' + g + '" aria-label="' + esc(item.name) + 'を並べ替え(ドラッグ、または上下キー)">' + ICON_GRIP + '</button></div>';
   }
   var pills = locations.length ? locations.map(function(loc, i){
-    var on = item.locations.indexOf(loc) !== -1;
-    return '<button type="button" class="loc-pill' + (on ? " active" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + esc(loc) + '</button>';
+    var inL = item.locations.indexOf(loc) !== -1, hv = inL && (item.have || []).indexOf(loc) !== -1;
+    return '<button type="button" class="loc-pill' + (hv ? " active" : inL ? " plan" : "") + '" style="' + (inL ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + (hv ? "true" : inL ? "mixed" : "false") + '" aria-label="' + esc(loc) + (hv ? '(そろった)' : inL ? '(置く場所・まだそろっていない)' : '') + '">' + esc(loc) + '</button>';
   }).join("") : '';
   var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-loc-editor" data-at="' + id + '" aria-expanded="' + (locEditorFor === item.id) + '" aria-label="' + GROUP_META[g].label + 'の保管場所を追加・編集">' + ICON_PLUS + '</button>';
   return '<div class="item' + (hid ? ' is-hidden' : '') + (item.pinned ? ' is-pinned' : '') + '"><div class="swipe-wrap">'
@@ -1455,7 +1489,7 @@ function buildPinnedHtml(){
         + '<button type="button" class="swipe-pin" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">ピン解除</button>'
         + '<div class="swipe-content pin-content' + (open ? " open-l" : "") + '" data-swipe-id="p:' + id + '" data-pin="1" data-noleft="1" style="' + accentStyle(meta) + '">'
         + '<span class="pin-tag" style="background:' + meta.accent + '">' + meta.label + '</span>'
-        + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック(' + meta.label + ')"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
+        + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック(' + meta.label + ')"><span class="checkbox' + boxCls(it) + '" style="' + (boxCls(it) ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
         + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(it.name) + '</div>'
         + '<button type="button" class="icon-btn row-btn pin-btn on" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(it.name) + 'のピン留めを外す">' + ICON_PIN_ON + '</button>'
         + '</div></div></div>');
@@ -1480,11 +1514,11 @@ function buildItemsHtml(g, meta){
 function buildByLocationHtml(g, meta){
   var grp = state.groups[g];
   if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。「防災用品」タブから追加できます。</div>';
-  function row(it, loc){
-    var id = esc(it.id), c = it.checked;
+  function row(it, loc, li){
+    var id = esc(it.id), on = (it.have || []).indexOf(loc) !== -1;
     return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + '">'
-      + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック(' + esc(loc) + ')"><span class="checkbox' + (c ? " checked" : "") + '" style="' + (c ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
-      + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
+      + '<button type="button" class="check-btn" data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(it.name) + 'が' + esc(loc) + 'にそろった"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span></button>'
+      + '<div class="item-name' + (on ? " checked" : "") + '" data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
   var locAdd = '<div class="loc-add-row"><button type="button" class="loc-pill loc-add loc-add-wide" data-act="open-loc-editor" data-at="__loc" aria-expanded="' + (locEditorFor === "__loc") + '">' + ICON_PLUS + '<span>保管場所を追加・編集</span></button></div>' + buildLocEditorHtml(g, meta, "__loc");
   function unassignedHtml(){
@@ -1495,19 +1529,19 @@ function buildByLocationHtml(g, meta){
     return '<div class="loc-head"><span class="loc-tag none">保管場所未設定</span><span class="loc-count">' + done + '/' + base.length + '</span></div>'
       + (shown.length ? shown.map(function(it){
         var id = esc(it.id);
-        return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + '">'
+        return '<div class="loc-group-item sq' + (it.hidden ? ' is-hidden' : '') + '">'
           + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + it.checked + '" aria-label="' + esc(it.name) + 'のチェック(どこにも置いていない用品)"><span class="checkbox' + (it.checked ? " checked" : "") + '" style="' + (it.checked ? accentStyle(meta) : "") + '">' + (it.checked ? ICON_TICK : "") + '</span></button>'
           + '<div class="item-name' + (it.checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
       }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべてチェック済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
-  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、置いている用品を並べて見ます。チェックは「防災用品」タブと同じ(用意できたか)です。保管場所は、「防災用品」タブのチップで決めます。複数の場所にある用品は、それぞれの場所に出ます。どこにも置いていない用品は、一番下の「保管場所未設定」に出ます。</p>';
-  grp.locations.forEach(function(loc){
+  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、置く用品を並べて見ます。そこにそろったらチェックします。すべての場所にそろうと、「防災用品」タブで準備済みになります。どこにも置いていない用品は、一番下の「保管場所未設定」に出ます(四角のチェックは、用意できたかのチェックです)。</p>';
+  grp.locations.forEach(function(loc, li){
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && it.locations.indexOf(loc) !== -1; });
-    var done = base.filter(function(it){ return it.checked; }).length;
-    var shown = base.filter(function(it){ return !(onlyUnchecked && it.checked && !keepVisible[it.id]); });
+    var done = base.filter(function(it){ return (it.have || []).indexOf(loc) !== -1; }).length;
+    var shown = base.filter(function(it){ return !(onlyUnchecked && (it.have || []).indexOf(loc) !== -1 && !keepVisible[it.id + "|" + loc]); });
     html += '<div class="loc-head"><span class="loc-tag" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + done + '/' + base.length + '</span></div>';
-    html += shown.length ? shown.map(function(it){ return row(it, loc); }).join("")
+    html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
       : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? 'すべてチェック済みです' : (searchKey ? '合う防災用品はありません' : 'ここに置いている防災用品はありません')) + '</div>';
   });
   return html + unassignedHtml() + locAdd + '</div>';
@@ -1546,7 +1580,7 @@ function renderMain(){
     + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示（' + hiddenCount + '）</button>'
     + '<div class="fb-search">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder="検索" maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += '<p class="note view-note">防災用品ごとに、置いてある保管場所のチップをタップして点灯させます(複数選べます)。名前をタップでチェックです。</p>'
+    html += '<p class="note view-note">保管場所のチップをタップすると、置く場所(枠線)→そろった(塗りつぶし)→なし、と切り替わります。置く場所のすべてにそろうと、準備済みになります。置く場所がない用品は、名前をタップでチェックします。</p>'
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
@@ -1819,21 +1853,43 @@ var ACTIONS = {
     editingDescG = null; render(); save();
   },
   "reset-desc": function(t){ var g = getGroup(t); state.groups[g].desc = DEFAULT_DESC[g]; editingDescG = null; render(); save(); },
-  "toggle-check": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.checked = !it.checked; if(onlyUnchecked){ if(it.checked) keepVisible[it.id] = true; else delete keepVisible[it.id]; } render(); save(); },
+  "toggle-check": function(t){
+    var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return;
+    if(!Array.isArray(it.have)) it.have = [];
+    if(it.locations.length){ it.have = it.have.length === it.locations.length ? [] : it.locations.slice(); }   // 置く場所がある用品は、全部そろった/全部なし を切り替え
+    else { it.checked = !it.checked; }
+    syncItem(it);
+    if(onlyUnchecked){ if(it.checked) keepVisible[it.id] = true; else delete keepVisible[it.id]; }
+    render(); save();
+  },
   "toggle-loc": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
     var li = parseInt(t.getAttribute("data-li"), 10);
     if(!it || !(li >= 0 && li < grp.locations.length)) return;
-    var loc = grp.locations[li], at = it.locations.indexOf(loc);
-    if(at === -1) it.locations.push(loc); else it.locations.splice(at, 1);
-    if(onlyUnchecked && viewMode === "location"){ var kk = it.id + "|" + loc; if(at === -1) keepVisible[kk] = true; else delete keepVisible[kk]; }
+    if(!Array.isArray(it.have)) it.have = [];
+    var loc = grp.locations[li], at = it.locations.indexOf(loc), hv = it.have.indexOf(loc);
+    if(at === -1){ var first = !it.locations.length; it.locations.push(loc); if(first && it.checked) it.have.push(loc); }   // なし → 置く場所
+    else if(hv === -1){ it.have.push(loc); }                                                                                 // 置く場所 → そろった
+    else { it.locations.splice(at, 1); it.have.splice(hv, 1); }                                                              // そろった → なし
+    syncItem(it); render(); save();
+  },
+  "toggle-have": function(t){
+    var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
+    var li = parseInt(t.getAttribute("data-li"), 10);
+    if(!it || !(li >= 0 && li < grp.locations.length)) return;
+    var loc = grp.locations[li]; if(it.locations.indexOf(loc) === -1) return;
+    if(!Array.isArray(it.have)) it.have = [];
+    var at = it.have.indexOf(loc);
+    if(at === -1) it.have.push(loc); else it.have.splice(at, 1);
+    syncItem(it);
+    if(onlyUnchecked){ var kk = it.id + "|" + loc; if(at === -1) keepVisible[kk] = true; else delete keepVisible[kk]; }
     render(); save();
   },
   "add-item": function(t){
     var g = getGroup(t), input = document.getElementById("new-item-input");
     var name = input ? cleanLine(input.value, MAX_NAME) : "";
     if(!name || state.groups[g].items.length >= MAX_ITEMS) return;
-    state.groups[g].items.push({ id:newId(), name:name, checked:false, cat:guessCat(name), locations:[] });
+    state.groups[g].items.push({ id:newId(), name:name, checked:false, cat:guessCat(name), locations:[], have:[] });
     render(); save(); focusId("new-item-input");
   },
   "start-edit": function(t){ clearTransient(); editingItemId = t.getAttribute("data-id"); render(); focusId("edit-name-input"); var el = document.getElementById("edit-name-input"); if(el && el.select) el.select(); },
@@ -1879,7 +1935,7 @@ var ACTIONS = {
     if(!(li >= 0 && li < grp.locations.length)) return;
     var loc = grp.locations[li];
     grp.locations.splice(li, 1);
-    grp.items.forEach(function(it){ it.locations = it.locations.filter(function(l){ return l !== loc; }); });
+    grp.items.forEach(function(it){ it.locations = it.locations.filter(function(l){ return l !== loc; }); syncItem(it); });
     pendingDeleteLoc = null; render(); save();
   },
 
@@ -1912,7 +1968,7 @@ var ACTIONS = {
       if(grp.items.length >= MAX_ITEMS){ full = true; return; }
       var locs = [];
       if(set.loc){ var at = findLoc(grp.locations, set.loc); if(at !== -1) locs.push(grp.locations[at]); }
-      grp.items.push({ id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:locs });
+      grp.items.push({ id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:locs, have:[] });
       added++;
     });
     setPick[id] = {};
