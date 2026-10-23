@@ -270,7 +270,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .checkbox.checked{ background:var(--accent,var(--teal)); border-color:var(--accent,var(--teal)); }
   .checkbox svg{ display:block; }
   .loc-group-item .checkbox{ border-radius:50%; }   /* 場所ごとの「そろった」は丸(用品ごとの四角いチェックと見分ける) */
-  .loc-group-item.sq .checkbox{ border-radius:5px; }  /* 保管場所未設定の行は、用品ごとと同じ四角いチェック */
+  .loc-group-item.sq .checkbox{ border-radius:5px; }  /* 場所未定の行は、用品ごとと同じ四角いチェック */
   .checkbox.partial{ border-color:var(--accent,var(--ink-soft)); }
   .checkbox.partial::after{ content:""; width:12px; height:3px; border-radius:2px; background:var(--accent,var(--ink-soft)); }
   .item-name{ flex:1; min-width:0; padding:8px 4px; font-size:16px; font-weight:500; line-height:1.4; cursor:pointer; overflow-wrap:anywhere; }
@@ -447,11 +447,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.26.1";
+var APP_VERSION = "1.26.2";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.26.2", lines:["「保管場所未設定」の見出しを「場所未定」に変えました。","「防災用品」タブの説明文を、「場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。」に変えました。"] },
   { v:"1.26.1", lines:["初期の保管場所を変えました。持ち歩き=「いつものバッグ」「サブバッグ」、備蓄=「リビング」「寝室」「キッチン」。ワンタップ追加の候補は、持ち歩き=「防災ポーチ」「衛生ポーチ」「通学バッグ」「通勤バッグ」、備蓄=「押し入れ」「ベランダ」「レンタル倉庫」です(すでにある保管場所は変わりません)。","ヒント文の言い回しを短くしました。"] },
   { v:"1.26.0", lines:["用品ごとに「必要な場所すべてにそろったら準備済み」を管理できるようにしました。保管場所のチップは、タップするたびに 置く場所(枠線)→そろった(塗りつぶし)→なし と切り替わります。","「どこにある？」の場所ごとのチェック(丸)は、その場所にそろったかどうかです。すべての場所にそろうと、「防災用品」タブのチェックが自動で付き、一部だけのときは途中の印(ー)になります。「防災用品」タブのチェックを押すと、すべての場所にそろった/なしをまとめて切り替えます。","CSVに「そろった場所」の列を追加しました。この列がない古いCSVは、チェックが済のとき全部そろった扱いで取り込みます。","以前のデータは、チェック済みの用品はすべての場所にそろった扱い、未チェックの用品は置く場所のみ(まだそろっていない)になります。"] },
   { v:"1.25.0", lines:["「どこにある？」を、保管場所ごとに用品を並べて見る画面にしました。チェックはすべて四角で、「防災用品」タブのチェック(用意できたか)と同じです。どちらで付けても連動し、進捗バーにも数えられます。","各場所には、その場所のチップを点灯させた用品だけが出ます(複数の場所にある用品は、それぞれに出ます)。どこにも置いていない用品は、一番下の「保管場所未設定」に出ます。","保管場所を決めるのは、「防災用品」タブのチップです(1.15.0の「その場所にあるかのチェック」は廃止しました)。"] },
@@ -1527,7 +1528,7 @@ function buildByLocationHtml(g, meta){
     if(!base.length) return "";
     var shown = base.filter(function(it){ return !(onlyUnchecked && it.checked && !keepVisible[it.id]); });
     var done = base.filter(function(it){ return it.checked; }).length;
-    return '<div class="loc-head"><span class="loc-tag none">保管場所未設定</span><span class="loc-count">' + done + '/' + base.length + '</span></div>'
+    return '<div class="loc-head"><span class="loc-tag none">場所未定</span><span class="loc-count">' + done + '/' + base.length + '</span></div>'
       + (shown.length ? shown.map(function(it){
         var id = esc(it.id);
         return '<div class="loc-group-item sq' + (it.hidden ? ' is-hidden' : '') + '">'
@@ -1536,7 +1537,7 @@ function buildByLocationHtml(g, meta){
       }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべてチェック済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
-  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、そろったらチェックします。すべての場所にそろうと準備済みになります。「保管場所未設定」のチェックは、準備済みの意味です。</p>';
+  var html = '<div class="loc-group"><p class="note loc-note">保管場所ごとに、そろったらチェックします。すべての場所にそろうと準備済みになります。「場所未定」のチェックは、準備済みの意味です。</p>';
   grp.locations.forEach(function(loc, li){
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && it.locations.indexOf(loc) !== -1; });
     var done = base.filter(function(it){ return (it.have || []).indexOf(loc) !== -1; }).length;
@@ -1581,7 +1582,7 @@ function renderMain(){
     + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示（' + hiddenCount + '）</button>'
     + '<div class="fb-search">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder="検索" maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += '<p class="note view-note">保管場所をタップすると、置く場所(枠線)→そろった(点灯)→なし、と切り替わります。全て点灯=準備済みです。</p>'
+    html += '<p class="note view-note">場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。</p>'
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
