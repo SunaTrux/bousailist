@@ -302,6 +302,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .loc-add{ display:inline-flex; align-items:center; justify-content:center; min-width:34px; padding:0 8px; border-style:dashed; }
   .view-note{ margin:0; padding:12px 20px 4px; }
   @media (min-width:760px){ .view-note{ padding-left:28px; padding-right:28px; } }
+  .coach{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0 2px 35px; padding:6px 6px 6px 12px; border:1px solid var(--accent,var(--ink-soft)); border-radius:8px; background:var(--accent-soft,var(--card)); color:var(--ink); font-size:12.5px; line-height:1.5; position:relative; }
+  .coach::before{ content:""; position:absolute; top:-6px; left:18px; width:10px; height:10px; background:var(--accent-soft,var(--card)); border-left:1px solid var(--accent,var(--ink-soft)); border-top:1px solid var(--accent,var(--ink-soft)); transform:rotate(45deg); }
+  .coach-ok{ flex:none; min-height:32px; padding:0 12px; border-radius:16px; background:var(--accent,var(--ink)); color:var(--on-accent,#fff); font-size:12.5px; font-weight:700; }
   .hint{ margin:2px 0 0 35px; font-size:12.5px; color:var(--ink-soft); }
   .confirm-row{
     display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0 0 35px; padding:10px 12px;
@@ -454,11 +457,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.26.3";
+var APP_VERSION = "1.27.0";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.27.0", lines:["初めて保管場所のチップを枠線にしたときだけ、「揃えられたら、もう一度タップしよう(点灯します)」と案内を出すようにしました。「わかった」を押すか、ほかの操作をすると消えます。2回目以降は出ません。"] },
   { v:"1.26.3", lines:["「防災用品」と「どこにある？」の説明文を、右の矢印で開け閉めできるようにしました。初期は閉じていて、開閉は覚えています。","「どこにある？」の説明文を「場所ごとに揃ったらチェック。全場所に揃うと進捗バーが進みます。」に変えました。"] },
   { v:"1.26.2", lines:["「保管場所未設定」の見出しを「場所未定」に変えました。","「防災用品」タブの説明文を、「場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。」に変えました。"] },
   { v:"1.26.1", lines:["初期の保管場所を変えました。持ち歩き=「いつものバッグ」「サブバッグ」、備蓄=「リビング」「寝室」「キッチン」。ワンタップ追加の候補は、持ち歩き=「防災ポーチ」「衛生ポーチ」「通学バッグ」「通勤バッグ」、備蓄=「押し入れ」「ベランダ」「レンタル倉庫」です(すでにある保管場所は変わりません)。","ヒント文の言い回しを短くしました。"] },
@@ -1323,6 +1327,7 @@ function planJsonImport(text, cur){
 
 /* ================= UI state ================= */
 var viewMode = "item";
+var coachItemId = null, COACH_KEY = "bousai-coach-plan-seen";  // 初めて枠線にしたときだけ出す案内(出したら記録)
 var locEditorFor = null, editingDescG = null;  // 保管場所のチップ編集を開いている場所(用品のid / "__loc")、ヒント文を編集中の区分
 var showSettings = false;
 var openSwipeSide = "r";   // 開いているスワイプの側: "r"=右側のボタン(非表示/削除) "l"=左側のボタン(ピン留め)
@@ -1436,6 +1441,7 @@ function buildItemRow(g, meta, item, locations){
     + top
     + (pills ? '' : '<div class="hint">保管場所が未設定です(右の＋で追加できます)</div>')
     + '<div class="locations">' + pills + addPill + '</div>'
+    + (coachItemId === item.id ? '<div class="coach" role="status"><span>揃えられたら、もう一度タップしよう(点灯します)</span><button type="button" class="coach-ok" data-act="dismiss-coach">わかった</button></div>' : '')
     + buildLocEditorHtml(g, meta, item.id)
     + '</div></div></div>';
 }
@@ -1793,7 +1799,7 @@ function findItem(g, id){
   for(var i = 0; i < items.length; i++){ if(items[i].id === id) return items[i]; }
   return null;
 }
-function clearTransient(){ locEditorFor = null; editingDescG = null; openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
+function clearTransient(){ coachItemId = null; locEditorFor = null; editingDescG = null; openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
 /* メモ・LINE・印刷向けの読み物(取り込み用ではありません)。非表示の用品は含めません。 */
 function buildMarkdownText(){
   function one(v){ return String(v).replace(/[\r\n]+/g, " ").trim(); }
@@ -1885,8 +1891,12 @@ var ACTIONS = {
     if(at === -1){ var first = !it.locations.length; it.locations.push(loc); if(first && it.checked) it.have.push(loc); }   // なし → 置く場所
     else if(hv === -1){ it.have.push(loc); }                                                                                 // 置く場所 → そろった
     else { it.locations.splice(at, 1); it.have.splice(hv, 1); }                                                              // そろった → なし
-    syncItem(it); render(); save();
+    syncItem(it);
+    coachItemId = null;
+    if(it.locations.indexOf(loc) !== -1 && it.have.indexOf(loc) === -1 && !lsGet(COACH_KEY)){ coachItemId = it.id; lsSet(COACH_KEY, "1"); }
+    render(); save();
   },
+  "dismiss-coach": function(){ coachItemId = null; render(); },
   "toggle-have": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
     var li = parseInt(t.getAttribute("data-li"), 10);
