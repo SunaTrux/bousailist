@@ -461,11 +461,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.28.0";
+var APP_VERSION = "1.28.1";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.28.1", lines:["「防災用品」タブの説明文を、「場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）」に変えました。"] },
   { v:"1.28.0", lines:["設定の「拡張パック」で、自分のパックを作れるようになりました。パック名・追加先の区分・用品(1行に1つ)を入力するか、「今のリストからパックを作る」で登録済みの用品から選んで作れます。","自分のパックは「Markdownで書き出す」でLINEやメモに貼って渡せます。もらった文章は「もらったパックを取り込む」で内容を確認してから、自分のパックとして保存できます。","自分のパックは、JSONバックアップにも含まれます。"] },
   { v:"1.27.2", lines:["チップを枠線にしたときの案内を、「以降は表示しない」にチェックするまで毎回出るようにしました(「わかった」ボタンをチェックに変えました)。止めたあとも、設定の「ガイド」から戻せます。"] },
   { v:"1.27.1", lines:["設定に「ガイド」を追加しました。「ガイドをもう一度見る」を押すと、はじめての案内(チップを枠線にしたときの吹き出し)をもう一度表示できます。"] },
@@ -1693,7 +1694,7 @@ function renderMain(){
     + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示（' + hiddenCount + '）</button>'
     + '<div class="fb-search">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder="検索" maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += viewNoteHtml("vitem", "場所を決めたらタップ(枠線)→場所に揃ったらタップ(点灯)→さらにタップすると消灯し、場所未定となります。", "view-note")
+    html += viewNoteHtml("vitem", "場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）", "view-note")
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
