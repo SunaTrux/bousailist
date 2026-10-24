@@ -461,11 +461,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.28.1";
+var APP_VERSION = "1.29.0";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.29.0", lines:["設定に「このアプリを友達に勧める」を追加しました。アプリの名前・簡単な説明・URLを、LINEやメールなどで友達に送れます(送る前に文章を確認できます。送る画面が開けない端末では、文章のコピーになります)。"] },
   { v:"1.28.1", lines:["「防災用品」タブの説明文を、「場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）」に変えました。"] },
   { v:"1.28.0", lines:["設定の「拡張パック」で、自分のパックを作れるようになりました。パック名・追加先の区分・用品(1行に1つ)を入力するか、「今のリストからパックを作る」で登録済みの用品から選んで作れます。","自分のパックは「Markdownで書き出す」でLINEやメモに貼って渡せます。もらった文章は「もらったパックを取り込む」で内容を確認してから、自分のパックとして保存できます。","自分のパックは、JSONバックアップにも含まれます。"] },
   { v:"1.27.2", lines:["チップを枠線にしたときの案内を、「以降は表示しない」にチェックするまで毎回出るようにしました(「わかった」ボタンをチェックに変えました)。止めたあとも、設定の「ガイド」から戻せます。"] },
@@ -1415,6 +1416,10 @@ function planJsonImport(text, cur){
 
 /* ================= UI state ================= */
 var viewMode = "item";
+var APP_URL = "https://sunatrux.github.io/bousailist/";
+var REC_TITLE = "わが家の防災リスト";
+var REC_TEXT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくせる防災チェックリストです。ホーム画面に追加すると、アプリのように使えます。入力したデータはこの端末の中だけに保存され、サーバーには送られません。";
+var recMsg = null;
 var guideMsg = null;
 var coachItemId = null, COACH_KEY = "bousai-coach-plan-seen";  // 初めて枠線にしたときだけ出す案内(出したら記録)
 var locEditorFor = null, editingDescG = null;  // 保管場所のチップ編集を開いている場所(用品のid / "__loc")、ヒント文を編集中の区分
@@ -1435,7 +1440,7 @@ var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled
 var json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
 var appEl = document.getElementById("app");
 
-function resetSettingsUi(){ guideMsg = null;
+function resetSettingsUi(){ guideMsg = null; recMsg = null;
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
@@ -1917,6 +1922,9 @@ function buildSettingsHtml(){
       + '</section>';
   }
   var setsBody = buildPacksHtml();
+  var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。</p>'
+    + '<textarea class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
+    + '<div class="btn-row"><button type="button" class="btn" data-act="rec-share">友達に送る</button><button type="button" class="btn btn-ghost" data-act="rec-copy">文章をコピー</button></div>' + msgHtml(recMsg);
   var guideBody = '<p class="note">はじめて使う人向けの案内(保管場所のチップを枠線にしたとき「揃えられたら、もう一度タップしよう」と出る吹き出し)は、吹き出しの「以降は表示しない」にチェックするまで、毎回出ます。止めたあと、もう一度出したいときはここから戻せます。</p>'
     + '<button type="button" class="settings-btn" data-act="reset-guide">ガイドをもう一度見る</button>' + msgHtml(guideMsg);
   var themeBody = '<div class="seg">' + seg + '</div>';
@@ -1938,6 +1946,7 @@ function buildSettingsHtml(){
     + acc("sets", "拡張パック", "職場・乳児用・高齢者用・Ex・自分のパック", setsBody)
     + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
     + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
+    + acc("recommend", "このアプリを友達に勧める", "URLと説明を送る", recBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
     + '<div class="settings-section"><h2 class="settings-title">アプリの更新</h2>'
@@ -2066,6 +2075,15 @@ var ACTIONS = {
     if(it.locations.indexOf(loc) !== -1 && it.have.indexOf(loc) === -1 && !lsGet(COACH_KEY)){ coachItemId = it.id; }   // 「以降は表示しない」を押すまで、枠線にするたびに出す
     render(); save();
   },
+  "rec-share": function(){
+    var fallback = function(){ recMsg = copyFrom("rec-text") ? { type:"ok", text:"この端末では送る画面を開けなかったため、文章をコピーしました。LINEやメールに貼り付けて送れます。" } : { type:"error", text:"送る画面を開けませんでした。「文章をコピー」をお使いください。" }; render(); };
+    if(navigator.share){
+      try{
+        navigator.share({ title:REC_TITLE, text:REC_TEXT, url:APP_URL }).then(function(){ recMsg = { type:"ok", text:"送る画面を開きました。" }; render(); }, function(err){ if(err && err.name === "AbortError") return; fallback(); });
+      }catch(e){ fallback(); }
+    } else { fallback(); }
+  },
+  "rec-copy": function(){ recMsg = copyFrom("rec-text") ? { type:"ok", text:"コピーしました。LINEやメールに貼り付けて送れます。" } : { type:"error", text:"自動コピーに失敗しました。文章を選択して手動でコピーしてください。" }; render(); },
   "reset-guide": function(){ try{ window.localStorage.removeItem(COACH_KEY); }catch(e){} guideMsg = { type:"", text:"ガイドを元に戻しました。「防災用品」タブで保管場所のチップを枠線にするたびに、案内が出ます(吹き出しの「以降は表示しない」で止められます)。" }; render(); },
   "dismiss-coach": function(){ lsSet(COACH_KEY, "1"); coachItemId = null; render(); },   // 「以降は表示しない」
   "toggle-have": function(t){
