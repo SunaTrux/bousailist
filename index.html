@@ -432,6 +432,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .tag.add{ background:var(--teal); } .tag.upd{ background:var(--amber); } .tag.del{ background:var(--clay); }
   .tag.keep{ background:var(--ink-soft); }
   .danger-zone .settings-title{ color:var(--clay); }
+  .pack-tools{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .pack-actions{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .pack-panel{ margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:6px; background:var(--card); }
   .set-card{ border:1px solid var(--line); border-radius:6px; background:var(--card); margin:0 0 8px; overflow:hidden; }
   .set-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; padding:8px 14px; background:none; border:0; color:var(--ink); font:inherit; font-weight:700; text-align:left; cursor:pointer; }
   .set-t small{ margin-left:8px; font-weight:500; font-size:12.5px; color:var(--ink-soft); }
@@ -458,11 +461,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.27.2";
+var APP_VERSION = "1.28.0";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.28.0", lines:["設定の「拡張パック」で、自分のパックを作れるようになりました。パック名・追加先の区分・用品(1行に1つ)を入力するか、「今のリストからパックを作る」で登録済みの用品から選んで作れます。","自分のパックは「Markdownで書き出す」でLINEやメモに貼って渡せます。もらった文章は「もらったパックを取り込む」で内容を確認してから、自分のパックとして保存できます。","自分のパックは、JSONバックアップにも含まれます。"] },
   { v:"1.27.2", lines:["チップを枠線にしたときの案内を、「以降は表示しない」にチェックするまで毎回出るようにしました(「わかった」ボタンをチェックに変えました)。止めたあとも、設定の「ガイド」から戻せます。"] },
   { v:"1.27.1", lines:["設定に「ガイド」を追加しました。「ガイドをもう一度見る」を押すと、はじめての案内(チップを枠線にしたときの吹き出し)をもう一度表示できます。"] },
   { v:"1.27.0", lines:["初めて保管場所のチップを枠線にしたときだけ、「揃えられたら、もう一度タップしよう(点灯します)」と案内を出すようにしました。「わかった」を押すか、ほかの操作をすると消えます。2回目以降は出ません。"] },
@@ -577,6 +581,85 @@ var ADD_SETS = [
   { id:"ex1", title:"持ち出しEx", note:"持ち出しに追加します。", g:"g1", items:[["踏み抜き防止中敷き","l"]] },
   { id:"ex2", title:"備蓄Ex", note:"備蓄に追加します。", g:"g2", items:[["ぬいぐるみ","o"]] }
 ];
+
+/* 自分のパック(state.packs)と、Markdownでの受け渡し */
+var MAX_PACKS = 20, MAX_PACK_ITEMS = 100, MAX_PACK_TITLE = 40, MAX_PACK_MD = 30000;
+function sanitizePacks(raw){
+  var out = [], usedIds = {};
+  if(!Array.isArray(raw)) return out;
+  raw.forEach(function(r){
+    if(out.length >= MAX_PACKS || !isPlainObject(r)) return;
+    var title = cleanLine(r.title, MAX_PACK_TITLE);
+    if(!title || !Array.isArray(r.items)) return;
+    var items = [], seen = {};
+    r.items.forEach(function(d){
+      if(items.length >= MAX_PACK_ITEMS || !isPlainObject(d)) return;
+      var name = cleanLine(d.name, MAX_NAME), k = keyOf(name);
+      if(!name || seen[k]) return;
+      seen[k] = true;
+      items.push({ name:name, cat:catKey(d.cat) || guessCat(name) });
+    });
+    if(!items.length) return;
+    var id = (typeof r.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(r.id) && !usedIds[r.id]) ? r.id : newId();
+    usedIds[id] = true;
+    out.push({ id:id, title:title, g:GROUP_ORDER.indexOf(r.g) !== -1 ? r.g : "g1", items:items });
+  });
+  return out;
+}
+function allPacks(){ return ADD_SETS.map(function(s){ return { id:s.id, title:s.title, note:s.note, src:s.src, g:s.g, loc:s.loc, mine:false, items:s.items.map(function(d){ return { name:d[0], cat:CAT_BY_LETTER[d[1]] }; }) }; })
+  .concat((state.packs || []).map(function(p){ return { id:p.id, title:p.title, note:"自分のパック(追加先: " + GROUP_META[p.g].label + ")", g:p.g, mine:true, items:p.items }; })); }
+function findPack(id){ var all = allPacks(); for(var i = 0; i < all.length; i++){ if(all[i].id === id) return all[i]; } return null; }
+function packToMd(p){
+  var lines = ["# 拡張パック: " + p.title, "区分: " + GROUP_META[p.g].label, ""];
+  p.items.forEach(function(d){ lines.push("- " + d.name + " [" + catLabel(d.cat) + "]"); });
+  return lines.join("\n") + "\n";
+}
+/* 用品の行(「名前 [食品]」)を読む。bullet(- ・ など)があれば外す */
+function parsePackLine(line){
+  var t = String(line).trim();
+  var im = t.match(/^(?:[-*+・●]|\d+[.)])\s*(?:\[[ xX]?\]\s*)?(.+)$/);
+  if(im) t = im[1];
+  var cat = "", cm = t.match(/^(.*?)\s*[\[［]([^\]］]{1,8})[\]］]\s*$/);
+  if(cm && parseCatWord(cm[2])){ cat = parseCatWord(cm[2]); t = cm[1]; }
+  var name = cleanLine(t, MAX_NAME);
+  return name ? { name:name, cat:cat || guessCat(name) } : null;
+}
+function parsePackMd(text){
+  var plan = { ok:false, fatal:[], warnings:[], title:"", g:null, items:[], skipped:0 };
+  text = String(text == null ? "" : text).replace(/^﻿/, "");
+  if(!text.trim()){ plan.fatal.push("内容が空です。もらったパックの文章を貼り付けるか、ファイルを選んでください。"); return plan; }
+  if(text.length > MAX_PACK_MD){ plan.fatal.push("データが大きすぎます(上限 約3万文字)。"); return plan; }
+  if(text.indexOf("\u0000") !== -1){ plan.fatal.push("テキストファイルではないようです。"); return plan; }
+  var lines = text.split(/\r\n|\n|\r/), seen = {}, gotTitle = false, over = 0, dup = 0, multi = false;
+  for(var i = 0; i < lines.length; i++){
+    var t = lines[i].trim();
+    if(!t || /^```/.test(t)) continue;
+    var h = t.match(/^#{1,6}\s*(.*)$/);
+    if(h){
+      var isPack = /^(?:拡張パック|パック)\s*[:：]/.test(h[1]);
+      if(gotTitle){ if(isPack){ multi = true; break; } continue; }
+      plan.title = cleanLine(h[1].replace(/^(?:拡張パック|パック)\s*[:：]\s*/, ""), MAX_PACK_TITLE); gotTitle = true; continue;
+    }
+    var gm = t.match(/^(?:区分|追加先)\s*[:：]\s*(.+)$/);
+    if(gm){ var gk = parseGroupKey(gm[1]); if(gk) plan.g = gk; else plan.warnings.push("区分「" + clampStr(gm[1].trim(), 12) + "」は 持ち歩き・持ち出し・備蓄 のどれでもありません。"); continue; }
+    if(!/^(?:[-*+・●]|\d+[.)])\s*\S/.test(t)){ plan.skipped++; continue; }
+    var d = parsePackLine(t);
+    if(!d) continue;
+    var k = keyOf(d.name);
+    if(seen[k]){ dup++; continue; }
+    if(plan.items.length >= MAX_PACK_ITEMS){ over++; continue; }
+    seen[k] = true; plan.items.push(d);
+  }
+  if(!plan.items.length){ plan.fatal.push("用品の行が見つかりませんでした。「- 品名」の形で1行に1つ書いてあるか確認してください。"); return plan; }
+  if(!plan.title){ plan.title = "もらったパック"; plan.warnings.push("パック名の行(「# 拡張パック: 名前」)がないため、「もらったパック」にしました。保存後に変えられます。"); }
+  if(!plan.g){ plan.g = "g1"; plan.warnings.push("区分の記載がないため「持ち出し」にしました。保存の前に変えられます。"); }
+  if(multi) plan.warnings.push("複数のパックが含まれています。最初の1つだけ取り込みます。");
+  if(dup) plan.warnings.push("同じ名前の用品が重複していました(" + dup + "件)。1つにまとめます。");
+  if(over) plan.warnings.push("用品が多すぎるため、" + MAX_PACK_ITEMS + "件までにしました(" + over + "件は取り込みません)。");
+  if(plan.skipped) plan.warnings.push("用品として読めない行を " + plan.skipped + "行 無視しました。");
+  plan.ok = true;
+  return plan;
+}
 var CONTENT_VERSION = 9;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
@@ -741,7 +824,7 @@ function defaultData(){
       items: DEFAULT_ITEMS[g].map(function(d){ return { id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:[], have:[] }; })
     };
   });
-  return { activeTab:"g0", contentVersion:CONTENT_VERSION, appHint:"", groups:groups };
+  return { activeTab:"g0", contentVersion:CONTENT_VERSION, appHint:"", groups:groups, packs:[] };
 }
 
 function cleanLocationList(arr){
@@ -794,6 +877,7 @@ function sanitizeState(raw){
     });
     out.groups[g] = { desc:desc, locations:locations, items:items };
   });
+  out.packs = sanitizePacks(raw.packs);
   return out;
 }
 
@@ -1337,6 +1421,11 @@ var showSettings = false;
 var openSwipeSide = "r";   // 開いているスワイプの側: "r"=右側のボタン(非表示/削除) "l"=左側のボタン(ピン留め)
 var openSwipeId = null, editingItemId = null, pendingDeleteId = null, pendingDeleteLoc = null;
 var pendingReset = false, pendingRestore = false, resetBackupMsg = null, dangerMsg = null;
+var packEdit = null;      // 作成・編集中のパック {id, title, g, text, msg}
+var packFrom = null;      // 「今のリストから作る」 {g, pick:{id:true}}
+var packImpOpen = false, packImp = { text:"", file:"", enc:"", garbled:false, msg:null, plan:null, g:"g1" };
+var packExportId = null, packMsg = null, pendingDeletePack = null;
+function closePackPanels(){ packEdit = null; packFrom = null; packImpOpen = false; packImp.plan = null; packImp.msg = null; packExportId = null; pendingDeletePack = null; packMsg = null; }
 var setOpen = null, setPick = {}, setMsg = {};  // 拡張パック: 開いているセット・選択中の品・完了メッセージ
 var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
 var mdMsg = null;
@@ -1661,6 +1750,94 @@ function buildJsonPreviewHtml(plan){
   return html;
 }
 
+
+function packCardHtml(pack){
+  var open = setOpen === pack.id, pick = setPick[pack.id] || {};
+  var grp = state.groups[pack.g], meta = GROUP_META[pack.g], pid = esc(pack.id);
+  var h = '<div class="set-card"><button type="button" class="set-head" data-act="toggle-set" data-set="' + pid + '" aria-expanded="' + open + '"><span class="set-t">' + esc(pack.title) + '<small>' + pack.items.length + '件</small></span><span class="acc-ch" aria-hidden="true">' + ICON_CHEV + '</span></button>';
+  if(!open) return h + '</div>';
+  var n = 0;
+  h += '<div class="set-body"><p class="note" style="margin-bottom:8px">' + esc(pack.note) + '</p><ul class="set-list">'
+    + pack.items.map(function(d, i){
+      var exists = grp.items.some(function(it){ return keyOf(it.name) === keyOf(d.name); });
+      var on = !exists && pick[i] !== false;
+      if(on) n++;
+      return '<li><button type="button" class="set-row' + (exists ? " done" : "") + '" data-act="toggle-set-item" data-set="' + pid + '" data-i="' + i + '"' + (exists ? " disabled" : "") + ' role="checkbox" aria-checked="' + on + '">'
+        + '<span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span>'
+        + '<span class="set-name">' + esc(d.name) + '</span><span class="set-cat">' + (exists ? "追加ずみ" : esc(catLabel(d.cat))) + '</span></button></li>';
+    }).join('')
+    + '</ul>' + (pack.src ? '<p class="note" style="margin:8px 0 0">参考: ' + esc(pack.src) + '</p>' : '')
+    + '<div class="btn-row"><button type="button" class="btn" data-act="add-set" data-set="' + pid + '"' + (n ? "" : " disabled") + '>選んだ用品を追加(' + n + '件)</button></div>'
+    + msgHtml(setMsg[pack.id]);
+  if(pack.mine){
+    h += '<div class="pack-tools"><button type="button" class="btn btn-ghost" data-act="pack-edit" data-set="' + pid + '">編集</button>'
+      + '<button type="button" class="btn btn-ghost" data-act="pack-export" data-set="' + pid + '">' + (packExportId === pack.id ? "書き出しを閉じる" : "Markdownで書き出す") + '</button>'
+      + '<button type="button" class="btn btn-ghost" style="color:var(--clay)" data-act="pack-del-req" data-set="' + pid + '">削除</button></div>';
+    if(pendingDeletePack === pack.id) h += '<div class="confirm-row" style="margin-left:0" role="alert"><span>「' + esc(pack.title) + '」を削除します。追加済みの用品は消えません。よろしいですか？</span><button type="button" class="btn btn-danger" data-act="pack-del-do" data-set="' + pid + '">削除</button><button type="button" class="btn btn-ghost" data-act="pack-del-cancel">キャンセル</button></div>';
+    if(packExportId === pack.id){
+      h += '<div class="panel" style="margin-top:10px"><p class="note">この文章を、LINEやメモで送れます。受け取った人は、設定の「拡張パック」から取り込めます。</p>'
+        + '<div class="btn-row"><button type="button" class="btn" data-act="pack-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="pack-download" data-set="' + pid + '">ファイルでダウンロード</button></div>'
+        + '<textarea class="code-box" id="pack-export-text" readonly aria-label="パックの内容">' + esc(packToMd(findPack(pack.id))) + '</textarea>' + msgHtml(packMsg) + '</div>';
+    }
+  }
+  return h + '</div></div>';
+}
+function packSegHtml(act, cur){
+  return '<div class="seg" style="margin-bottom:12px">' + GROUP_ORDER.map(function(g){ return '<button type="button" class="' + (cur === g ? "active" : "") + '" data-act="' + act + '" data-g="' + g + '">' + GROUP_META[g].label + '</button>'; }).join("") + '</div>';
+}
+function buildPacksHtml(){
+  var h = '<p class="note">場面に合わせた用品を、まとめて追加できます。追加したい用品を選んで「追加」を押してください。すでにある同じ名前の用品は追加されません。</p>';
+  var all = allPacks();
+  h += all.filter(function(p){ return !p.mine; }).map(packCardHtml).join('');
+  h += '<h3 class="acc-sub">自分のパック</h3>';
+  var mine = all.filter(function(p){ return p.mine; });
+  h += mine.length ? mine.map(packCardHtml).join('') : '<p class="note">まだありません。自分で作るか、もらったパックを取り込めます。</p>';
+  h += msgHtml(packMsg && !packExportId ? packMsg : null);
+  h += '<div class="pack-actions"><button type="button" class="settings-btn" data-act="pack-new">パックを作る</button>'
+    + '<button type="button" class="settings-btn" data-act="pack-from-open">今のリストからパックを作る</button>'
+    + '<button type="button" class="settings-btn" data-act="pack-imp-open">' + (packImpOpen ? "取り込みを閉じる" : "もらったパックを取り込む") + '</button></div>';
+  if(packFrom){
+    var items = state.groups[packFrom.g].items, n = 0;
+    h += '<div class="panel pack-panel"><p class="field-title">どの区分の用品から作りますか？</p>' + packSegHtml("pack-from-g", packFrom.g)
+      + '<p class="field-title">パックに入れる用品を選ぶ</p><ul class="set-list">'
+      + (items.length ? items.map(function(it){
+        var on = !!packFrom.pick[it.id]; if(on) n++;
+        return '<li><button type="button" class="set-row" data-act="pack-from-pick" data-id="' + esc(it.id) + '" role="checkbox" aria-checked="' + on + '"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(GROUP_META[packFrom.g]) : "") + '">' + (on ? ICON_TICK : "") + '</span><span class="set-name">' + esc(it.name) + '</span><span class="set-cat">' + esc(catLabel(it.cat)) + '</span></button></li>';
+      }).join('') : '<li class="note">この区分には用品がありません。</li>')
+      + '</ul><div class="btn-row"><button type="button" class="btn" data-act="pack-from-make"' + (n ? "" : " disabled") + '>選んだ用品でパックを作る(' + n + '件)</button><button type="button" class="btn btn-ghost" data-act="pack-cancel">やめる</button></div></div>';
+  }
+  if(packEdit){
+    h += '<div class="panel pack-panel"><p class="field-title">' + (packEdit.id ? "パックを編集" : "新しいパック") + '</p>'
+      + '<p class="field-title">パック名(' + MAX_PACK_TITLE + '文字まで。作った人の名前を入れても構いません)</p>'
+      + '<input type="text" id="pack-title" maxlength="' + MAX_PACK_TITLE + '" value="' + esc(packEdit.title) + '" placeholder="例:ペット用" aria-label="パック名" style="margin-bottom:12px;width:100%;box-sizing:border-box">'
+      + '<p class="field-title">追加先の区分</p>' + packSegHtml("pack-g", packEdit.g)
+      + '<p class="field-title">用品(1行に1つ。分類は名前の後ろに [食品] [生活] [その他] と書くと指定できます。なければ自動で決めます)</p>'
+      + '<textarea class="code-box" id="pack-items" maxlength="6000" placeholder="ペットフード [食品]&#10;リード&#10;ケージ [生活]" aria-label="パックの用品">' + esc(packEdit.text) + '</textarea>'
+      + '<div class="btn-row"><button type="button" class="btn" data-act="pack-save">保存</button><button type="button" class="btn btn-ghost" data-act="pack-cancel">キャンセル</button></div>' + msgHtml(packEdit.msg) + '</div>';
+  }
+  if(packImpOpen){
+    h += '<div class="panel pack-panel"><p class="note">もらったパックの文章(Markdown)を貼り付けるか、ファイルを選んでください。取り込む前に内容を確認できます。</p>'
+      + '<p class="field-title">ファイルを選ぶ</p><input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" data-change="pack-imp-file" style="margin-bottom:12px">'
+      + (packImp.file ? '<p class="note">読み込んだファイル: ' + esc(packImp.file) + '</p>' : '')
+      + '<p class="field-title">または文章を貼り付け</p>'
+      + '<textarea class="code-box" id="pack-imp-text" data-input="pack-imp-text" placeholder="# 拡張パック: ペット用&#10;区分: 持ち出し&#10;&#10;- ペットフード [食品]" aria-label="パックの文章">' + esc(packImp.text) + '</textarea>'
+      + '<div class="btn-row"><button type="button" class="btn" data-act="pack-imp-preview">内容を確認する</button></div>'
+      + '<div id="pack-imp-preview">' + (packImp.plan ? buildPackPreviewHtml(packImp.plan) : '') + '</div>' + msgHtml(packImp.msg) + '</div>';
+  }
+  return h;
+}
+function buildPackPreviewHtml(plan){
+  var h = '';
+  plan.fatal.forEach(function(f){ h += '<div class="msg error" role="alert">' + esc(f) + '</div>'; });
+  if(!plan.ok) return h;
+  plan.warnings.forEach(function(w){ h += '<div class="msg warn" role="status">' + esc(w) + '</div>'; });
+  h += '<div class="preview"><h3>取り込みの確認</h3><div class="pv-group"><div class="pv-head">' + esc(plan.title) + '<small>' + plan.items.length + '件</small></div>'
+    + '<p class="field-title" style="margin:8px 0">追加先の区分</p>' + packSegHtml("pack-imp-g", packImp.g)
+    + plan.items.map(function(d){ return '<p class="pv-line"><span class="tag add">用品</span>' + esc(d.name) + ' <small>(' + esc(catLabel(d.cat)) + ')</small></p>'; }).join('')
+    + '</div></div>'
+    + '<div class="btn-row"><button type="button" class="btn" data-act="pack-imp-save">自分のパックに保存</button><button type="button" class="btn btn-ghost" data-act="pack-imp-cancel">やめる</button></div>';
+  return h;
+}
 function buildSettingsHtml(){
   var seg = ['light', 'dark', null].map(function(v){
     var label = v === "light" ? "☀ ライト" : v === "dark" ? "🌙 ダーク" : "端末に合わせる";
@@ -1726,6 +1903,7 @@ function buildSettingsHtml(){
   var pendingBy = {
     master: !!(pendingDeleteId || pendingDeleteLoc),
     share: !!(csv.plan || json.plan),
+    sets: !!(packEdit || packFrom || packImp.plan || pendingDeletePack),
     danger: !!(pendingReset || pendingRestore)
   };
   function acc(key, title, summary, body, cls){
@@ -1737,28 +1915,7 @@ function buildSettingsHtml(){
       + (open ? '<div class="acc-body" id="sec-' + key + '">' + body + '</div>' : '')
       + '</section>';
   }
-  var setsBody = '<p class="note">場面に合わせた用品を、まとめて追加できます。追加したい用品を選んで「追加」を押してください。すでにある同じ名前の用品は追加されません。</p>'
-    + ADD_SETS.map(function(set){
-      var open = setOpen === set.id, pick = setPick[set.id] || {};
-      var grp = state.groups[set.g], meta = GROUP_META[set.g];
-      var h = '<div class="set-card"><button type="button" class="set-head" data-act="toggle-set" data-set="' + set.id + '" aria-expanded="' + open + '"><span class="set-t">' + esc(set.title) + '<small>' + set.items.length + '件</small></span><span class="acc-ch" aria-hidden="true">' + ICON_CHEV + '</span></button>';
-      if(open){
-        var n = 0;
-        h += '<div class="set-body"><p class="note" style="margin-bottom:8px">' + esc(set.note) + '</p><ul class="set-list">'
-          + set.items.map(function(d, i){
-            var exists = grp.items.some(function(it){ return keyOf(it.name) === keyOf(d[0]); });
-            var on = !exists && pick[i] !== false;
-            if(on) n++;
-            return '<li><button type="button" class="set-row' + (exists ? " done" : "") + '" data-act="toggle-set-item" data-set="' + set.id + '" data-i="' + i + '"' + (exists ? " disabled" : "") + ' role="checkbox" aria-checked="' + on + '">'
-              + '<span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span>'
-              + '<span class="set-name">' + esc(d[0]) + '</span><span class="set-cat">' + (exists ? "追加ずみ" : esc(catLabel(CAT_BY_LETTER[d[1]]))) + '</span></button></li>';
-          }).join('')
-          + '</ul>' + (set.src ? '<p class="note" style="margin:8px 0 0">参考: ' + esc(set.src) + '</p>' : '')
-          + '<div class="btn-row"><button type="button" class="btn" data-act="add-set" data-set="' + set.id + '"' + (n ? "" : " disabled") + '>選んだ用品を追加(' + n + '件)</button></div>'
-          + msgHtml(setMsg[set.id]) + '</div>';
-      }
-      return h + '</div>';
-    }).join('');
+  var setsBody = buildPacksHtml();
   var guideBody = '<p class="note">はじめて使う人向けの案内(保管場所のチップを枠線にしたとき「揃えられたら、もう一度タップしよう」と出る吹き出し)は、吹き出しの「以降は表示しない」にチェックするまで、毎回出ます。止めたあと、もう一度出したいときはここから戻せます。</p>'
     + '<button type="button" class="settings-btn" data-act="reset-guide">ガイドをもう一度見る</button>' + msgHtml(guideMsg);
   var themeBody = '<div class="seg">' + seg + '</div>';
@@ -1777,7 +1934,7 @@ function buildSettingsHtml(){
     + acc("theme", "テーマ", themeName, themeBody)
     + acc("guide", "ガイド", "はじめての案内", guideBody)
     + acc("hint", "アプリのヒント文", state.appHint ? "編集済み" : "初期の文", hintBody)
-    + acc("sets", "拡張パック", "職場・乳児用・高齢者用・Ex", setsBody)
+    + acc("sets", "拡張パック", "職場・乳児用・高齢者用・Ex・自分のパック", setsBody)
     + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
     + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
@@ -1861,6 +2018,11 @@ function readFileInto(file, target, after){
   reader.readAsArrayBuffer(file);
 }
 
+function syncPackEditFromDom(){
+  if(!packEdit) return;
+  var t = document.getElementById("pack-title"), x = document.getElementById("pack-items");
+  if(t) packEdit.title = t.value; if(x) packEdit.text = x.value;
+}
 var ACTIONS = {
   "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); render(); save(); },
   "view": function(t){ viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item"; clearTransient(); render(); },
@@ -1983,24 +2145,23 @@ var ACTIONS = {
   },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
-  "toggle-set": function(t){ var id = t.getAttribute("data-set"); setOpen = setOpen === id ? null : id; setMsg = {}; render(); },
+  "toggle-set": function(t){ var id = t.getAttribute("data-set"); setOpen = setOpen === id ? null : id; setMsg = {}; packMsg = null; if(packExportId !== id) packExportId = null; pendingDeletePack = null; render(); },
   "toggle-set-item": function(t){
     var id = t.getAttribute("data-set"), i = parseInt(t.getAttribute("data-i"), 10);
     if(!setPick[id]) setPick[id] = {};
     setPick[id][i] = setPick[id][i] === false; setMsg[id] = null; render();
   },
   "add-set": function(t){
-    var id = t.getAttribute("data-set"), set = null;
-    ADD_SETS.forEach(function(x){ if(x.id === id) set = x; });
+    var id = t.getAttribute("data-set"), set = findPack(id);
     if(!set) return;
     var grp = state.groups[set.g], pick = setPick[id] || {}, added = 0, full = false;
     set.items.forEach(function(d, i){
       if(pick[i] === false) return;
-      if(grp.items.some(function(it){ return keyOf(it.name) === keyOf(d[0]); })) return;
+      if(grp.items.some(function(it){ return keyOf(it.name) === keyOf(d.name); })) return;
       if(grp.items.length >= MAX_ITEMS){ full = true; return; }
       var locs = [];
       if(set.loc){ var at = findLoc(grp.locations, set.loc); if(at !== -1) locs.push(grp.locations[at]); }
-      grp.items.push({ id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:locs, have:[] });
+      grp.items.push({ id:newId(), name:d.name, checked:false, cat:d.cat, locations:locs, have:[] });
       added++;
     });
     setPick[id] = {};
@@ -2008,9 +2169,82 @@ var ACTIONS = {
       : { type:"warn", text: full ? "用品の数が上限に達しているため、追加できませんでした。" : "追加できる用品がありません。" };
     render(); if(added) save();
   },
+  "pack-new": function(){ closePackPanels(); packEdit = { id:null, title:"", g:"g1", text:"", msg:null }; render(); focusId("pack-title"); },
+  "pack-edit": function(t){
+    var p = findPack(t.getAttribute("data-set")); if(!p || !p.mine) return;
+    closePackPanels(); packEdit = { id:p.id, title:p.title, g:p.g, text:p.items.map(function(d){ return d.name + " [" + catLabel(d.cat) + "]"; }).join("\n"), msg:null }; render();
+    var e = appEl.querySelector(".pack-panel"); if(e && e.scrollIntoView) e.scrollIntoView({ block:"nearest" });
+  },
+  "pack-g": function(t){ syncPackEditFromDom(); var g = t.getAttribute("data-g"); if(packEdit && GROUP_ORDER.indexOf(g) !== -1) packEdit.g = g; render(); },
+  "pack-cancel": function(){ closePackPanels(); render(); },
+  "pack-save": function(){
+    if(!packEdit) return;
+    syncPackEditFromDom();
+    var title = cleanLine(packEdit.title, MAX_PACK_TITLE), items = [], seen = {}, over = 0;
+    packEdit.text.split(/\r\n|\n|\r/).forEach(function(line){
+      if(!line.trim()) return;
+      var d = parsePackLine(line); if(!d) return;
+      var k = keyOf(d.name); if(seen[k]) return;
+      if(items.length >= MAX_PACK_ITEMS){ over++; return; }
+      seen[k] = true; items.push(d);
+    });
+    if(!title){ packEdit.msg = { type:"error", text:"パック名を入力してください。" }; render(); return; }
+    if(!items.length){ packEdit.msg = { type:"error", text:"用品を1つ以上入力してください(1行に1つ)。" }; render(); return; }
+    if(!state.packs) state.packs = [];
+    var existing = packEdit.id ? state.packs.filter(function(x){ return x.id === packEdit.id; })[0] : null;
+    if(existing){ existing.title = title; existing.g = packEdit.g; existing.items = items; }
+    else {
+      if(state.packs.length >= MAX_PACKS){ packEdit.msg = { type:"error", text:"自分のパックは " + MAX_PACKS + " 個までです。不要なものを削除してください。" }; render(); return; }
+      var np = { id:newId(), title:title, g:packEdit.g, items:items }; state.packs.push(np); setOpen = np.id;
+    }
+    var m = "「" + title + "」を保存しました(" + items.length + "件)。" + (over ? "(用品が多いため " + MAX_PACK_ITEMS + "件までにしました)" : "");
+    closePackPanels(); packMsg = { type:"ok", text:m }; render(); save();
+  },
+  "pack-del-req": function(t){ pendingDeletePack = t.getAttribute("data-set"); packExportId = null; render(); },
+  "pack-del-cancel": function(){ pendingDeletePack = null; render(); },
+  "pack-del-do": function(t){
+    var id = t.getAttribute("data-set"); if(!state.packs) return;
+    var p = findPack(id); var title = p ? p.title : "";
+    state.packs = state.packs.filter(function(x){ return x.id !== id; });
+    if(setOpen === id) setOpen = null;
+    closePackPanels(); packMsg = { type:"ok", text:"「" + title + "」を削除しました。" }; render(); save();
+  },
+  "pack-from-open": function(){ var was = !!packFrom; closePackPanels(); if(!was) packFrom = { g:state.activeTab, pick:{} }; render(); },
+  "pack-from-g": function(t){ var g = t.getAttribute("data-g"); if(packFrom && GROUP_ORDER.indexOf(g) !== -1){ packFrom.g = g; packFrom.pick = {}; } render(); },
+  "pack-from-pick": function(t){ var id = t.getAttribute("data-id"); if(packFrom){ if(packFrom.pick[id]) delete packFrom.pick[id]; else packFrom.pick[id] = true; } render(); },
+  "pack-from-make": function(){
+    if(!packFrom) return;
+    var g = packFrom.g, lines = [];
+    state.groups[g].items.forEach(function(it){ if(packFrom.pick[it.id] && lines.length < MAX_PACK_ITEMS) lines.push(it.name + " [" + catLabel(it.cat) + "]"); });
+    if(!lines.length) return;
+    closePackPanels(); packEdit = { id:null, title:"", g:g, text:lines.join("\n"), msg:null }; render(); focusId("pack-title");
+  },
+  "pack-export": function(t){ var id = t.getAttribute("data-set"); packExportId = packExportId === id ? null : id; packMsg = null; pendingDeletePack = null; render(); },
+  "pack-copy": function(){ packMsg = copyFrom("pack-export-text") ? { type:"ok", text:"コピーしました。LINEやメモに貼り付けて送れます。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
+  "pack-download": function(t){
+    var p = findPack(t.getAttribute("data-set")); if(!p) return;
+    try{ downloadFile(packToMd(p), "防災パック_" + p.title.replace(/[\\\/:*?"<>|\s]+/g, "_").slice(0, 30) + ".md", "text/markdown;charset=utf-8", true); packMsg = { type:"ok", text:"ダウンロードを開始しました(文字コードはUTF-8)。" }; }
+    catch(e){ packMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」をお使いください。" }; }
+    render();
+  },
+  "pack-imp-open": function(){ var was = packImpOpen; closePackPanels(); packImpOpen = !was; if(packImpOpen) packImp = { text:"", file:"", enc:"", garbled:false, msg:null, plan:null, g:"g1" }; render(); },
+  "pack-imp-preview": function(){
+    var ta = document.getElementById("pack-imp-text"); if(ta) packImp.text = ta.value;
+    packImp.plan = parsePackMd(packImp.text); packImp.msg = null; if(packImp.plan.g) packImp.g = packImp.plan.g; render(); scrollToId("pack-imp-preview");
+  },
+  "pack-imp-g": function(t){ var g = t.getAttribute("data-g"); if(GROUP_ORDER.indexOf(g) !== -1) packImp.g = g; render(); },
+  "pack-imp-cancel": function(){ closePackPanels(); render(); },
+  "pack-imp-save": function(){
+    var plan = packImp.plan; if(!plan || !plan.ok) return;
+    if(!state.packs) state.packs = [];
+    if(state.packs.length >= MAX_PACKS){ packImp.msg = { type:"error", text:"自分のパックは " + MAX_PACKS + " 個までです。不要なものを削除してから取り込んでください。" }; render(); return; }
+    var np = { id:newId(), title:plan.title, g:packImp.g, items:plan.items.map(function(d){ return { name:d.name, cat:d.cat }; }) };
+    state.packs.push(np); setOpen = np.id;
+    closePackPanels(); packMsg = { type:"ok", text:"「" + np.title + "」を自分のパックに保存しました(" + np.items.length + "件)。上の一覧から、リストに追加できます。" }; render(); save();
+  },
   "toggle-sec": function(t){
     var k = t.getAttribute("data-sec"), idx = openSecs.indexOf(k);
-    var pend = { master: !!(pendingDeleteId || pendingDeleteLoc), share: !!(csv.plan || json.plan), danger: !!(pendingReset || pendingRestore) };
+    var pend = { master: !!(pendingDeleteId || pendingDeleteLoc), share: !!(csv.plan || json.plan), sets: !!(packEdit || packFrom || packImp.plan || pendingDeletePack), danger: !!(pendingReset || pendingRestore) };
     if(idx >= 0){ if(!pend[k]) openSecs.splice(idx, 1); }
     else {
       openSecs = openSecs.filter(function(x){ return pend[x]; });  // 確認中・作業中の見出しは開いたまま残す
@@ -2147,6 +2381,7 @@ appEl.addEventListener("input", function(e){
   if(t.id === "search-input"){ if(!searchComposing && !e.isComposing) onSearchInput(t); return; }
   var kind = t.getAttribute("data-input");
   if(kind === "csv-text"){ csv.text = t.value; csv.file = ""; csv.garbled = false; csv.plan = null; var pv = document.getElementById("csv-preview"); if(pv) pv.innerHTML = ""; }
+  else if(kind === "pack-imp-text"){ packImp.text = t.value; packImp.file = ""; packImp.garbled = false; packImp.plan = null; var ppv = document.getElementById("pack-imp-preview"); if(ppv) ppv.innerHTML = ""; }
   else if(kind === "json-text"){ json.text = t.value; json.file = ""; json.garbled = false; json.plan = null; var pj = document.getElementById("json-preview"); if(pj) pj.innerHTML = ""; }
 });
 appEl.addEventListener("change", function(e){
@@ -2162,6 +2397,8 @@ appEl.addEventListener("change", function(e){
     var g = getGroup(t);
     state.groups[g].desc = cleanText(t.value, MAX_DESC) || DEFAULT_DESC[g];
     save();
+  } else if(kind === "pack-imp-file" && t.files && t.files[0]){
+    readFileInto(t.files[0], packImp, function(){ packImp.plan = parsePackMd(packImp.text); if(packImp.plan.g) packImp.g = packImp.plan.g; render(); scrollToId("pack-imp-preview"); });
   } else if(kind === "csv-file" && t.files && t.files[0]){
     readFileInto(t.files[0], csv, function(){ csv.plan = computeCsvPlan(); render(); scrollToId("csv-preview"); });
   } else if(kind === "json-file" && t.files && t.files[0]){
