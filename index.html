@@ -309,6 +309,13 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .checkbox.partial::after{ content:""; width:12px; height:3px; border-radius:2px; background:var(--accent,var(--ink-soft)); }
   .item-name{ flex:1; min-width:0; padding:8px 4px; font-size:16px; font-weight:500; line-height:1.4; cursor:pointer; overflow-wrap:anywhere; }
   .item-name.checked{ color:var(--ink-soft); text-decoration:line-through; text-decoration-color:var(--ink-soft); }
+  .item-name.head{ cursor:default; font-weight:700; }
+  .item-name.head.checked{ text-decoration:none; }
+  .check-btn.status{ pointer-events:none; }
+  .check-btn.status .checkbox{ width:22px; height:22px; border-radius:50%; border-width:2px; }
+  .check-btn.status .checkbox svg{ width:15px; height:15px; }
+  .loc-pill.undecided{ border:1px dashed var(--ink-soft); color:var(--ink-soft); background:transparent; }
+  .loc-pill.undecided.active{ border:1px solid var(--accent,var(--ink)); background:var(--accent,var(--ink)); color:var(--on-accent); font-weight:700; }
   .edit-input{ flex:1 1 auto; min-width:0; }
   .locations{ display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 0 35px; }
   .loc-pill{
@@ -508,11 +515,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.34.0";
+var APP_VERSION = "1.35.0";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.35.0", lines:["用品を「見出し」の扱いにしました。用品名の左のチェックはなくし(準備済みかどうかの印だけ残しています)、チェックは場所のチップで行います。場所に用意できて点灯するたびに準備が進みます。","場所を決めていない用品には、「場所未定」のチップが出ます。場所は決めていないけれど準備した、というときは、これをタップします。","進捗バーを、用品の数ではなく場所の数で数えるようにしました(置く場所ごとに1つ。場所未定の用品は1つ)。"] },
   { v:"1.34.0", lines:["保管場所のチップと候補チップを、ドラッグで並べ替えられるようにしました(チップ左の点のマークをドラッグ。キーボードは左右キー)。","保管場所の✕を押すと、確認なしですぐ削除し、「削除しました」のメッセージと「元に戻す」ボタンを出すようにしました。用品に付けていた場所やそろった状態も、元に戻せます。","候補チップも✕で外せます(「元に戻す」可)。外した候補は「候補を初期の並びに戻す」で戻せます。"] },
   { v:"1.33.0", lines:["絞り込みを「すべて」「未チェック」「場所未定」の3つにしました。件数の表示はなくしました。「場所未定」は、保管場所をまだ決めていない用品だけを表示します(「どこにある？」タブでは、場所未定の用品だけが出ます)。"] },
   { v:"1.32.1", lines:["スマホを横向きにしたときの設定画面の左メニューが、画面の幅がせまい機種でも出るようにしました(横向きで幅540px以上)。"] },
@@ -1527,12 +1535,15 @@ function msgHtml(m, id){ return m ? '<div' + (id ? ' id="' + id + '"' : '') + ' 
 
 function buildOverviewHtml(){
   return GROUP_ORDER.map(function(g){
-    var m = GROUP_META[g], items = state.groups[g].items.filter(function(it){ return !it.hidden; }), done = 0;
-    items.forEach(function(it){ if(it.checked) done++; });
-    var pct = items.length ? Math.round(done / items.length * 100) : 0;
+    var m = GROUP_META[g], items = state.groups[g].items.filter(function(it){ return !it.hidden; }), done = 0, total = 0;
+    items.forEach(function(it){   // 進捗は「場所」単位: 置く場所ごとに1つ(場所未定の用品は1つ)
+      if(it.locations.length){ total += it.locations.length; done += (it.have || []).length; }
+      else { total += 1; if(it.checked) done++; }
+    });
+    var pct = total ? Math.round(done / total * 100) : 0;
     return '<div class="ov-row"><div class="ov-label" style="color:' + m.accent + '">' + m.label + '</div>'
       + '<div class="ov-track"><div class="ov-fill" style="width:' + pct + '%;background:' + m.accent + '"></div></div>'
-      + '<div class="ov-count">' + done + '/' + items.length + '</div></div>';
+      + '<div class="ov-count">' + done + '/' + total + '</div></div>';
   }).join("");
 }
 function buildTabsHtml(){
@@ -1581,9 +1592,8 @@ function buildItemRow(g, meta, item, locations){
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
   } else {
     top = '<div class="item-top">'
-      + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + checked + '" aria-label="' + esc(item.name) + 'のチェック">'
-      + '<span class="checkbox' + boxCls(item) + '" style="' + (boxCls(item) ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></button>'
-      + '<div class="item-name' + (checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(item.name) + '</div>'
+      + '<span class="check-btn status" role="img" aria-label="' + (checked ? '準備済み' : boxCls(item) ? '一部そろっています' : 'まだそろっていません') + '"><span class="checkbox' + boxCls(item) + '" style="' + (boxCls(item) ? accentStyle(meta) : "") + '">' + (checked ? ICON_TICK : "") + '</span></span>'
+      + '<div class="item-name head' + (checked ? " checked" : "") + '">' + esc(item.name) + '</div>'
       + '<button type="button" class="icon-btn row-btn pin-btn' + (item.pinned ? " on" : "") + '" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-pressed="' + (item.pinned === true) + '" aria-label="' + esc(item.name) + (item.pinned ? 'のピン留めを外す' : 'をピン留め(先頭に固定)') + '">' + (item.pinned ? ICON_PIN_ON : ICON_PIN) + '</button>'
       + '<button type="button" class="icon-btn row-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
       + '<button type="button" class="icon-btn row-btn" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + (hid ? 'を表示に戻す' : 'を非表示にする') + '">' + (hid ? ICON_EYE : ICON_EYE_OFF) + '</button>'
@@ -1593,13 +1603,14 @@ function buildItemRow(g, meta, item, locations){
     var inL = item.locations.indexOf(loc) !== -1, hv = inL && (item.have || []).indexOf(loc) !== -1;
     return '<button type="button" class="loc-pill' + (hv ? " active" : inL ? " plan" : "") + '" style="' + (inL ? accentStyle(meta) : "") + '" data-act="toggle-loc" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + (hv ? "true" : inL ? "mixed" : "false") + '" aria-label="' + esc(loc) + (hv ? '(そろった)' : inL ? '(置く場所・まだそろっていない)' : '') + '">' + esc(loc) + '</button>';
   }).join("") : '';
+  if(!item.locations.length) pills += '<button type="button" class="loc-pill undecided' + (checked ? " active" : "") + '" style="' + accentStyle(meta) + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" aria-pressed="' + checked + '" aria-label="' + esc(item.name) + '(場所未定のまま、準備した)">場所未定</button>';
   var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-loc-editor" data-at="' + id + '" aria-expanded="' + (locEditorFor === item.id) + '" aria-label="' + GROUP_META[g].label + 'の保管場所を追加・編集">' + ICON_PLUS + '</button>';
   return '<div class="item' + (hid ? ' is-hidden' : '') + (item.pinned ? ' is-pinned' : '') + '"><div class="swipe-wrap">'
     + '<button type="button" class="swipe-pin" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" tabindex="' + (openL ? 0 : -1) + '" aria-hidden="' + (openL ? "false" : "true") + '">' + (item.pinned ? "ピンを外す" : "ピン留め") + '</button>'
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
     + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing || locEditorFor === item.id ? ' data-noswipe="1"' : "") + '>'
     + top
-    + (pills ? '' : '<div class="hint">保管場所が未設定です(右の＋で追加できます)</div>')
+    + (locations.length ? '' : '<div class="hint">保管場所が未設定です(右の＋で追加できます)</div>')
     + '<div class="locations">' + pills + addPill + '</div>'
     + (coachItemId === item.id ? '<div class="coach" role="status"><span>揃えられたら、もう一度タップしよう(点灯します)</span><button type="button" class="coach-ok" data-act="dismiss-coach" role="checkbox" aria-checked="false"><span class="coach-box"></span>以降は表示しない</button></div>' : '')
     + buildLocEditorHtml(g, meta, item.id)
@@ -1764,7 +1775,7 @@ function renderMain(){
     + '<button type="button" class="fb-eye' + (showHidden ? " on" : "") + '" aria-pressed="' + showHidden + '" aria-label="非表示にした用品を表示(' + hiddenCount + '件)" title="非表示にした用品を表示" data-act="toggle-show-hidden">' + (showHidden ? ICON_EYE : ICON_EYE_OFF) + (hiddenCount ? '<span class="fb-n">' + hiddenCount + '</span>' : '') + '</button>'
     + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += viewNoteHtml("vitem", "場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）", "view-note")
+    html += viewNoteHtml("vitem", "場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）。場所を決めない用品は「場所未定」をタップで準備済み", "view-note")
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
@@ -2004,9 +2015,9 @@ function buildSettingsHtml(){
       + qa("tabs", "3つの区分(タブ)", '<p>画面上部のタブで切り替えます。</p><ul><li><b>持ち歩き</b>: いつも身につけて出かけるもの(バッグやポーチの中など)</li><li><b>持ち出し</b>: 避難するときにすぐ持って出るもの</li><li><b>備蓄</b>: 自宅で過ごすために蓄えておくもの</li></ul><p>区分ごとに、保管場所・用品・進捗バーが別々になります。</p>')
       + '<h3 class="acc-sub">主な使い方</h3>'
       + qa("start", "はじめかた", '<ol><li>区分のタブを選びます。</li><li>用品の下にある場所のチップをタップして、「ここに置く」と決めます(枠線になります)。</li><li>実際に用意できたら、もう一度タップします(点灯します)。</li><li>用品のすべての場所が点灯すると、準備済みになります。</li></ol>')
-      + qa("chip", "場所チップの3つの状態", '<p>チップをタップするたびに、次の順で切り替わります。</p><ul><li><b>枠線</b>: ここに置くと決めた(まだ用意できていない)</li><li><b>点灯</b>: その場所に用意できた</li><li><b>消灯</b>: 場所未定(選んでいない状態)</li></ul><p>置く場所が複数ある用品は、すべての場所が点灯したときに準備済みになります。場所を選ばない用品は、左のチェックで直接「準備済み」にできます。</p>')
+      + qa("chip", "場所チップの3つの状態", '<p>チップをタップするたびに、次の順で切り替わります。</p><ul><li><b>枠線</b>: ここに置くと決めた(まだ用意できていない)</li><li><b>点灯</b>: その場所に用意できた</li><li><b>消灯</b>: 場所未定(選んでいない状態)</li></ul><p>置く場所が複数ある用品は、すべての場所が点灯したときに準備済みになります。場所を決めないまま準備した用品は、「場所未定」のチップをタップすると準備済みになります。用品の名前は見出しで、チェックは場所のチップで行います。</p>')
       + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、その場所が点灯します。</li><li>場所が決まっていない用品は「場所未定」にまとまり、そこでのチェックは「準備済み」の意味です。</li></ul>')
-      + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。区分ごとに計算します。準備済みは手で数えるのではなく、場所の点灯(または場所未定でのチェック)から自動で決まります。</p>')
+      + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、場所の点灯の割合です。置く場所ごとに1つと数え(場所未定の用品は1つ)、区分ごとに計算します。場所に用意できて点灯するたびに少しずつ進み、用品のすべての場所が点灯すると、その用品は準備済みになります。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>全｜未</b>: 「未」にすると、まだ準備済みでない用品だけが表示されます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
       + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>鉛筆のアイコンで、名前・分類・保管場所を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
       + qa("places", "保管場所を増やす・直す", '<p>場所チップの一番後ろの「＋」から、保管場所の追加・名前の変更・削除ができます。ヒント文の鉛筆アイコンでは、その場で文章を書き換えられます。</p>')
@@ -2208,6 +2219,7 @@ var ACTIONS = {
     else if(hv === -1){ it.have.push(loc); }                                                                                 // 置く場所 → そろった
     else { it.locations.splice(at, 1); it.have.splice(hv, 1); }                                                              // そろった → なし
     syncItem(it);
+    if(!it.locations.length) it.checked = false;   // 場所がなくなったら、場所未定のチェックもはずす
     coachItemId = null;
     if(onlyUnplanned) keepVisible[it.id] = true;   // 場所を決めた用品も、切り替えるまで残す(押し間違いを直せるように)
     if(it.locations.indexOf(loc) !== -1 && it.have.indexOf(loc) === -1 && !lsGet(COACH_KEY)){ coachItemId = it.id; }   // 「以降は表示しない」を押すまで、枠線にするたびに出す
