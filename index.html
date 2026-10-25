@@ -200,6 +200,21 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   @media (min-width:760px){
     body{ background:var(--card); }
     #app{ max-width:1200px; border-left:1px solid var(--line); border-right:1px solid var(--line); }
+    .header{ padding:20px 28px 12px; }
+    .overview{ flex-direction:row; gap:28px; padding:12px 28px; }
+    .ov-row{ flex:1 1 0; min-width:0; }
+    .group-desc{ padding-left:28px; padding-right:28px; }
+    .filter-bar{ padding-left:28px; padding-right:28px; }
+    .filter-bar .fb-search.has-q{ max-width:240px; }
+    .items{ padding:0 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-items:start; }
+    .loc-group{ padding:0 28px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-content:start; }
+    .loc-group > .loc-group-title, .loc-group > .loc-head, .loc-group > .note{ grid-column:1 / -1; }
+    .pins{ padding-left:28px; padding-right:28px; }
+    .pin-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 400px)); gap:5px 20px; }
+    .add-row{ padding-left:28px; padding-right:28px; max-width:640px; }
+    .items .item-top .drag-handle{ display:none; }
+  }
+  @media (min-width:760px), (orientation:landscape) and (min-width:540px){
     #app.is-settings{ max-width:1100px; }
     .set-wide{ display:grid; grid-template-columns:300px minmax(0,1fr); gap:24px; padding:20px 28px 8px; align-items:start; }
     .set-nav{ position:sticky; top:12px; max-height:calc(100vh - 24px); overflow-y:auto; padding:8px; border:1px solid var(--line); border-radius:14px; background:var(--paper); }
@@ -215,19 +230,6 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .set-pane .acc-sub:first-child{ border-top:0; margin-top:10px; padding-top:0; }
     .set-pane.danger .set-pane-t{ color:var(--clay); }
     .set-wide + .version{ padding-top:16px; }
-    .header{ padding:20px 28px 12px; }
-    .overview{ flex-direction:row; gap:28px; padding:12px 28px; }
-    .ov-row{ flex:1 1 0; min-width:0; }
-    .group-desc{ padding-left:28px; padding-right:28px; }
-    .filter-bar{ padding-left:28px; padding-right:28px; }
-    .filter-bar .fb-search.has-q{ max-width:240px; }
-    .items{ padding:0 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-items:start; }
-    .loc-group{ padding:0 28px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-content:start; }
-    .loc-group > .loc-group-title, .loc-group > .loc-head, .loc-group > .note{ grid-column:1 / -1; }
-    .pins{ padding-left:28px; padding-right:28px; }
-    .pin-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 400px)); gap:5px 20px; }
-    .add-row{ padding-left:28px; padding-right:28px; max-width:640px; }
-    .items .item-top .drag-handle{ display:none; }
   }
   /* スマホ横向きなど、高さが足りない画面: 上の部分を低くして、用品の一覧を広く見せる */
   @media (orientation:landscape) and (max-height:520px){
@@ -494,11 +496,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.32.0";
+var APP_VERSION = "1.32.1";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.32.1", lines:["スマホを横向きにしたときの設定画面の左メニューが、画面の幅がせまい機種でも出るようにしました(横向きで幅540px以上)。"] },
   { v:"1.32.0", lines:["パソコン・タブレット・スマホ横向きなど広い画面では、設定画面の左側に項目のメニューが出るようにしました。左で項目を選ぶと、右側にその内容が表示されます(せまい画面はこれまでどおり開閉式です)。"] },
   { v:"1.31.0", lines:["設定画面を整理しました。見出しの先頭に線のアイコンをつけ、「使い方」「リスト」「表示」「データ」「アプリ」のまとまりに並べ直しました。","設定の一番上に「使い方・ヘルプ」を追加しました。アプリの特徴、主な使い方、便利な使い方例、データのこと、困ったときをまとめています。","「どこにある？」タブのヒント文の上の余白を、「防災用品」タブのヒント文とそろえました。"] },
   { v:"1.30.0", lines:["表示の切り替えの行を、文字を減らしてすっきりさせました。「表示」の文字をなくし、「全｜未 6」の切り替えにまとめました。「非表示」のチェックは目のアイコン(非表示の数つき)に、検索は虫めがねのアイコンだけにして、押すと入力欄が開きます。"] },
@@ -1999,7 +2002,7 @@ function buildSettingsHtml(){
       + qa("faq3", "新しい版にならない", '<p>設定の「アプリの更新」で「更新を確認」をタップしてください。新しい版があれば「再読み込みして更新する」が出ます。</p>')
       + qa("faq4", "ガイドをもう一度見たい", '<p>設定の「ガイド」から、はじめての案内をもう一度表示できます。</p>');
   }
-  var wideSet = false; try{ wideSet = !!(window.matchMedia && window.matchMedia("(min-width:760px)").matches); }catch(e){}
+  var wideSet = false; try{ wideSet = !!(window.matchMedia && window.matchMedia("(min-width:760px), (orientation:landscape) and (min-width:540px)").matches); }catch(e){}
   var wideList = [], curGrp = "";
   function acc(key, title, summary, body, cls){
     if(wideSet){ wideList.push({ key:key, title:title, summary:summary, body:body, cls:cls || "", grp:curGrp }); return ""; }
@@ -2064,7 +2067,7 @@ function buildSettingsHtml(){
 }
 
 var lastWide = null;
-function isWideNow(){ try{ return !!(window.matchMedia && window.matchMedia("(min-width:760px)").matches); }catch(e){ return false; } }
+function isWideNow(){ try{ return !!(window.matchMedia && window.matchMedia("(min-width:760px), (orientation:landscape) and (min-width:540px)").matches); }catch(e){ return false; } }
 window.addEventListener("resize", function(){ var w = isWideNow(); if(lastWide !== null && w !== lastWide && showSettings){ lastWide = w; render(); } lastWide = w; });
 function render(){
   if(!state) return;
