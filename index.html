@@ -311,7 +311,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .checkbox.partial::after{ content:""; width:12px; height:3px; border-radius:2px; background:var(--accent,var(--ink-soft)); }
   .item-name{ flex:1; min-width:0; padding:8px 4px; font-size:16px; font-weight:500; line-height:1.4; cursor:pointer; overflow-wrap:anywhere; }
   .item-name.checked{ color:var(--ink-soft); text-decoration:line-through; text-decoration-color:var(--ink-soft); }
-  .item-name.head{ cursor:default; font-weight:700; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+  .item-name.head{ cursor:text; font-weight:700; touch-action:manipulation; -webkit-user-select:none; user-select:none; }
   .item-name.head.checked{ text-decoration:none; }
   .check-btn.status{ pointer-events:none; }
   .check-btn.status .checkbox{ width:22px; height:22px; border-radius:50%; border-width:2px; }
@@ -537,11 +537,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.39.1";
+var APP_VERSION = "1.39.2";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.39.2", lines:["用品名を、ダブルタップではなく、1回タップするだけで編集できるようにしました(スワイプが開いているときは、まず閉じます)。"] },
   { v:"1.39.1", lines:["用品名の行の鉛筆アイコンをなくしました。用品名をダブルタップ(パソコンではダブルクリック)すると、用品名を編集できます。"] },
   { v:"1.39.0", lines:["初期の用品名を変えました: 「ホイッスル」→「エマージェンシーホイッスル」、「ライト」→「小型LEDライト」、「マスク」→「不織布マスク」(持ち歩き)、「毛布」→「エマージェンシーブランケット」(持ち出し)。","初期の保管場所を変えました: 持ち歩き=バッグA・バッグB、持ち出し=リュックA・リュックB、備蓄=リビング・キッチン(それぞれ「場所未定」つき)。初期のままだった場所は、これまでの用品の置き場所やチェックを引き継いで変わります。外れた場所は、候補から追加できます。","「場所未定」にチェックすると、ほかの場所のチェックははずれ、押せなくなります。場所未定のチェックをはずすと、また押せます。","「職場に保管セット」を追加するとき、「職場に保管」の保管場所がなければ自動で加えるようにしました。"] },
   { v:"1.38.0", lines:["「場所未定」も、場所のひとつとして最初から並ぶようにしました(ほかの場所と同じように、チェック・名前の変更・削除ができます)。","どこか1つでも場所(場所未定を含む)にチェックが入った用品を、準備済みとして数え、進捗バーに反映するようにしました。","用品名の左の印を、ただの連番にしました(チェックの影響を受けません)。","絞り込みの「場所未定」は、「場所未定」にチェックしている用品だけを表示します。"] },
@@ -1665,7 +1666,7 @@ function buildItemRow(g, meta, item, locations, num){
   } else {
     top = '<div class="item-top">'
       + '<span class="check-btn status" aria-hidden="true"><span class="stat-num">' + (num || "") + '</span></span>'
-      + '<div class="item-name head' + (checked ? " checked" : "") + '" data-dt="1" data-g="' + g + '" data-id="' + id + '" tabindex="0" title="ダブルタップで用品名を編集" aria-label="' + esc(item.name) + '(ダブルタップで用品名を編集)">' + esc(item.name) + '</div>'
+      + '<div class="item-name head' + (checked ? " checked" : "") + '" data-dt="1" data-g="' + g + '" data-id="' + id + '" tabindex="0" role="button" title="タップで用品名を編集" aria-label="' + esc(item.name) + '(タップで用品名を編集)">' + esc(item.name) + '</div>'
       + '<button type="button" class="icon-btn row-btn pin-btn' + (item.pinned ? " on" : "") + '" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-pressed="' + (item.pinned === true) + '" aria-label="' + esc(item.name) + (item.pinned ? 'のピン留めを外す' : 'をピン留め(先頭に固定)') + '">' + (item.pinned ? ICON_PIN_ON : ICON_PIN) + '</button>'
       + '<button type="button" class="icon-btn row-btn" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + (hid ? 'を表示に戻す' : 'を非表示にする') + '">' + (hid ? ICON_EYE : ICON_EYE_OFF) + '</button>'
       + '<button type="button" class="drag-handle" data-drag-id="' + id + '" data-g="' + g + '" aria-label="' + esc(item.name) + 'を並べ替え(ドラッグ、または上下キー)">' + ICON_GRIP + '</button></div>';
@@ -1863,7 +1864,7 @@ function renderMain(){
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note"><span class="hint-fine">左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名のダブルタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
+      + '<div class="footer-note"><span class="hint-fine">左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名をタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
   } else {
     html += '<div id="list-area" style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
@@ -2103,7 +2104,7 @@ function buildSettingsHtml(){
       + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、用品側の、その場所の箱にもチェックが入ります。</li><li>「場所未定」も場所のひとつです。場所を決めずに準備した用品は、ここにまとまります。</li></ul>')
       + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。どこか1つでも場所(「場所未定」を含む)にチェックが入った用品を、準備済みとして数えます。区分ごとに計算します。</p><p>場所を決めておくのがおすすめですが、強制ではありません。決めていなくても、「場所未定」にチェックすれば、準備した分として進みます。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>全｜未</b>: 「未」にすると、まだ準備済みでない用品だけが表示されます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
-      + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をダブルタップ(パソコンではダブルクリック)すると、名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
+      + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、その場で名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
       + qa("places", "保管場所を増やす・直す", '<p>場所チップの一番後ろの「＋」から、保管場所の追加・名前の変更・削除ができます。ヒント文の鉛筆アイコンでは、その場で文章を書き換えられます。</p>')
       + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、Markdownで友達に渡したり、もらったパックを自分のパックとして保存したりもできます。</p>')
       + '<h3 class="acc-sub">便利な使い方例</h3>'
@@ -2670,14 +2671,12 @@ var ACTIONS = {
 };
 
 /* ---- delegated events ---- */
-var lastNameTap = { id:"", t:0 };
 appEl.addEventListener("click", function(e){
   if(Date.now() < suppressClickUntil){ suppressClickUntil = 0; return; }
   var nm = e.target && e.target.closest ? e.target.closest(".item-name[data-dt]") : null;
-  if(nm){   // 用品名をダブルタップ(ダブルクリック)で、用品名を編集
-    var nid = nm.getAttribute("data-id"), now = Date.now();
-    if(lastNameTap.id === nid && now - lastNameTap.t < 450){ lastNameTap = { id:"", t:0 }; ACTIONS["start-edit"](nm); return; }
-    lastNameTap = { id:nid, t:now };
+  if(nm){   // 用品名をタップで、用品名を編集
+    if(openSwipeId){ closeSwipe(); return; }   // スワイプが開いているときは、まず閉じるだけ
+    ACTIONS["start-edit"](nm); return;
   }
   var target = e.target;
   if(!target || !target.closest) return;
