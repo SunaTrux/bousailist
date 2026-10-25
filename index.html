@@ -200,7 +200,21 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   @media (min-width:760px){
     body{ background:var(--card); }
     #app{ max-width:1200px; border-left:1px solid var(--line); border-right:1px solid var(--line); }
-    #app.is-settings{ max-width:680px; }
+    #app.is-settings{ max-width:1100px; }
+    .set-wide{ display:grid; grid-template-columns:300px minmax(0,1fr); gap:24px; padding:20px 28px 8px; align-items:start; }
+    .set-nav{ position:sticky; top:12px; max-height:calc(100vh - 24px); overflow-y:auto; padding:8px; border:1px solid var(--line); border-radius:14px; background:var(--paper); }
+    .set-nav-g{ padding:14px 10px 4px; font-size:11.5px; font-weight:900; letter-spacing:.08em; color:var(--ink-soft); }
+    .set-nav-g:first-child{ padding-top:6px; }
+    .set-nav-btn{ display:flex; align-items:center; gap:10px; width:100%; min-height:52px; padding:8px 10px; border-radius:10px; background:transparent; color:var(--ink); text-align:left; }
+    .set-nav-btn:hover{ background:var(--line); }
+    .set-nav-btn.on{ background:var(--accent-soft, var(--line)); box-shadow:inset 3px 0 0 var(--ink); }
+    .set-nav-btn.danger .acc-ic{ color:var(--clay); }
+    .set-pane{ min-width:0; border:1px solid var(--line); border-radius:14px; background:var(--paper); }
+    .set-pane-t{ display:flex; align-items:center; gap:10px; margin:0; padding:18px 20px 6px; font-size:18px; font-weight:900; }
+    .set-pane .acc-body{ padding:6px 20px 24px; }
+    .set-pane .acc-sub:first-child{ border-top:0; margin-top:10px; padding-top:0; }
+    .set-pane.danger .set-pane-t{ color:var(--clay); }
+    .set-wide + .version{ padding-top:16px; }
     .header{ padding:20px 28px 12px; }
     .overview{ flex-direction:row; gap:28px; padding:12px 28px; }
     .ov-row{ flex:1 1 0; min-width:0; }
@@ -480,11 +494,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.31.0";
+var APP_VERSION = "1.32.0";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.32.0", lines:["パソコン・タブレット・スマホ横向きなど広い画面では、設定画面の左側に項目のメニューが出るようにしました。左で項目を選ぶと、右側にその内容が表示されます(せまい画面はこれまでどおり開閉式です)。"] },
   { v:"1.31.0", lines:["設定画面を整理しました。見出しの先頭に線のアイコンをつけ、「使い方」「リスト」「表示」「データ」「アプリ」のまとまりに並べ直しました。","設定の一番上に「使い方・ヘルプ」を追加しました。アプリの特徴、主な使い方、便利な使い方例、データのこと、困ったときをまとめています。","「どこにある？」タブのヒント文の上の余白を、「防災用品」タブのヒント文とそろえました。"] },
   { v:"1.30.0", lines:["表示の切り替えの行を、文字を減らしてすっきりさせました。「表示」の文字をなくし、「全｜未 6」の切り替えにまとめました。「非表示」のチェックは目のアイコン(非表示の数つき)に、検索は虫めがねのアイコンだけにして、押すと入力欄が開きます。"] },
   { v:"1.29.0", lines:["設定に「このアプリを友達に勧める」を追加しました。アプリの名前・簡単な説明・URLを、LINEやメールなどで友達に送れます(送る前に文章を確認できます。送る画面が開けない端末では、文章のコピーになります)。"] },
@@ -1455,6 +1470,7 @@ var packExportId = null, packMsg = null, pendingDeletePack = null;
 function closePackPanels(){ packEdit = null; packFrom = null; packImpOpen = false; packImp.plan = null; packImp.msg = null; packExportId = null; pendingDeletePack = null; packMsg = null; }
 var setOpen = null, setPick = {}, setMsg = {};  // 拡張パック: 開いているセット・選択中の品・完了メッセージ
 var helpOpen = [];
+var setSec = "help";
 var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
 var mdMsg = null;
 var panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
@@ -1948,7 +1964,7 @@ function buildSettingsHtml(){
     update:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'
   };
   function secIcon(k){ return SEC_ICONS[k] ? '<span class="acc-ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">' + SEC_ICONS[k] + '</svg></span>' : ''; }
-  function grpLabel(t){ return '<div class="acc-group">' + t + '</div>'; }
+  function grpLabel(t){ if(wideSet){ curGrp = t; return ""; } return '<div class="acc-group">' + t + '</div>'; }
   function helpHtml(){
     var qa = function(k, q, a){
       var o = helpOpen.indexOf(k) >= 0;
@@ -1983,7 +1999,10 @@ function buildSettingsHtml(){
       + qa("faq3", "新しい版にならない", '<p>設定の「アプリの更新」で「更新を確認」をタップしてください。新しい版があれば「再読み込みして更新する」が出ます。</p>')
       + qa("faq4", "ガイドをもう一度見たい", '<p>設定の「ガイド」から、はじめての案内をもう一度表示できます。</p>');
   }
+  var wideSet = false; try{ wideSet = !!(window.matchMedia && window.matchMedia("(min-width:760px)").matches); }catch(e){}
+  var wideList = [], curGrp = "";
   function acc(key, title, summary, body, cls){
+    if(wideSet){ wideList.push({ key:key, title:title, summary:summary, body:body, cls:cls || "", grp:curGrp }); return ""; }
     var open = openSecs.indexOf(key) >= 0;
     return '<section class="acc' + (cls ? " " + cls : "") + '" data-sec-wrap="' + key + '">'
       + '<h2 class="acc-h"><button type="button" class="acc-btn" data-act="toggle-sec" data-sec="' + key + '" aria-expanded="' + open + '" aria-controls="sec-' + key + '">'
@@ -2015,8 +2034,9 @@ function buildSettingsHtml(){
   var dangerBody = msgHtml(dangerMsg, "danger-msg") + restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">持ち歩き・持ち出し・備蓄すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
   var dangerSummary = prevSnap ? prevBefore() + "前に戻す・初期化" : "初期化";
 
-  return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
-    + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
+  var headHtml = (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
+    + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>';
+  var chain = ''
     + grpLabel("使い方") + acc("help", "使い方・ヘルプ", "特徴・使い方・使い方例・困ったとき", helpHtml())
     + grpLabel("リスト") + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
     + acc("sets", "拡張パック", "職場・乳児用・高齢者用・Ex・自分のパック", setsBody)
@@ -2028,11 +2048,27 @@ function buildSettingsHtml(){
     + grpLabel("アプリ") + acc("recommend", "このアプリを友達に勧める", "URLと説明を送る", recBody)
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
     + acc("update", "アプリの更新", swUpdated ? "新しい版があります" : "最新版を確認", updBody)
+  var wideHtml = "";
+  if(wideSet){
+    var cur = null; wideList.forEach(function(x){ if(x.key === setSec) cur = x; }); if(!cur) cur = wideList[0];
+    var nav = "", lastG = null;
+    wideList.forEach(function(x){
+      if(x.grp !== lastG){ nav += '<div class="set-nav-g">' + esc(x.grp) + '</div>'; lastG = x.grp; }
+      nav += '<button type="button" class="set-nav-btn' + (x === cur ? ' on' : '') + (x.cls ? ' ' + x.cls : '') + '" data-act="pick-sec" data-sec="' + x.key + '"' + (x === cur ? ' aria-current="page"' : '') + '>' + secIcon(x.key)
+        + '<span class="acc-t">' + x.title + (x.summary ? '<small>' + esc(x.summary) + '</small>' : '') + '</span></button>';
+    });
+    wideHtml = '<div class="set-wide"><nav class="set-nav" aria-label="設定の項目">' + nav + '</nav><section class="set-pane' + (cur.cls ? ' ' + cur.cls : '') + '" data-sec-wrap="' + cur.key + '"><h2 class="set-pane-t">' + cur.title + '</h2><div class="acc-body" id="sec-' + cur.key + '">' + cur.body + '</div></section></div>';
+  }
+  return headHtml + (wideSet ? wideHtml : chain)
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
+var lastWide = null;
+function isWideNow(){ try{ return !!(window.matchMedia && window.matchMedia("(min-width:760px)").matches); }catch(e){ return false; } }
+window.addEventListener("resize", function(){ var w = isWideNow(); if(lastWide !== null && w !== lastWide && showSettings){ lastWide = w; render(); } lastWide = w; });
 function render(){
   if(!state) return;
+  lastWide = isWideNow();
   appEl.className = showSettings ? "is-settings" : "";
   appEl.innerHTML = noticesHtml() + (showSettings ? buildSettingsHtml() : renderMain());
 }
@@ -2335,6 +2371,7 @@ var ACTIONS = {
     state.packs.push(np); setOpen = np.id;
     closePackPanels(); packMsg = { type:"ok", text:"「" + np.title + "」を自分のパックに保存しました(" + np.items.length + "件)。上の一覧から、リストに追加できます。" }; render(); save();
   },
+  "pick-sec": function(t){ setSec = t.getAttribute("data-sec"); render(); window.scrollTo(0, 0); },
   "toggle-help": function(t){ var k = t.getAttribute("data-h"), i = helpOpen.indexOf(k); if(i >= 0) helpOpen.splice(i, 1); else helpOpen.push(k); render(); var b = appEl.querySelector('[data-h="' + k + '"]'); if(b && b.focus) b.focus(); },
   "toggle-sec": function(t){
     var k = t.getAttribute("data-sec"), idx = openSecs.indexOf(k);
