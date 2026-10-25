@@ -537,11 +537,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.39.4";
+var APP_VERSION = "1.40.0";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.40.0", lines:["保管場所の編集画面に、「初期の保管場所を戻す」ボタンを追加しました。消してしまった初期の保管場所(バッグA・リュックA・未定など)だけを元の並びの位置に戻し、自分で作った保管場所はそのまま残ります。すべての場所に置く設定の用品には、戻した場所も加えます。"] },
   { v:"1.39.4", lines:["「場所未定」の名前を「未定」に変えました(保管場所・絞り込み・ヒント文・ヘルプ)。これまでの「場所未定」は、チェックを引き継いで「未定」になります。"] },
   { v:"1.39.3", lines:["用品名の編集欄を、連番の位置からではなく、いまの用品名と同じ位置から始まるようにしました(連番はそのまま表示します)。"] },
   { v:"1.39.2", lines:["用品名を、ダブルタップではなく、1回タップするだけで編集できるようにしました(スワイプが開いているときは、まず閉じます)。"] },
@@ -1565,7 +1566,7 @@ var REC_TITLE = "わが家の防災リスト";
 var REC_TEXT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくせる防災チェックリストです。ホーム画面に追加すると、アプリのように使えます。入力したデータはこの端末の中だけに保存され、サーバーには送られません。";
 var recMsg = null;
 var guideMsg = null;
-var renameLoc = null, locMsg = "";   // 保管場所の名前変更中("区分:番号")、編集中のメッセージ
+var renameLoc = null, locMsg = "", locMsgOk = false;   // 保管場所の名前変更中("区分:番号")、編集中のメッセージ
 var pickFor = null;   // 「＋」で置く場所を選んでいる用品のid
 var coachItemId = null, COACH_KEY = "bousai-coach-plan-seen";  // 初めて枠線にしたときだけ出す案内(出したら記録)
 var locEditorFor = null, editingDescG = null;  // 保管場所のチップ編集を開いている場所(用品のid / "__loc")、ヒント文を編集中の区分
@@ -1644,9 +1645,13 @@ function buildLocEditorHtml(g, meta, at){
   }).join("") : '<span class="note">保管場所がありません</span>';
   return '<div class="loc-settings inline">'
     + (delUndo && delUndo.g === g ? '<div class="del-msg" role="status"><span>「' + esc(delUndo.name) + '」を削除しました。</span><button type="button" class="btn btn-ghost" data-act="undo-del">元に戻す</button></div>' : '')
-    + (locMsg ? '<div class="msg error" role="status">' + esc(locMsg) + '</div>' : '')
+    + (locMsg ? '<div class="msg' + (locMsgOk ? '' : ' error') + '" role="status">' + esc(locMsg) + '</div>' : '')
     + '<div class="field-title">' + meta.label + 'の保管場所(すべての用品で共通です。鉛筆で名前を変更、✕で削除、ドラッグで並べ替え)</div>'
     + '<div class="loc-chips">' + chips + '</div>'
+    + (function(){
+        var miss = DEFAULT_LOCATIONS[g].filter(function(n){ return findLoc(grp.locations, n) === -1; });
+        return miss.length ? '<button type="button" class="btn btn-ghost" style="margin:0 0 12px" data-act="restore-locs" data-g="' + g + '">初期の保管場所を戻す(' + esc(miss.join("・")) + ')</button>' : "";
+      })()
     + suggestHtml(g, grp)
     + '<div class="field-title">新しい保管場所</div>'
     + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="例:' + esc(LOC_INPUT_EXAMPLE[g]) + '" aria-label="新しい保管場所" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
@@ -2112,7 +2117,7 @@ function buildSettingsHtml(){
       + qa("tabs", "3つの区分(タブ)", '<p>画面上部のタブで切り替えます。</p><ul><li><b>持ち歩き</b>: いつも身につけて出かけるもの(バッグやポーチの中など)</li><li><b>持ち出し</b>: 避難するときにすぐ持って出るもの</li><li><b>備蓄</b>: 自宅で過ごすために蓄えておくもの</li></ul><p>区分ごとに、保管場所・用品・進捗バーが別々になります。</p>')
       + '<h3 class="acc-sub">主な使い方</h3>'
       + qa("start", "はじめかた", '<ol><li>区分のタブを選びます。用品の下には、その区分の保管場所と「未定」が、最初から並んでいます。</li><li>実際に用意できたら、その場所の箱にチェックを入れます。まだ場所を決めていないときは「未定」にチェックします。</li><li>どこか1つでもチェックが入ると、その用品は準備済みになり、進捗バーが進みます。</li><li>置かない場所は、用品の右の鉛筆で外せます(場所を決めておくのがおすすめですが、決めなくても使えます)。</li></ol>')
-      + qa("chip", "場所のチェックボックスと鉛筆", '<p>用品の下には、置く場所が「箱＋場所名」で横に並びます。</p><ul><li><b>箱にチェック</b>: その場所に用意できた</li><li><b>未定</b>: 場所は決めていないけれど、用意した(「未定」も場所のひとつです)</li><li><b>鉛筆</b>: この用品を置く場所の選び直し(タップで選択・解除)ができます。保管場所そのものの名前の変更・追加・削除・並べ替えと、候補からの追加もここからできます</li></ul><p>用品名の左の数字は、ただの連番です。チェックの影響は受けません。</p>')
+      + qa("chip", "場所のチェックボックスと鉛筆", '<p>用品の下には、置く場所が「箱＋場所名」で横に並びます。</p><ul><li><b>箱にチェック</b>: その場所に用意できた</li><li><b>未定</b>: 場所は決めていないけれど、用意した(「未定」も場所のひとつです)</li><li><b>鉛筆</b>: この用品を置く場所の選び直し(タップで選択・解除)ができます。保管場所そのものの名前の変更・追加・削除・並べ替えと、候補からの追加もここからできます。消してしまった初期の保管場所は、「初期の保管場所を戻す」で戻せます(自分で作った場所は残ります)</li></ul><p>用品名の左の数字は、ただの連番です。チェックの影響は受けません。</p>')
       + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、用品側の、その場所の箱にもチェックが入ります。</li><li>「未定」も場所のひとつです。場所を決めずに準備した用品は、ここにまとまります。</li></ul>')
       + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。どこか1つでも場所(「未定」を含む)にチェックが入った用品を、準備済みとして数えます。区分ごとに計算します。</p><p>場所を決めておくのがおすすめですが、強制ではありません。決めていなくても、「未定」にチェックすれば、準備した分として進みます。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>全｜未</b>: 「未」にすると、まだ準備済みでない用品だけが表示されます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
@@ -2435,6 +2440,20 @@ var ACTIONS = {
     grp.items.forEach(function(it){ it.locations = it.locations.filter(function(l){ return l !== loc; }); syncItem(it); });
     render(); save();
   },
+  "restore-locs": function(t){
+    var g = getGroup(t), grp = state.groups[g], defs = DEFAULT_LOCATIONS[g], before = grp.locations.length, added = [];
+    var allBefore = grp.items.filter(function(it){ return before && it.locations.length === before; });   // すべての場所に置く設定の用品
+    defs.forEach(function(name, di){
+      if(findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS) return;
+      var at = 0;   // 初期の並びで、すぐ前にある場所の後ろに入れる(なければ先頭)
+      for(var k = di - 1; k >= 0; k--){ var pi = findLoc(grp.locations, defs[k]); if(pi !== -1){ at = pi + 1; break; } }
+      grp.locations.splice(at, 0, name); added.push(name);
+      allBefore.forEach(function(it){ if(it.locations.indexOf(name) === -1) it.locations.push(name); });
+    });
+    delUndo = null; renameLoc = null;
+    locMsg = added.length ? "戻しました: " + added.join("・") + "(自分で作った保管場所は、そのまま残っています)" : ""; locMsgOk = true;
+    render(); save();
+  },
   "req-rename-loc": function(t){ var g = getGroup(t), li = parseInt(t.getAttribute("data-li"), 10); renameLoc = g + ":" + li; locMsg = ""; delUndo = null; render(); focusId("rename-loc-input"); },
   "cancel-rename-loc": function(){ renameLoc = null; locMsg = ""; render(); },
   "save-rename-loc": function(t){
@@ -2443,7 +2462,7 @@ var ACTIONS = {
     var input = document.getElementById("rename-loc-input"), nm = input ? cleanLine(input.value, MAX_LOC_NAME) : "", old = grp.locations[li];
     if(!nm || nm === old){ renameLoc = null; locMsg = ""; render(); return; }
     var dup = findLoc(grp.locations, nm);
-    if(dup !== -1 && dup !== li){ locMsg = "「" + nm + "」はすでにあります。別の名前にしてください。"; render(); focusId("rename-loc-input"); return; }
+    if(dup !== -1 && dup !== li){ locMsg = "「" + nm + "」はすでにあります。別の名前にしてください。"; locMsgOk = false; render(); focusId("rename-loc-input"); return; }
     grp.locations[li] = nm;
     grp.items.forEach(function(it){
       it.locations = it.locations.map(function(l){ return l === old ? nm : l; });
