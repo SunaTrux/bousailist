@@ -133,6 +133,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .loc-chip > span{ min-width:0; overflow-wrap:anywhere; }
   .loc-chip .chip-x{ width:40px; height:40px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
+  .loc-chip.renaming{ padding:4px 4px 4px 8px; gap:6px; flex-wrap:wrap; } .loc-chip.renaming .edit-input{ min-width:140px; }
+  .loc-chip .chip-x svg{ width:18px; height:18px; }
   .chip-grip{ flex:none; width:26px; height:40px; display:flex; align-items:center; justify-content:center; background:none; color:var(--ink-soft); touch-action:none; cursor:grab; }
   .chip-grip svg{ width:14px; height:14px; }
   .loc-chip.chip-lift, .suggest-chip.chip-lift{ z-index:6; box-shadow:0 6px 18px rgba(0,0,0,.28); background:var(--paper); }
@@ -531,11 +533,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.36.0";
+var APP_VERSION = "1.37.0";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.37.0", lines:["初期の保管場所が、用品の下に最初から並ぶようにしました。用意できたら、場所の箱にチェックするだけで使えます(新しく追加した用品も、パックから追加した用品も同じです)。これまで場所を決めていなかった用品も、並んでいる場所すべてに置く用品にそろえました(準備済みだった用品は、すべてにチェック済みです)。","場所の「＋」を鉛筆に変えました。鉛筆から、用品の置く場所の選び直しと、保管場所の名前の変更・追加・削除・並べ替え、候補からの追加ができます。","保管場所の名前を変えると、すべての用品の場所にも反映されます。"] },
   { v:"1.36.0", lines:["用品の下の場所チップをやめて、置く場所を「箱＋場所名」で横に並べる形にしました。用意できたら、その場所の箱にチェックします(チェックのたびに進捗バーが進みます)。","置く場所は、用品の右の「＋」で選びます。選んだ場所だけが並び、選んでいない場所は出ません。保管場所そのものの追加・並べ替え・削除も、「＋」の中からできます。","場所を決めていない用品は「場所未定」の箱が出ます。用品名の左の丸は、準備の状況を示すだけの印にしました(タップはできません。場所の一部だけそろったときは「1/2」のように表示します)。"] },
   { v:"1.35.2", lines:["「防災用品」タブと「どこにある？」タブのヒント文を、いまの使い方(用品は見出し・チェックは場所・場所ごとに進捗が進む)に合わせて書き直しました。"] },
   { v:"1.35.1", lines:["「場所未定」のチップも、ほかの場所と同じように、タップで枠線(用意する予定)→点灯(準備済み)→消灯の順に切り替わるようにしました。"] },
@@ -744,7 +747,7 @@ function parsePackMd(text){
   plan.ok = true;
   return plan;
 }
-var CONTENT_VERSION = 9;
+var CONTENT_VERSION = 10;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
@@ -906,7 +909,7 @@ function defaultData(){
     groups[g] = {
       desc: DEFAULT_DESC[g],
       locations: DEFAULT_LOCATIONS[g].slice(),
-      items: DEFAULT_ITEMS[g].map(function(d){ return { id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:[], have:[] }; })
+      items: DEFAULT_ITEMS[g].map(function(d){ return { id:newId(), name:d[0], checked:false, cat:CAT_BY_LETTER[d[1]], locations:DEFAULT_LOCATIONS[g].slice(), have:[] }; })
     };
   });
   return { activeTab:"g0", contentVersion:CONTENT_VERSION, appHint:"", groups:groups, packs:[] };
@@ -1043,6 +1046,17 @@ function migrate(st){
   if(v < 9){
     // 初期の説明文を新しい文言に(編集されていないものだけ)
     GROUP_ORDER.forEach(function(g){ if(st.groups[g].desc === V8_DEFAULT_DESC[g]) st.groups[g].desc = DEFAULT_DESC[g]; });
+  }
+  if(v < 10){
+    // 場所を決めていない用品は、並んでいる場所すべてに置く用品にそろえる(準備済みだった用品は、すべての場所にそろった状態にする)
+    GROUP_ORDER.forEach(function(g){
+      var all = st.groups[g].locations;
+      if(!all.length) return;
+      st.groups[g].items.forEach(function(it){
+        if(!it.locations || it.locations.length) return;
+        it.locations = all.slice(); it.have = it.checked ? all.slice() : [];
+      });
+    });
   }
   st.contentVersion = CONTENT_VERSION;
 }
@@ -1505,6 +1519,7 @@ var REC_TITLE = "わが家の防災リスト";
 var REC_TEXT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくせる防災チェックリストです。ホーム画面に追加すると、アプリのように使えます。入力したデータはこの端末の中だけに保存され、サーバーには送られません。";
 var recMsg = null;
 var guideMsg = null;
+var renameLoc = null, locMsg = "";   // 保管場所の名前変更中("区分:番号")、編集中のメッセージ
 var pickFor = null;   // 「＋」で置く場所を選んでいる用品のid
 var coachItemId = null, COACH_KEY = "bousai-coach-plan-seen";  // 初めて枠線にしたときだけ出す案内(出したら記録)
 var locEditorFor = null, editingDescG = null;  // 保管場所のチップ編集を開いている場所(用品のid / "__loc")、ヒント文を編集中の区分
@@ -1577,11 +1592,17 @@ function buildLocEditorHtml(g, meta, at){
   if(locEditorFor !== at) return "";
   var grp = state.groups[g];
   var chips = grp.locations.length ? grp.locations.map(function(loc, i){
-    return '<div class="loc-chip" data-ci="' + i + '"><button type="button" class="chip-grip" data-grip="loc" data-g="' + g + '" data-i="' + i + '" aria-label="' + esc(loc) + 'を並べ替え(ドラッグ、または左右キー)">' + ICON_DOTS + '</button><span>' + esc(loc) + '</span><button type="button" class="chip-x" data-act="req-del-loc" data-g="' + g + '" data-li="' + i + '" aria-label="' + esc(loc) + 'を削除">' + ICON_X + '</button></div>';
+    if(renameLoc === g + ":" + i){
+      return '<div class="loc-chip renaming"><input type="text" class="edit-input" id="rename-loc-input" maxlength="' + MAX_LOC_NAME + '" value="' + esc(loc) + '" data-enter="save-rename-loc" data-g="' + g + '" data-li="' + i + '" aria-label="保管場所の名前">'
+        + '<button type="button" class="btn" data-act="save-rename-loc" data-g="' + g + '" data-li="' + i + '">保存</button>'
+        + '<button type="button" class="chip-x" data-act="cancel-rename-loc" aria-label="名前の変更をやめる">' + ICON_X + '</button></div>';
+    }
+    return '<div class="loc-chip" data-ci="' + i + '"><button type="button" class="chip-grip" data-grip="loc" data-g="' + g + '" data-i="' + i + '" aria-label="' + esc(loc) + 'を並べ替え(ドラッグ、または左右キー)">' + ICON_DOTS + '</button><span>' + esc(loc) + '</span><button type="button" class="chip-x" data-act="req-rename-loc" data-g="' + g + '" data-li="' + i + '" aria-label="' + esc(loc) + 'の名前を変更">' + ICON_EDIT + '</button><button type="button" class="chip-x" data-act="req-del-loc" data-g="' + g + '" data-li="' + i + '" aria-label="' + esc(loc) + 'を削除">' + ICON_X + '</button></div>';
   }).join("") : '<span class="note">保管場所がありません</span>';
   return '<div class="loc-settings inline">'
     + (delUndo && delUndo.g === g ? '<div class="del-msg" role="status"><span>「' + esc(delUndo.name) + '」を削除しました。</span><button type="button" class="btn btn-ghost" data-act="undo-del">元に戻す</button></div>' : '')
-    + '<div class="field-title">' + meta.label + 'の保管場所(すべての用品で共通です。ドラッグで並べ替え)</div>'
+    + (locMsg ? '<div class="msg error" role="status">' + esc(locMsg) + '</div>' : '')
+    + '<div class="field-title">' + meta.label + 'の保管場所(すべての用品で共通です。鉛筆で名前を変更、✕で削除、ドラッグで並べ替え)</div>'
     + '<div class="loc-chips">' + chips + '</div>'
     + suggestHtml(g, grp)
     + '<div class="field-title">新しい保管場所</div>'
@@ -1627,17 +1648,15 @@ function buildItemRow(g, meta, item, locations){
     pills += '<button type="button" class="loc-check' + (hv ? " on" : "") + '" style="' + accentStyle(meta) + '" data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" role="checkbox" aria-checked="' + hv + '" aria-label="' + esc(item.name) + 'が' + esc(loc) + 'にそろった"><span class="lc-box">' + (hv ? ICON_TICK : "") + '</span><span class="lc-name">' + esc(loc) + '</span></button>';
   });
   if(!item.locations.length) pills += '<button type="button" class="loc-check undecided' + (checked ? " on" : "") + '" style="' + accentStyle(meta) + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + checked + '" aria-label="' + esc(item.name) + '(場所未定のまま準備した)"><span class="lc-box">' + (checked ? ICON_TICK : "") + '</span><span class="lc-name">場所未定</span></button>';
-  var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-pick" data-at="' + id + '" aria-expanded="' + (pickFor === item.id) + '" aria-label="' + esc(item.name) + 'を置く場所を選ぶ">' + ICON_PLUS + '</button>';
+  var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-pick" data-at="' + id + '" aria-expanded="' + (pickFor === item.id) + '" aria-label="' + esc(item.name) + 'の場所を編集(選び直し・名前の変更・追加・削除)">' + ICON_EDIT + '</button>';
   var pick = "";
   if(pickFor === item.id){
-    pick = '<div class="loc-settings inline pick"><div class="field-title">置く場所を選ぶ(タップで選択・解除)</div><div class="loc-chips">'
+    pick = '<div class="loc-settings inline pick"><div class="field-title">この用品を置く場所(タップで選択・解除)</div><div class="loc-chips">'
       + (locations.length ? locations.map(function(loc, i){
           var on = item.locations.indexOf(loc) !== -1;
           return '<button type="button" class="loc-pill pick-pill' + (on ? " plan" : "") + '" style="' + (on ? accentStyle(meta) : "") + '" data-act="toggle-plan" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" aria-pressed="' + on + '">' + (on ? '✓ ' : '') + esc(loc) + '</button>';
         }).join("") : '<span class="note">保管場所がありません。下から追加できます。</span>')
       + '</div>'
-      + (locEditorFor === item.id ? '' : '<button type="button" class="btn btn-ghost" data-act="open-loc-editor" data-at="' + id + '">保管場所を追加・並べ替え・削除</button>')
-      + (locEditorFor === item.id ? '' : '<button type="button" class="btn btn-ghost edit-close" style="margin-top:10px" data-act="open-pick" data-at="' + id + '">閉じる</button>')
       + '</div>';
   }
   return '<div class="item' + (hid ? ' is-hidden' : '') + (item.pinned ? ' is-pinned' : '') + '"><div class="swipe-wrap">'
@@ -1645,7 +1664,7 @@ function buildItemRow(g, meta, item, locations){
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
     + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing || locEditorFor === item.id || pickFor === item.id ? ' data-noswipe="1"' : "") + '>'
     + top
-    + (locations.length ? '' : '<div class="hint">保管場所が未設定です(右の＋で追加できます)</div>')
+    + (locations.length ? '' : '<div class="hint">保管場所が未設定です(右の鉛筆で追加できます)</div>')
     + '<div class="locations">' + pills + addPill + '</div>'
     + (coachItemId === item.id ? '<div class="coach" role="status"><span>用意できたら、場所の箱にチェックしよう</span><button type="button" class="coach-ok" data-act="dismiss-coach" role="checkbox" aria-checked="false"><span class="coach-box"></span>以降は表示しない</button></div>' : '')
     + pick + (pickFor === item.id ? buildLocEditorHtml(g, meta, item.id) : '')
@@ -1810,7 +1829,7 @@ function renderMain(){
     + '<button type="button" class="fb-eye' + (showHidden ? " on" : "") + '" aria-pressed="' + showHidden + '" aria-label="非表示にした用品を表示(' + hiddenCount + '件)" title="非表示にした用品を表示" data-act="toggle-show-hidden">' + (showHidden ? ICON_EYE : ICON_EYE_OFF) + (hiddenCount ? '<span class="fb-n">' + hiddenCount + '</span>' : '') + '</button>'
     + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += viewNoteHtml("vitem", "「＋」で置く場所を選び、用意できたら場所にチェック。場所を決めない用品は「場所未定」にチェック。チェックのたびに進捗バーが進みます。", "view-note")
+    html += viewNoteHtml("vitem", "用意できた場所にチェック。場所は右の鉛筆で、名前の変更・追加・削除・選び直しができます。チェックのたびに進捗バーが進みます。", "view-note")
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
@@ -2049,8 +2068,8 @@ function buildSettingsHtml(){
       + qa("feat", "どんなアプリ？", '<p>家族の防災用品を、<b>持ち歩き・持ち出し・備蓄</b>の3つに分けて、「どこに置くか」と「そろったか」を管理するチェックリストです。</p><ul><li>データはこの端末のブラウザ内だけに保存され、サーバーには送りません。</li><li>一度開けば、電波がなくても使えます。</li><li>家族とはCSVで、LINEなどにはMarkdownの文章で共有できます。</li><li>用品も保管場所も、自由に追加・名前変更できます。</li></ul>')
       + qa("tabs", "3つの区分(タブ)", '<p>画面上部のタブで切り替えます。</p><ul><li><b>持ち歩き</b>: いつも身につけて出かけるもの(バッグやポーチの中など)</li><li><b>持ち出し</b>: 避難するときにすぐ持って出るもの</li><li><b>備蓄</b>: 自宅で過ごすために蓄えておくもの</li></ul><p>区分ごとに、保管場所・用品・進捗バーが別々になります。</p>')
       + '<h3 class="acc-sub">主な使い方</h3>'
-      + qa("start", "はじめかた", '<ol><li>区分のタブを選びます。</li><li>用品の下の「＋」をタップして、置く場所を選びます(おすすめですが、決めなくても使えます)。</li><li>実際に用意できたら、その場所の箱にチェックを入れます。</li><li>用品のすべての場所にチェックが入ると、準備済みになります。</li></ol>')
-      + qa("chip", "場所のチェックボックス", '<p>用品の下には、置く場所が「箱＋場所名」で横に並びます。</p><ul><li><b>箱にチェック</b>: その場所に用意できた</li><li><b>「＋」</b>: 置く場所を選ぶ・解除する。保管場所そのものの追加・並べ替え・削除もここからできます</li><li><b>場所未定</b>: 場所を1つも選んでいない用品は「場所未定」の箱だけが出ます。場所は決めないまま準備したときは、ここにチェックします</li></ul><p>置く場所が複数ある用品は、すべての箱にチェックが入ったときに準備済みになります。用品の名前は見出しで、左の印(丸・数字)は準備の状況を示すだけで、タップはできません。</p>')
+      + qa("start", "はじめかた", '<ol><li>区分のタブを選びます。用品の下には、その区分の保管場所が最初から並んでいます。</li><li>実際に用意できたら、その場所の箱にチェックを入れます。</li><li>用品のすべての場所にチェックが入ると、準備済みになります。</li><li>置かない場所は、用品の右の鉛筆で外せます(場所を決めておくのがおすすめですが、決めなくても使えます)。</li></ol>')
+      + qa("chip", "場所のチェックボックスと鉛筆", '<p>用品の下には、置く場所が「箱＋場所名」で横に並びます。</p><ul><li><b>箱にチェック</b>: その場所に用意できた</li><li><b>鉛筆</b>: この用品を置く場所の選び直し(タップで選択・解除)ができます。保管場所そのものの名前の変更・追加・削除・並べ替えと、候補からの追加もここからできます</li><li><b>場所未定</b>: 場所を1つも選んでいない用品は「場所未定」の箱だけが出ます。場所は決めないまま準備したときは、ここにチェックします</li></ul><p>置く場所が複数ある用品は、すべての箱にチェックが入ったときに準備済みになります。用品の名前は見出しで、左の印(丸・数字)は準備の状況を示すだけで、タップはできません。</p>')
       + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、用品側の、その場所の箱にもチェックが入ります。</li><li>場所が決まっていない用品は「場所未定」にまとまり、そこでのチェックは「準備済み」の意味です。</li></ul>')
       + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、場所のチェックの割合です。置く場所ごとに1つと数え(場所未定の用品は1つ)、区分ごとに計算します。場所の箱にチェックを入れるたびに少しずつ進み、用品のすべての場所にチェックが入ると、その用品は準備済みになります。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>全｜未</b>: 「未」にすると、まだ準備済みでない用品だけが表示されます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
@@ -2094,7 +2113,7 @@ function buildSettingsHtml(){
   var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。</p>'
     + '<textarea class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
     + '<div class="btn-row"><button type="button" class="btn" data-act="rec-share">友達に送る</button><button type="button" class="btn btn-ghost" data-act="rec-copy">文章をコピー</button></div>' + msgHtml(recMsg);
-  var guideBody = '<p class="note">はじめて使う人向けの案内(置く場所を選んだとき「用意できたら、場所の箱にチェックしよう」と出る吹き出し)は、吹き出しの「以降は表示しない」にチェックするまで、毎回出ます。止めたあと、もう一度出したいときはここから戻せます。</p>'
+  var guideBody = '<p class="note">はじめて使う人向けの案内(場所を選び直したとき「用意できたら、場所の箱にチェックしよう」と出る吹き出し)は、吹き出しの「以降は表示しない」にチェックするまで、毎回出ます。止めたあと、もう一度出したいときはここから戻せます。</p>'
     + '<button type="button" class="settings-btn" data-act="reset-guide">ガイドをもう一度見る</button>' + msgHtml(guideMsg);
   var themeBody = '<div class="seg">' + seg + '</div>';
   var curHint = state.appHint || DEFAULT_APP_HINT;
@@ -2156,7 +2175,7 @@ function findItem(g, id){
   for(var i = 0; i < items.length; i++){ if(items[i].id === id) return items[i]; }
   return null;
 }
-function clearTransient(){ pickFor = null; delUndo = null; coachItemId = null; locEditorFor = null; editingDescG = null; openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
+function clearTransient(){ renameLoc = null; locMsg = ""; pickFor = null; delUndo = null; coachItemId = null; locEditorFor = null; editingDescG = null; openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
 /* メモ・LINE・印刷向けの読み物(取り込み用ではありません)。非表示の用品は含めません。 */
 function buildMarkdownText(){
   function one(v){ return String(v).replace(/[\r\n]+/g, " ").trim(); }
@@ -2219,7 +2238,7 @@ function syncPackEditFromDom(){
 var ACTIONS = {
   "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); render(); save(); },
   "view": function(t){ viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item"; clearTransient(); render(); },
-  "toggle-loc-editor": function(){ delUndo = null; locEditorFor = null; pendingDeleteLoc = null; render(); },
+  "toggle-loc-editor": function(){ delUndo = null; pickFor = null; renameLoc = null; locMsg = ""; locEditorFor = null; pendingDeleteLoc = null; render(); },
   "open-loc-editor": function(t){
     var at = t.getAttribute("data-at");
     closeSwipe(); editingDescG = null; pendingDeleteLoc = null;
@@ -2246,7 +2265,8 @@ var ACTIONS = {
   },
   "open-pick": function(t){
     var at = t.getAttribute("data-at"); closeSwipe(); editingDescG = null; delUndo = null;
-    if(pickFor === at){ pickFor = null; locEditorFor = null; } else { pickFor = at; locEditorFor = null; }
+    renameLoc = null; locMsg = "";
+    if(pickFor === at){ pickFor = null; locEditorFor = null; } else { pickFor = at; locEditorFor = at; }
     coachItemId = null; render();
   },
   "toggle-plan": function(t){
@@ -2302,7 +2322,7 @@ var ACTIONS = {
     } else { fallback(); }
   },
   "rec-copy": function(){ recMsg = copyFrom("rec-text") ? { type:"ok", text:"コピーしました。LINEやメールに貼り付けて送れます。" } : { type:"error", text:"自動コピーに失敗しました。文章を選択して手動でコピーしてください。" }; render(); },
-  "reset-guide": function(){ try{ window.localStorage.removeItem(COACH_KEY); }catch(e){} guideMsg = { type:"", text:"ガイドを元に戻しました。「防災用品」タブで置く場所を選ぶたびに、案内が出ます(吹き出しの「以降は表示しない」で止められます)。" }; render(); },
+  "reset-guide": function(){ try{ window.localStorage.removeItem(COACH_KEY); }catch(e){} guideMsg = { type:"", text:"ガイドを元に戻しました。「防災用品」タブで用品の置く場所を選ぶたびに、案内が出ます(吹き出しの「以降は表示しない」で止められます)。" }; render(); },
   "dismiss-coach": function(){ lsSet(COACH_KEY, "1"); coachItemId = null; render(); },   // 「以降は表示しない」
   "toggle-have": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), grp = state.groups[g];
@@ -2320,7 +2340,7 @@ var ACTIONS = {
     var g = getGroup(t), input = document.getElementById("new-item-input");
     var name = input ? cleanLine(input.value, MAX_NAME) : "";
     if(!name || state.groups[g].items.length >= MAX_ITEMS) return;
-    state.groups[g].items.push({ id:newId(), name:name, checked:false, cat:guessCat(name), locations:[], have:[] });
+    state.groups[g].items.push({ id:newId(), name:name, checked:false, cat:guessCat(name), locations:state.groups[g].locations.slice(), have:[] });   // 最初から、並んでいる場所すべてに置く用品として追加
     render(); save(); focusId("new-item-input");
   },
   "start-edit": function(t){ clearTransient(); editingItemId = t.getAttribute("data-id"); render(); focusId("edit-name-input"); var el = document.getElementById("edit-name-input"); if(el && el.select) el.select(); },
@@ -2347,13 +2367,13 @@ var ACTIONS = {
     var g = getGroup(t), input = document.getElementById("new-loc-input"), grp = state.groups[g];
     var name = input ? cleanLine(input.value, MAX_LOC_NAME) : "";
     if(!name || findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS){ if(input) input.value = ""; return; }
-    grp.locations.push(name); render(); save(); focusId("new-loc-input");
+    grp.locations.push(name); pickAddLoc(g, name); render(); save(); focusId("new-loc-input");
   },
   "add-loc-suggest": function(t){
     var g = getGroup(t), grp = state.groups[g], list = getSug(g);
     var name = list[parseInt(t.getAttribute("data-si"), 10)];
     if(!name || findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS) return;
-    grp.locations.push(name); render(); save();
+    grp.locations.push(name); pickAddLoc(g, name); render(); save();
   },
   "dismiss-update": function(){ updateNotes = null; lsSet(SEEN_KEY, APP_VERSION); render(); },
   "reset-hint": function(){ state.appHint = ""; save(); render(); },
@@ -2368,6 +2388,22 @@ var ACTIONS = {
     grp.locations.splice(li, 1);
     grp.items.forEach(function(it){ it.locations = it.locations.filter(function(l){ return l !== loc; }); syncItem(it); });
     render(); save();
+  },
+  "req-rename-loc": function(t){ var g = getGroup(t), li = parseInt(t.getAttribute("data-li"), 10); renameLoc = g + ":" + li; locMsg = ""; delUndo = null; render(); focusId("rename-loc-input"); },
+  "cancel-rename-loc": function(){ renameLoc = null; locMsg = ""; render(); },
+  "save-rename-loc": function(t){
+    var g = getGroup(t), grp = state.groups[g], li = parseInt(t.getAttribute("data-li"), 10);
+    if(!(li >= 0 && li < grp.locations.length)){ renameLoc = null; render(); return; }
+    var input = document.getElementById("rename-loc-input"), nm = input ? cleanLine(input.value, MAX_LOC_NAME) : "", old = grp.locations[li];
+    if(!nm || nm === old){ renameLoc = null; locMsg = ""; render(); return; }
+    var dup = findLoc(grp.locations, nm);
+    if(dup !== -1 && dup !== li){ locMsg = "「" + nm + "」はすでにあります。別の名前にしてください。"; render(); focusId("rename-loc-input"); return; }
+    grp.locations[li] = nm;
+    grp.items.forEach(function(it){
+      it.locations = it.locations.map(function(l){ return l === old ? nm : l; });
+      it.have = (it.have || []).map(function(l){ return l === old ? nm : l; });
+    });
+    renameLoc = null; locMsg = ""; delUndo = null; render(); save();
   },
   "del-suggest": function(t){
     var g = getGroup(t), si = parseInt(t.getAttribute("data-si"), 10), list = getSug(g).slice();
@@ -2423,8 +2459,8 @@ var ACTIONS = {
       if(pick[i] === false) return;
       if(grp.items.some(function(it){ return keyOf(it.name) === keyOf(d.name); })) return;
       if(grp.items.length >= MAX_ITEMS){ full = true; return; }
-      var locs = [];
-      if(set.loc){ var at = findLoc(grp.locations, set.loc); if(at !== -1) locs.push(grp.locations[at]); }
+      var locs = grp.locations.slice();
+      if(set.loc){ var at = findLoc(grp.locations, set.loc); if(at !== -1) locs = [grp.locations[at]]; }
       grp.items.push({ id:newId(), name:d.name, checked:false, cat:d.cat, locations:locs, have:[] });
       added++;
     });
@@ -2774,6 +2810,14 @@ appEl.addEventListener("keydown", function(e){
 
 /* ---- chip reorder (保管場所・候補チップ: ドラッグ、または左右キー) ---- */
 var cdrag = null;
+function pickAddLoc(g, name){   // 用品の鉛筆から場所を足したときは、その用品の置く場所にも入れる
+  if(!pickFor) return;
+  var it = findItem(g, pickFor); if(!it || it.locations.indexOf(name) !== -1) return;
+  if(!Array.isArray(it.have)) it.have = [];
+  var first = !it.locations.length; it.locations.push(name); it.und = false;
+  if(first && it.checked) it.have.push(name);
+  syncItem(it);
+}
 function moveIn(arr, from, to){ var x = arr.splice(from, 1)[0]; arr.splice(to, 0, x); }
 function applyChipOrder(kind, g, from, to){
   if(GROUP_ORDER.indexOf(g) === -1 || from === to || to < 0) return false;
