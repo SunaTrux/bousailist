@@ -322,6 +322,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .lc-box{ flex:none; width:18px; height:18px; border:2px solid var(--ink-soft); border-radius:5px; background:var(--paper); display:flex; align-items:center; justify-content:center; color:var(--on-accent); }
   .lc-box svg{ width:13px; height:13px; }
   .loc-check.on .lc-box{ background:var(--accent,var(--teal)); border-color:var(--accent,var(--teal)); }
+  .loc-group-item.locked{ opacity:.4; }
+  .loc-check.locked{ opacity:.4; cursor:not-allowed; }
+  .loc-check.locked::after{ display:none; }
   .loc-check.on .lc-name{ color:var(--ink-soft); }
   .loc-check.undecided .lc-name{ color:var(--ink-soft); }
   .lc-name{ min-width:0; overflow-wrap:anywhere; line-height:1.3; }
@@ -534,11 +537,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.38.0";
+var APP_VERSION = "1.39.0";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.39.0", lines:["初期の用品名を変えました: 「ホイッスル」→「エマージェンシーホイッスル」、「ライト」→「小型LEDライト」、「マスク」→「不織布マスク」(持ち歩き)、「毛布」→「エマージェンシーブランケット」(持ち出し)。","初期の保管場所を変えました: 持ち歩き=バッグA・バッグB、持ち出し=リュックA・リュックB、備蓄=リビング・キッチン(それぞれ「場所未定」つき)。初期のままだった場所は、これまでの用品の置き場所やチェックを引き継いで変わります。外れた場所は、候補から追加できます。","「場所未定」にチェックすると、ほかの場所のチェックははずれ、押せなくなります。場所未定のチェックをはずすと、また押せます。","「職場に保管セット」を追加するとき、「職場に保管」の保管場所がなければ自動で加えるようにしました。"] },
   { v:"1.38.0", lines:["「場所未定」も、場所のひとつとして最初から並ぶようにしました(ほかの場所と同じように、チェック・名前の変更・削除ができます)。","どこか1つでも場所(場所未定を含む)にチェックが入った用品を、準備済みとして数え、進捗バーに反映するようにしました。","用品名の左の印を、ただの連番にしました(チェックの影響を受けません)。","絞り込みの「場所未定」は、「場所未定」にチェックしている用品だけを表示します。"] },
   { v:"1.37.0", lines:["初期の保管場所が、用品の下に最初から並ぶようにしました。用意できたら、場所の箱にチェックするだけで使えます(新しく追加した用品も、パックから追加した用品も同じです)。これまで場所を決めていなかった用品も、並んでいる場所すべてに置く用品にそろえました(準備済みだった用品は、すべてにチェック済みです)。","場所の「＋」を鉛筆に変えました。鉛筆から、用品の置く場所の選び直しと、保管場所の名前の変更・追加・削除・並べ替え、候補からの追加ができます。","保管場所の名前を変えると、すべての用品の場所にも反映されます。"] },
   { v:"1.36.0", lines:["用品の下の場所チップをやめて、置く場所を「箱＋場所名」で横に並べる形にしました。用意できたら、その場所の箱にチェックします(チェックのたびに進捗バーが進みます)。","置く場所は、用品の右の「＋」で選びます。選んだ場所だけが並び、選んでいない場所は出ません。保管場所そのものの追加・並べ替え・削除も、「＋」の中からできます。","場所を決めていない用品は「場所未定」の箱が出ます。用品名の左の丸は、準備の状況を示すだけの印にしました(タップはできません。場所の一部だけそろったときは「1/2」のように表示します)。"] },
@@ -660,7 +664,7 @@ function matchesSearch(it){
 var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-show-hidden") === "1"; }catch(e){ return false; } })();
 /* 拡張パック(設定から選んで追加できる用品のまとまり)。品名は公的な資料の記載にそろえ、数量は入れない */
 var ADD_SETS = [
-  { id:"work", title:"職場に保管セット", note:"職場に置いておく備え(持ち出しに追加します)。「職場に保管」の保管場所があれば、自動でそこにも置いた印をつけます。", src:"内閣府「オフィスの防災」・東京都「帰宅困難者対策ハンドブック」", g:"g1", loc:"職場に保管",
+  { id:"work", title:"職場に保管セット", note:"職場に置いておく備え(持ち出しに追加します)。「職場に保管」の保管場所がなければ追加し、自動でそこに置く用品にします。", src:"内閣府「オフィスの防災」・東京都「帰宅困難者対策ハンドブック」", g:"g1", loc:"職場に保管",
     items:[["非常食(職場用)","f"],["常備薬(職場用)","l"],["携帯電話の充電器(職場用)","l"]] },
   { id:"baby", title:"乳児用セット", note:"乳児がいる家庭向け(持ち出しに追加します)。", src:"東京都防災ホームページ・内閣府「あかちゃんとママを守る防災ノート」", g:"g1",
     items:[["おむつ(乳児用)","l"],["お尻ふき(乳児用)","l"],["ミルクセット(乳児用)","f"],["離乳食(乳児用)","f"],["母子健康手帳(乳児用)","o"]] },
@@ -749,7 +753,7 @@ function parsePackMd(text){
   plan.ok = true;
   return plan;
 }
-var CONTENT_VERSION = 11;
+var CONTENT_VERSION = 12;
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
@@ -803,15 +807,15 @@ var OLD_DEFAULT_DESC_G0 = "0次の備えは、普段使いのカバンに最小�
 var OLD_DEFAULT_DESC_G1 = "1次の備えは、緊急時に即座に持ち出せる「避難用」です。1〜2日は行動できるようにしましょう。";
 var UND_LOC = "場所未定";   // 「場所未定」も、場所のひとつとして最初から並ぶ
 var DEFAULT_LOCATIONS = {
-  g0:["いつものバッグ","サブバッグ",UND_LOC],
-  g1:["リュック","職場に保管",UND_LOC],
-  g2:["リビング","寝室","キッチン",UND_LOC]
+  g0:["バッグA","バッグB",UND_LOC],
+  g1:["リュックA","リュックB",UND_LOC],
+  g2:["リビング","キッチン",UND_LOC]
 };
 /* 初期の用品。出典は消防庁「非常用持出品チェックシート」「備蓄品チェックシート」、東京都「今やろう防災アクション」、農林水産省の家庭備蓄の解説。数量は資料に書かれているものだけ品名に入れています。
    [品名, 分類] 分類: f=食品 l=生活 o=その他 */
 var DEFAULT_ITEMS = {
-  g0:[["ホイッスル","o"],["ライト","l"],["モバイルバッテリー・充電器","l"],["携帯ラジオ","l"],["現金(小銭)","o"],["マスク","l"],["手指消毒・ウェットティッシュ","l"],["常備薬・お薬手帳","o"],["栄養補助食品・飴","f"],["携帯トイレ","l"]],
-  g1:[["飲料水","f"],["非常食(乾パン・缶詰・栄養補助食品)","f"],["懐中電灯・予備の乾電池","l"],["携帯ラジオ","l"],["ヘルメット・防災ずきん","o"],["軍手(厚手の手袋)","l"],["毛布","l"],["携帯トイレ","l"],["救急セット","o"],["常備薬・処方箋の控え","o"],["生理用品","l"],["マスク・手指消毒・体温計","l"],["着替え(下着・靴下・長袖長ズボン)","l"],["雨具・防寒着","l"],["携帯カイロ","l"],["缶切り・ライター・ナイフ","l"],["貴重品(現金・通帳・印鑑・保険証・免許証)","o"],["歩きやすい靴(職場用)","l"],["帰宅ルートの地図(職場用)","o"]],
+  g0:[["エマージェンシーホイッスル","o"],["小型LEDライト","l"],["モバイルバッテリー・充電器","l"],["携帯ラジオ","l"],["現金(小銭)","o"],["不織布マスク","l"],["手指消毒・ウェットティッシュ","l"],["常備薬・お薬手帳","o"],["栄養補助食品・飴","f"],["携帯トイレ","l"]],
+  g1:[["飲料水","f"],["非常食(乾パン・缶詰・栄養補助食品)","f"],["懐中電灯・予備の乾電池","l"],["携帯ラジオ","l"],["ヘルメット・防災ずきん","o"],["軍手(厚手の手袋)","l"],["エマージェンシーブランケット","l"],["携帯トイレ","l"],["救急セット","o"],["常備薬・処方箋の控え","o"],["生理用品","l"],["マスク・手指消毒・体温計","l"],["着替え(下着・靴下・長袖長ズボン)","l"],["雨具・防寒着","l"],["携帯カイロ","l"],["缶切り・ライター・ナイフ","l"],["貴重品(現金・通帳・印鑑・保険証・免許証)","o"],["歩きやすい靴(職場用)","l"],["帰宅ルートの地図(職場用)","o"]],
   g2:[["飲料水(1人1日3L)","f"],["主食(アルファ米・レトルトごはん・乾麺)","f"],["主菜(缶詰・レトルト食品)","f"],["加熱せず食べられるもの・菓子","f"],["野菜ジュース・栄養補助食品","f"],["調味料(しょうゆ・塩など)","f"],["カセットコンロ","l"],["カセットボンベ(1人1週間で約6本)","l"],["簡易トイレ(1人1日5回分)","l"],["生活用水(ポリタンクに水道水)","l"],["トイレットペーパー・ティッシュ・ウェットティッシュ","l"],["ラップ・紙皿・紙コップ・割り箸","l"],["ポリ袋・ゴミ袋","l"],["使い捨てカイロ","l"],["懐中電灯・ランタン・乾電池","l"],["充電式ラジオ","l"],["モバイルバッテリー","l"],["長靴","l"],["常備薬の予備・救急箱","o"],["衛生用品(生理用品・水のいらないシャンプー)","l"]]
 };
 var CATS = [["food","食品"],["life","生活"],["other","その他"]];
@@ -836,8 +840,8 @@ function guessCat(name){
 }
 var LOC_SUGGEST = {
   g0:["防災ポーチ","衛生ポーチ","通学バッグ","通勤バッグ"],
-  g1:["非常持ち出し袋","玄関","車"],
-  g2:["押し入れ","ベランダ","レンタル倉庫"]
+  g1:["非常持ち出し袋","玄関","車","職場に保管"],
+  g2:["寝室","押し入れ","ベランダ","レンタル倉庫"]
 };
 function getSug(g){ var grp = state.groups[g]; return Array.isArray(grp.sug) ? grp.sug : (LOC_SUGGEST[g] || []); }
 var LOC_INPUT_EXAMPLE = { g0:"サコッシュ", g1:"車のトランク", g2:"玄関" };
@@ -977,6 +981,7 @@ function sanitizeState(raw){
 function syncItem(it){
   if(!Array.isArray(it.have)) it.have = [];
   it.have = it.have.filter(function(l){ return it.locations.indexOf(l) !== -1; });
+  if(it.have.indexOf(UND_LOC) !== -1) it.have = [UND_LOC];   // 「場所未定」にチェックしたら、ほかの場所のチェックははずれる
   if(it.locations.length) it.checked = it.have.length > 0;   // どこか1つでも場所にチェックが入れば、準備済み
 }
 function isUnplanned(it){ return !it.locations.length || (it.have || []).indexOf(UND_LOC) !== -1; }
@@ -1069,6 +1074,21 @@ function migrate(st){
       var before = grp.locations.length;
       grp.locations.push(UND_LOC);
       grp.items.forEach(function(it){ if(before && it.locations.length === before){ it.locations.push(UND_LOC); } });
+    });
+  }
+  if(v < 12){
+    // 初期の用品名と初期の保管場所の見直し(変更していないものだけ)
+    var renames = { g0:{ "ホイッスル":"エマージェンシーホイッスル", "ライト":"小型LEDライト", "マスク":"不織布マスク" }, g1:{ "毛布":"エマージェンシーブランケット" } };
+    GROUP_ORDER.forEach(function(g){ st.groups[g].items.forEach(function(it){ var m = renames[g]; if(m && hasOwn(m, it.name)) it.name = m[it.name]; }); });
+    var oldLocs = { g0:["いつものバッグ","サブバッグ",UND_LOC], g1:["リュック","職場に保管",UND_LOC], g2:["リビング","寝室","キッチン",UND_LOC] };
+    var map = { g0:{ "いつものバッグ":"バッグA", "サブバッグ":"バッグB" }, g1:{ "リュック":"リュックA", "職場に保管":"リュックB" }, g2:{ "寝室":"" } };
+    GROUP_ORDER.forEach(function(g){
+      var grp = st.groups[g];
+      if(grp.locations.length !== oldLocs[g].length || !grp.locations.every(function(l, i){ return l === oldLocs[g][i]; })) return;
+      var m = map[g];
+      var fix = function(list){ var out = []; list.forEach(function(l){ var n = hasOwn(m, l) ? m[l] : l; if(n && out.indexOf(n) === -1) out.push(n); }); return out; };
+      grp.locations = fix(grp.locations);
+      grp.items.forEach(function(it){ it.locations = fix(it.locations); it.have = fix(it.have || []); });
     });
   }
   st.contentVersion = CONTENT_VERSION;
@@ -1653,8 +1673,8 @@ function buildItemRow(g, meta, item, locations, num){
   var pills = "";
   locations.forEach(function(loc, i){
     if(item.locations.indexOf(loc) === -1) return;
-    var hv = (item.have || []).indexOf(loc) !== -1;
-    pills += '<button type="button" class="loc-check' + (hv ? " on" : "") + '" style="' + accentStyle(meta) + '" data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" role="checkbox" aria-checked="' + hv + '" aria-label="' + esc(item.name) + 'が' + esc(loc) + 'にそろった"><span class="lc-box">' + (hv ? ICON_TICK : "") + '</span><span class="lc-name">' + esc(loc) + '</span></button>';
+    var hv = (item.have || []).indexOf(loc) !== -1, lock = loc !== UND_LOC && (item.have || []).indexOf(UND_LOC) !== -1;
+    pills += '<button type="button" class="loc-check' + (hv ? " on" : "") + (lock ? " locked" : "") + '"' + (lock ? ' disabled' : '') + ' style="' + accentStyle(meta) + '" data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + i + '" role="checkbox" aria-checked="' + hv + '" aria-label="' + esc(item.name) + 'が' + esc(loc) + 'にそろった"><span class="lc-box">' + (hv ? ICON_TICK : "") + '</span><span class="lc-name">' + esc(loc) + '</span></button>';
   });
   if(!item.locations.length) pills += '<button type="button" class="loc-check undecided' + (checked ? " on" : "") + '" style="' + accentStyle(meta) + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + checked + '" aria-label="' + esc(item.name) + '(場所未定のまま準備した)"><span class="lc-box">' + (checked ? ICON_TICK : "") + '</span><span class="lc-name">場所未定</span></button>';
   var addPill = '<button type="button" class="loc-pill loc-add" data-act="open-pick" data-at="' + id + '" aria-expanded="' + (pickFor === item.id) + '" aria-label="' + esc(item.name) + 'の場所を編集(選び直し・名前の変更・追加・削除)">' + ICON_EDIT + '</button>';
@@ -1770,10 +1790,10 @@ function buildByLocationHtml(g, meta){
   var grp = state.groups[g];
   if(!grp.items.length) return '<div class="empty">まだ防災用品がありません。「防災用品」タブから追加できます。</div>';
   function row(it, loc, li){
-    var id = esc(it.id), on = (it.have || []).indexOf(loc) !== -1;
-    return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + '">'
-      + '<button type="button" class="check-btn" data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(it.name) + 'が' + esc(loc) + 'にそろった"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span></button>'
-      + '<div class="item-name' + (on ? " checked" : "") + '" data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
+    var id = esc(it.id), on = (it.have || []).indexOf(loc) !== -1, lock = loc !== UND_LOC && (it.have || []).indexOf(UND_LOC) !== -1;
+    return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + (lock ? ' locked' : '') + '">'
+      + '<button type="button" class="check-btn"' + (lock ? ' disabled' : '') + ' data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(it.name) + 'が' + esc(loc) + 'にそろった"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span></button>'
+      + '<div class="item-name' + (on ? " checked" : "") + '"' + (lock ? '' : ' data-act="toggle-have"') + ' data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
   var locAdd = '<div class="loc-add-row"><button type="button" class="loc-pill loc-add loc-add-wide" data-act="open-loc-editor" data-at="__loc" aria-expanded="' + (locEditorFor === "__loc") + '">' + ICON_PLUS + '<span>保管場所を追加・編集</span></button></div>' + buildLocEditorHtml(g, meta, "__loc");
   function unassignedHtml(){
@@ -2341,6 +2361,7 @@ var ACTIONS = {
     if(!it || !(li >= 0 && li < grp.locations.length)) return;
     var loc = grp.locations[li]; if(it.locations.indexOf(loc) === -1) return;
     if(!Array.isArray(it.have)) it.have = [];
+    if(loc !== UND_LOC && it.have.indexOf(UND_LOC) !== -1) return;   // 場所未定にチェック中は、ほかの場所は押せない
     var at = it.have.indexOf(loc);
     if(at === -1) it.have.push(loc); else it.have.splice(at, 1);
     syncItem(it);
@@ -2472,7 +2493,11 @@ var ACTIONS = {
       if(grp.items.some(function(it){ return keyOf(it.name) === keyOf(d.name); })) return;
       if(grp.items.length >= MAX_ITEMS){ full = true; return; }
       var locs = grp.locations.slice();
-      if(set.loc){ var at = findLoc(grp.locations, set.loc); if(at !== -1) locs = [grp.locations[at]]; }
+      if(set.loc){
+        var at = findLoc(grp.locations, set.loc);
+        if(at === -1 && grp.locations.length < MAX_LOCATIONS){ var ui = findLoc(grp.locations, UND_LOC); if(ui === -1) grp.locations.push(set.loc); else grp.locations.splice(ui, 0, set.loc); at = findLoc(grp.locations, set.loc); }   // パックの置き場所(職場に保管)がなければ、保管場所に加える
+        if(at !== -1) locs = [grp.locations[at]];
+      }
       grp.items.push({ id:newId(), name:d.name, checked:false, cat:d.cat, locations:locs, have:[] });
       added++;
     });
