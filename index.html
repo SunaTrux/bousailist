@@ -537,11 +537,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.39.2";
+var APP_VERSION = "1.39.3";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.39.3", lines:["用品名の編集欄を、連番の位置からではなく、いまの用品名と同じ位置から始まるようにしました(連番はそのまま表示します)。"] },
   { v:"1.39.2", lines:["用品名を、ダブルタップではなく、1回タップするだけで編集できるようにしました(スワイプが開いているときは、まず閉じます)。"] },
   { v:"1.39.1", lines:["用品名の行の鉛筆アイコンをなくしました。用品名をダブルタップ(パソコンではダブルクリック)すると、用品名を編集できます。"] },
   { v:"1.39.0", lines:["初期の用品名を変えました: 「ホイッスル」→「エマージェンシーホイッスル」、「ライト」→「小型LEDライト」、「マスク」→「不織布マスク」(持ち歩き)、「毛布」→「エマージェンシーブランケット」(持ち出し)。","初期の保管場所を変えました: 持ち歩き=バッグA・バッグB、持ち出し=リュックA・リュックB、備蓄=リビング・キッチン(それぞれ「場所未定」つき)。初期のままだった場所は、これまでの用品の置き場所やチェックを引き継いで変わります。外れた場所は、候補から追加できます。","「場所未定」にチェックすると、ほかの場所のチェックははずれ、押せなくなります。場所未定のチェックをはずすと、また押せます。","「職場に保管セット」を追加するとき、「職場に保管」の保管場所がなければ自動で加えるようにしました。"] },
@@ -1660,6 +1661,7 @@ function buildItemRow(g, meta, item, locations, num){
   var top;
   if(editing){
     top = '<div class="item-top editing">'
+      + '<span class="check-btn status" aria-hidden="true"><span class="stat-num">' + (num || "") + '</span></span>'   // 連番はそのまま。入力欄は、いまの用品名と同じ位置から始める
       + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
       + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
