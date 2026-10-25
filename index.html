@@ -206,7 +206,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .ov-row{ flex:1 1 0; min-width:0; }
     .group-desc{ padding-left:28px; padding-right:28px; }
     .filter-bar{ padding-left:28px; padding-right:28px; }
-    .filter-bar .fb-search{ max-width:240px; }
+    .filter-bar .fb-search.has-q{ max-width:240px; }
     .items{ padding:0 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-items:start; }
     .loc-group{ padding:0 28px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-content:start; }
     .loc-group > .loc-group-title, .loc-group > .loc-head, .loc-group > .note{ grid-column:1 / -1; }
@@ -318,15 +318,19 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .add-row input{ flex:1 1 auto; min-width:0; }
   .add-row .btn{ flex-shrink:0; }
   .filter-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; padding:10px 14px; border-bottom:1px solid var(--line); font-size:11px; color:var(--ink-soft); }
-  .fb-label{ flex:none; }
-  .fb-chips{ display:flex; flex:none; gap:8px; }
-  .chip{ min-height:30px; padding:0 13px; border:1.5px solid var(--line); border-radius:15px; background:var(--card); color:var(--ink-soft); font-size:1em; font-weight:500; white-space:nowrap; }
-  .chip.on{ background:var(--accent-soft,var(--card)); border-color:var(--accent,var(--ink)); color:var(--ink); font-weight:700; }
-  .fb-check{ display:inline-flex; flex:none; align-items:center; gap:5px; min-height:30px; padding:0; background:transparent; color:var(--ink-soft); font-size:1em; white-space:nowrap; }
-  .fb-box{ display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border:2px solid var(--ink-soft); border-radius:4px; flex:none; }
-  .fb-box svg{ width:10px; height:10px; }
-  .fb-check.on{ color:var(--ink); }
-  .fb-search{ flex:1 1 66px; min-width:66px; max-width:140px; margin-left:auto; position:relative; }
+  .fb-seg{ display:inline-flex; flex:none; border:1.5px solid var(--line); border-radius:15px; overflow:hidden; background:var(--card); }
+  .fb-seg button{ min-height:30px; padding:0 14px; background:transparent; color:var(--ink-soft); font-size:12px; font-weight:500; white-space:nowrap; }
+  .fb-seg button + button{ border-left:1.5px solid var(--line); }
+  .fb-seg button.on{ background:var(--accent-soft,var(--paper)); color:var(--ink); font-weight:700; }
+  .fb-n{ margin-left:5px; font-variant-numeric:tabular-nums; }
+  .fb-eye{ display:inline-flex; flex:none; align-items:center; justify-content:center; min-width:38px; min-height:30px; padding:0 10px; border:1.5px solid var(--line); border-radius:15px; background:var(--card); color:var(--ink-soft); font-size:12px; }
+  .fb-eye .fb-n{ margin-left:4px; }
+  .fb-eye svg{ width:17px; height:17px; }
+  .fb-eye.on{ background:var(--accent-soft,var(--paper)); border-color:var(--accent,var(--ink)); color:var(--ink); }
+  .fb-search{ flex:0 0 38px; margin-left:auto; position:relative; }
+  .fb-search.has-q{ flex:1 1 110px; min-width:110px; max-width:180px; }
+  .fb-search:not(.has-q) input{ padding:0; cursor:pointer; }
+  .fb-search:not(.has-q):not(:focus-within) svg{ left:50%; margin-left:-6.5px; }
   .fb-search input{
     -webkit-appearance:none; appearance:none; width:100%; height:30px; padding:0 8px 0 27px; border:1.5px solid var(--line); border-radius:15px;
     background:var(--card); color:var(--ink); font:inherit; font-size:16px; line-height:1;
@@ -336,7 +340,6 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .filter-bar{ position:relative; }
   .fb-search:focus-within{ position:absolute; right:14px; top:50%; transform:translateY(-50%); width:min(260px, calc(100% - 28px)); max-width:none; z-index:3; filter:drop-shadow(0 1px 4px rgba(0,0,0,.18)); }
   .fb-search svg{ position:absolute; left:9px; top:50%; width:13px; height:13px; margin-top:-6.5px; color:var(--ink-soft); pointer-events:none; }
-  .fb-check.on .fb-box{ background:var(--accent,var(--ink)); border-color:var(--accent,var(--ink)); color:var(--on-accent,#fff); }
   .import-sum{ margin:0; padding:10px 12px; border-bottom:1px solid var(--line); font-size:13px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
   .import-sum dt{ color:var(--ink-soft); }
   .import-sum dd{ margin:0; min-width:0; overflow-wrap:anywhere; }
@@ -461,11 +464,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.29.0";
+var APP_VERSION = "1.30.0";
 var APP_VERSION_DATE = "2026-10-24";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.30.0", lines:["表示の切り替えの行を、文字を減らしてすっきりさせました。「表示」の文字をなくし、「全｜未 6」の切り替えにまとめました。「非表示」のチェックは目のアイコン(非表示の数つき)に、検索は虫めがねのアイコンだけにして、押すと入力欄が開きます。"] },
   { v:"1.29.0", lines:["設定に「このアプリを友達に勧める」を追加しました。アプリの名前・簡単な説明・URLを、LINEやメールなどで友達に送れます(送る前に文章を確認できます。送る画面が開けない端末では、文章のコピーになります)。"] },
   { v:"1.28.1", lines:["「防災用品」タブの説明文を、「場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）」に変えました。"] },
   { v:"1.28.0", lines:["設定の「拡張パック」で、自分のパックを作れるようになりました。パック名・追加先の区分・用品(1行に1つ)を入力するか、「今のリストからパックを作る」で登録済みの用品から選んで作れます。","自分のパックは「Markdownで書き出す」でLINEやメモに貼って渡せます。もらった文章は「もらったパックを取り込む」で内容を確認してから、自分のパックとして保存できます。","自分のパックは、JSONバックアップにも含まれます。"] },
@@ -1692,12 +1696,12 @@ function renderMain(){
     + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + 'どこにある？</button></div>';
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   var remain = grp.items.filter(function(it){ return !it.hidden && !it.checked; }).length;
-  html += '<div class="filter-bar" style="' + accentStyle(meta) + '"><span class="fb-label">表示</span>'
-    + '<div class="fb-chips" role="group" aria-label="表示する防災用品">'
-    + '<button type="button" class="chip' + (!onlyUnchecked ? " on" : "") + '" aria-pressed="' + !onlyUnchecked + '" data-act="set-filter" data-f="all">全</button>'
-    + '<button type="button" class="chip' + (onlyUnchecked ? " on" : "") + '" aria-pressed="' + onlyUnchecked + '" data-act="set-filter" data-f="unchecked">未チェック（' + remain + '）</button></div>'
-    + '<button type="button" class="fb-check' + (showHidden ? " on" : "") + '" role="checkbox" aria-checked="' + showHidden + '" data-act="toggle-show-hidden"><span class="fb-box">' + (showHidden ? ICON_TICK : "") + '</span>非表示（' + hiddenCount + '）</button>'
-    + '<div class="fb-search">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder="検索" maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
+  html += '<div class="filter-bar" style="' + accentStyle(meta) + '">'
+    + '<div class="fb-seg" role="group" aria-label="表示する防災用品">'
+    + '<button type="button" class="' + (!onlyUnchecked ? "on" : "") + '" aria-pressed="' + !onlyUnchecked + '" data-act="set-filter" data-f="all">全</button>'
+    + '<button type="button" class="' + (onlyUnchecked ? "on" : "") + '" aria-pressed="' + onlyUnchecked + '" aria-label="未チェックだけ表示(' + remain + '件)" data-act="set-filter" data-f="unchecked">未<span class="fb-n">' + remain + '</span></button></div>'
+    + '<button type="button" class="fb-eye' + (showHidden ? " on" : "") + '" aria-pressed="' + showHidden + '" aria-label="非表示にした用品を表示(' + hiddenCount + '件)" title="非表示にした用品を表示" data-act="toggle-show-hidden">' + (showHidden ? ICON_EYE : ICON_EYE_OFF) + (hiddenCount ? '<span class="fb-n">' + hiddenCount + '</span>' : '') + '</button>'
+    + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
     html += viewNoteHtml("vitem", "場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）", "view-note")
       + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
@@ -2384,6 +2388,7 @@ function applySearch(){
 }
 function onSearchInput(t){
   searchQuery = t.value;
+  var sw = t.parentNode; if(sw && sw.classList) sw.classList.toggle("has-q", !!t.value);
   var k = searchNorm(searchQuery).replace(/\s+/g, " ").trim();
   if(k === searchKey) return;
   searchKey = k; keepVisible = {};
