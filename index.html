@@ -244,8 +244,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .loc-group > .view-fold{ grid-column:1 / -1; margin:0; padding:4px 0 0; }
   .view-note.fold-box{ padding-right:48px; }
   .view-note .fold-x{ top:4px; right:14px; }
-  .loc-note.fold-box{ padding-right:34px; }
-  .loc-note .fold-x{ top:-6px; right:-8px; }
+  .loc-note.fold-box{ padding:12px 34px 4px 0; margin:0; }
+  .loc-note .fold-x{ top:4px; right:-6px; }
   @media (min-width:760px){ .view-fold.view-note{ padding-left:28px; padding-right:28px; } .view-note .fold-x{ right:22px; } }
   .fold-btn{ display:inline-flex; align-items:center; gap:2px; min-height:32px; padding:0 8px 0 0; background:none; color:var(--ink-soft); font-size:12px; font-weight:700; }
   .fold-btn svg{ width:16px; height:16px; flex:none; }
@@ -401,6 +401,22 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .cat-body{ padding:0 0 8px 10px; }
   .cat-edit{ display:flex; align-items:center; gap:8px; margin:4px 0 8px; font-size:13px; color:var(--ink-soft); }
   .cat-edit select{ -webkit-appearance:none; appearance:none; min-height:40px; padding:0 28px 0 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); font:inherit; font-size:16px; }
+  .acc-group{ padding:22px 20px 6px; font-size:12px; font-weight:900; letter-spacing:.08em; color:var(--ink-soft); }
+  .acc-group:first-of-type{ padding-top:10px; }
+  .acc-ic{ flex:none; display:inline-flex; width:30px; height:30px; align-items:center; justify-content:center; border-radius:9px; background:var(--accent-soft, var(--line)); color:var(--ink); }
+  .acc-ic svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .acc-btn{ justify-content:flex-start; }
+  .acc-btn .acc-t{ flex:1; }
+  .acc.danger .acc-ic{ color:var(--clay); }
+  .help-q{ border-top:1px dashed var(--line); }
+  .help-btn{ display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:48px; padding:0 2px; background:none; color:var(--ink); font-size:14px; font-weight:800; text-align:left; }
+  .help-btn .acc-ch svg{ width:16px; height:16px; }
+  .help-btn[aria-expanded="true"] .acc-ch{ transform:rotate(90deg); }
+  .help-a{ padding:0 2px 14px; font-size:13.5px; line-height:1.75; color:var(--ink); }
+  .help-a p{ margin:0 0 8px; }
+  .help-a ul,.help-a ol{ margin:0 0 8px; padding-left:1.3em; }
+  .help-a li{ margin-bottom:4px; }
+  .help-lead{ margin:4px 0 8px; font-size:13px; color:var(--ink-soft); line-height:1.7; }
   .acc-sub{ font-size:13px; font-weight:900; margin:18px 0 6px; padding-top:14px; border-top:1px dashed var(--line); }
   .acc-sub:first-child{ margin-top:0; padding-top:0; border-top:0; }
   .acc-sub + .note{ margin-top:0; }
@@ -464,11 +480,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.30.0";
-var APP_VERSION_DATE = "2026-10-24";
+var APP_VERSION = "1.31.0";
+var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.31.0", lines:["設定画面を整理しました。見出しの先頭に線のアイコンをつけ、「使い方」「リスト」「表示」「データ」「アプリ」のまとまりに並べ直しました。","設定の一番上に「使い方・ヘルプ」を追加しました。アプリの特徴、主な使い方、便利な使い方例、データのこと、困ったときをまとめています。","「どこにある？」タブのヒント文の上の余白を、「防災用品」タブのヒント文とそろえました。"] },
   { v:"1.30.0", lines:["表示の切り替えの行を、文字を減らしてすっきりさせました。「表示」の文字をなくし、「全｜未 6」の切り替えにまとめました。「非表示」のチェックは目のアイコン(非表示の数つき)に、検索は虫めがねのアイコンだけにして、押すと入力欄が開きます。"] },
   { v:"1.29.0", lines:["設定に「このアプリを友達に勧める」を追加しました。アプリの名前・簡単な説明・URLを、LINEやメールなどで友達に送れます(送る前に文章を確認できます。送る画面が開けない端末では、文章のコピーになります)。"] },
   { v:"1.28.1", lines:["「防災用品」タブの説明文を、「場所を決めたらタップ（枠線）→ 場所に用意できたらタップ（点灯）→ さらにタップで場所未定（消灯）」に変えました。"] },
@@ -1437,6 +1454,7 @@ var packImpOpen = false, packImp = { text:"", file:"", enc:"", garbled:false, ms
 var packExportId = null, packMsg = null, pendingDeletePack = null;
 function closePackPanels(){ packEdit = null; packFrom = null; packImpOpen = false; packImp.plan = null; packImp.msg = null; packExportId = null; pendingDeletePack = null; packMsg = null; }
 var setOpen = null, setPick = {}, setMsg = {};  // 拡張パック: 開いているセット・選択中の品・完了メッセージ
+var helpOpen = [];
 var openSecs = [];  // 開いている設定の見出し(最初は全部閉じた目次の状態)
 var mdMsg = null;
 var panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
@@ -1444,7 +1462,7 @@ var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled
 var json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
 var appEl = document.getElementById("app");
 
-function resetSettingsUi(){ guideMsg = null; recMsg = null;
+function resetSettingsUi(){ helpOpen = []; guideMsg = null; recMsg = null;
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
@@ -1916,16 +1934,71 @@ function buildSettingsHtml(){
     sets: !!(packEdit || packFrom || packImp.plan || pendingDeletePack),
     danger: !!(pendingReset || pendingRestore)
   };
+  var SEC_ICONS = {
+    help:'<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2.9-1.2 1.8M12 17h.01"/>',
+    theme:'<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
+    hint:'<path d="M4 5h16v11H9.5L5 20v-4H4z"/>',
+    guide:'<path d="M6 21V4"/><path d="M6 4h12l-2.5 4L18 12H6"/>',
+    sets:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+    master:'<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+    share:'<path d="M12 15V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v8h14v-8"/>',
+    recommend:'<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
+    danger:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
+    refs:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M8 7.5h7"/>',
+    update:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'
+  };
+  function secIcon(k){ return SEC_ICONS[k] ? '<span class="acc-ic" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">' + SEC_ICONS[k] + '</svg></span>' : ''; }
+  function grpLabel(t){ return '<div class="acc-group">' + t + '</div>'; }
+  function helpHtml(){
+    var qa = function(k, q, a){
+      var o = helpOpen.indexOf(k) >= 0;
+      return '<div class="help-q"><button type="button" class="help-btn" data-act="toggle-help" data-h="' + k + '" aria-expanded="' + o + '" aria-controls="help-' + k + '"><span>' + q + '</span><span class="acc-ch" aria-hidden="true">' + ICON_CHEV + '</span></button>'
+        + (o ? '<div class="help-a" id="help-' + k + '">' + a + '</div>' : '') + '</div>';
+    };
+    return '<p class="help-lead">知りたい項目をタップすると開きます。</p>'
+      + '<h3 class="acc-sub" style="border-top:0;margin-top:6px;padding-top:0">アプリの特徴</h3>'
+      + qa("feat", "どんなアプリ？", '<p>家族の防災用品を、<b>持ち歩き・持ち出し・備蓄</b>の3つに分けて、「どこに置くか」と「そろったか」を管理するチェックリストです。</p><ul><li>データはこの端末のブラウザ内だけに保存され、サーバーには送りません。</li><li>一度開けば、電波がなくても使えます。</li><li>家族とはCSVで、LINEなどにはMarkdownの文章で共有できます。</li><li>用品も保管場所も、自由に追加・名前変更できます。</li></ul>')
+      + qa("tabs", "3つの区分(タブ)", '<p>画面上部のタブで切り替えます。</p><ul><li><b>持ち歩き</b>: いつも身につけて出かけるもの(バッグやポーチの中など)</li><li><b>持ち出し</b>: 避難するときにすぐ持って出るもの</li><li><b>備蓄</b>: 自宅で過ごすために蓄えておくもの</li></ul><p>区分ごとに、保管場所・用品・進捗バーが別々になります。</p>')
+      + '<h3 class="acc-sub">主な使い方</h3>'
+      + qa("start", "はじめかた", '<ol><li>区分のタブを選びます。</li><li>用品の下にある場所のチップをタップして、「ここに置く」と決めます(枠線になります)。</li><li>実際に用意できたら、もう一度タップします(点灯します)。</li><li>用品のすべての場所が点灯すると、準備済みになります。</li></ol>')
+      + qa("chip", "場所チップの3つの状態", '<p>チップをタップするたびに、次の順で切り替わります。</p><ul><li><b>枠線</b>: ここに置くと決めた(まだ用意できていない)</li><li><b>点灯</b>: その場所に用意できた</li><li><b>消灯</b>: 場所未定(選んでいない状態)</li></ul><p>置く場所が複数ある用品は、すべての場所が点灯したときに準備済みになります。場所を選ばない用品は、左のチェックで直接「準備済み」にできます。</p>')
+      + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、その場所が点灯します。</li><li>場所が決まっていない用品は「場所未定」にまとまり、そこでのチェックは「準備済み」の意味です。</li></ul>')
+      + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。区分ごとに計算します。準備済みは手で数えるのではなく、場所の点灯(または場所未定でのチェック)から自動で決まります。</p>')
+      + qa("filter", "絞り込みと検索", '<ul><li><b>全｜未</b>: 「未」にすると、まだ準備済みでない用品だけが表示されます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
+      + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>鉛筆のアイコンで、名前・分類・保管場所を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
+      + qa("places", "保管場所を増やす・直す", '<p>場所チップの一番後ろの「＋」から、保管場所の追加・名前の変更・削除ができます。ヒント文の鉛筆アイコンでは、その場で文章を書き換えられます。</p>')
+      + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、Markdownで友達に渡したり、もらったパックを自分のパックとして保存したりもできます。</p>')
+      + '<h3 class="acc-sub">便利な使い方例</h3>'
+      + qa("ex1", "例: 玄関・車・職場など、場所ごとに点検", '<p>「どこにある？」タブで場所ごとの一覧を見ながら、実際の袋や棚の中身と見比べます。足りないものが見つかったら、その場で点灯を外す(または追加する)と、リストと現物がずれません。</p>')
+      + qa("ex2", "例: 定期的な見直し", '<p>季節の変わり目や防災の日など、見直す日を決めて、「未」の絞り込みで残りを確認します。食品や薬のように期限のあるものは、用品名の編集で期限をメモしておく使い方もできます。</p>')
+      + qa("ex3", "例: 家族でリストを共有", '<p>1人が設定の「家族と共有(CSV)」で書き出し、LINEやメールで送ります。受け取った人は「マージ」で取り込むと、自分の用品を消さずに、新しい用品だけ追加されます。</p>')
+      + qa("ex4", "例: 友達に防災の備えを伝える", '<p>「このアプリを友達に勧める」からURLと説明を送れます。パック名にひと言入れた自作パックを送って、持ち物の例として渡すのもおすすめです。</p>')
+      + qa("ex5", "例: 現状を文章でLINEに送る", '<p>設定の「書き出し・共有・バックアップ」の「メモ・LINE用(Markdown)」で、いまのリストを読みやすい文章にして送れます。</p>')
+      + '<h3 class="acc-sub">データのこと</h3>'
+      + qa("data", "データはどこに保存される？", '<p>この端末のブラウザの中だけです。別の端末とは自動では同期されません。引っ越しや機種変更の前に、設定の「JSON」でバックアップを書き出してください。</p><p>ブラウザのデータを消去すると、中身も消えます。</p>')
+      + qa("home", "ホーム画面に追加する", '<ul><li><b>iPhone(Safari)</b>: 共有ボタン →「ホーム画面に追加」</li><li><b>Android(Chrome)</b>: メニュー →「ホーム画面に追加」(または「アプリをインストール」)</li></ul><p>ホーム画面から開くと、アプリのように使えます。</p>')
+      + '<h3 class="acc-sub">困ったとき</h3>'
+      + qa("faq1", "用品が見つからない", '<p>「非表示」にしている可能性があります。目のアイコンで、非表示の用品を表示してみてください。「未」の絞り込みになっていないかも確認してください。</p>')
+      + qa("faq2", "間違えて取り込み・初期化をした", '<p>設定の「危険な操作」に、直前の取り込みや初期化の前の状態に戻すボタンが出ます(1回分)。</p>')
+      + qa("faq3", "新しい版にならない", '<p>設定の「アプリの更新」で「更新を確認」をタップしてください。新しい版があれば「再読み込みして更新する」が出ます。</p>')
+      + qa("faq4", "ガイドをもう一度見たい", '<p>設定の「ガイド」から、はじめての案内をもう一度表示できます。</p>');
+  }
   function acc(key, title, summary, body, cls){
     var open = openSecs.indexOf(key) >= 0;
     return '<section class="acc' + (cls ? " " + cls : "") + '" data-sec-wrap="' + key + '">'
       + '<h2 class="acc-h"><button type="button" class="acc-btn" data-act="toggle-sec" data-sec="' + key + '" aria-expanded="' + open + '" aria-controls="sec-' + key + '">'
-      + '<span class="acc-t">' + title + (summary ? '<small>' + esc(summary) + '</small>' : '') + '</span>'
+      + secIcon(key) + '<span class="acc-t">' + title + (summary ? '<small>' + esc(summary) + '</small>' : '') + '</span>'
       + '<span class="acc-ch" aria-hidden="true">' + ICON_CHEV + '</span></button></h2>'
       + (open ? '<div class="acc-body" id="sec-' + key + '">' + body + '</div>' : '')
       + '</section>';
   }
   var setsBody = buildPacksHtml();
+  var updBody = ''
+    + '<p class="note">ホーム画面のアプリは、閉じても裏で止まっているだけで、自動では新しくなりません。開いたときと数分おきに最新版を確認しますが、すぐ知りたいときはここで確認できます。</p>'
+    + '<button type="button" class="settings-btn" data-act="check-update">更新を確認</button>'
+    + (swUpdated ? '<button type="button" class="settings-btn" data-act="reload-app">再読み込みして更新する' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + '</button>' : '')
+    + msgHtml(updateMsg);
+
   var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。</p>'
     + '<textarea class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
     + '<div class="btn-row"><button type="button" class="btn" data-act="rec-share">友達に送る</button><button type="button" class="btn btn-ghost" data-act="rec-copy">文章をコピー</button></div>' + msgHtml(recMsg);
@@ -1944,20 +2017,17 @@ function buildSettingsHtml(){
 
   return (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
     + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>'
-    + acc("theme", "テーマ", themeName, themeBody)
-    + acc("guide", "ガイド", "はじめての案内", guideBody)
-    + acc("hint", "アプリのヒント文", state.appHint ? "編集済み" : "初期の文", hintBody)
+    + grpLabel("使い方") + acc("help", "使い方・ヘルプ", "特徴・使い方・使い方例・困ったとき", helpHtml())
+    + grpLabel("リスト") + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
     + acc("sets", "拡張パック", "職場・乳児用・高齢者用・Ex・自分のパック", setsBody)
-    + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
-    + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
-    + acc("recommend", "このアプリを友達に勧める", "URLと説明を送る", recBody)
+    + grpLabel("表示") + acc("theme", "テーマ", themeName, themeBody)
+    + acc("hint", "アプリのヒント文", state.appHint ? "編集済み" : "初期の文", hintBody)
+    + acc("guide", "ガイド", "はじめての案内", guideBody)
+    + grpLabel("データ") + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
+    + grpLabel("アプリ") + acc("recommend", "このアプリを友達に勧める", "URLと説明を送る", recBody)
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
-    + '<div class="settings-section"><h2 class="settings-title">アプリの更新</h2>'
-    + '<p class="note">ホーム画面のアプリは、閉じても裏で止まっているだけで、自動では新しくなりません。開いたときと数分おきに最新版を確認しますが、すぐ知りたいときはここで確認できます。</p>'
-    + '<button type="button" class="settings-btn" data-act="check-update">更新を確認</button>'
-    + (swUpdated ? '<button type="button" class="settings-btn" data-act="reload-app">再読み込みして更新する' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + '</button>' : '')
-    + msgHtml(updateMsg) + '</div>'
+    + acc("update", "アプリの更新", swUpdated ? "新しい版があります" : "最新版を確認", updBody)
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
@@ -2265,6 +2335,7 @@ var ACTIONS = {
     state.packs.push(np); setOpen = np.id;
     closePackPanels(); packMsg = { type:"ok", text:"「" + np.title + "」を自分のパックに保存しました(" + np.items.length + "件)。上の一覧から、リストに追加できます。" }; render(); save();
   },
+  "toggle-help": function(t){ var k = t.getAttribute("data-h"), i = helpOpen.indexOf(k); if(i >= 0) helpOpen.splice(i, 1); else helpOpen.push(k); render(); var b = appEl.querySelector('[data-h="' + k + '"]'); if(b && b.focus) b.focus(); },
   "toggle-sec": function(t){
     var k = t.getAttribute("data-sec"), idx = openSecs.indexOf(k);
     var pend = { master: !!(pendingDeleteId || pendingDeleteLoc), share: !!(csv.plan || json.plan), sets: !!(packEdit || packFrom || packImp.plan || pendingDeletePack), danger: !!(pendingReset || pendingRestore) };
