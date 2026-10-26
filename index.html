@@ -172,7 +172,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .desc-link{ margin-top:0; }
   .text-link{ display:inline-block; min-height:32px; padding:6px 0 4px; background:none; color:var(--ink); font-size:14px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
-  .view-toggle{ display:flex; border-bottom:1px solid var(--line); }
+  .view-toggle{ position:relative; display:flex; border-bottom:1px solid var(--line); }
+  .vt-link{ position:absolute; left:50%; top:50%; width:24px; height:24px; margin:-12px 0 0 -12px; border-radius:50%; border:1px solid var(--line); background:var(--paper); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:1; }
+  .vt-link svg{ width:14px; height:14px; }
+  .link-note{ margin:8px 0 0; font-size:12.5px; line-height:1.6; color:var(--ink-soft); }
+  .link-note .ln-ic{ display:inline-block; vertical-align:-3px; margin-right:4px; color:var(--ink); }
+  .link-note .ln-ic svg{ width:16px; height:16px; }
   .view-toggle button svg{ width:18px; height:18px; flex:none; }
   .view-toggle button{ display:flex; align-items:center; justify-content:center; gap:6px; flex:1; min-height:44px; text-align:center; background:var(--card); font-size:13px; font-weight:700; color:var(--ink-soft); }
   .view-toggle button.active{ background:var(--paper); color:var(--ink); box-shadow:inset 0 -3px 0 var(--accent,var(--ink)); }
@@ -537,11 +542,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.40.0";
+var APP_VERSION = "1.41.0";
 var APP_VERSION_DATE = "2026-10-25";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.41.0", lines:["ヒント文を整理しました。「防災用品」「どこにある？」タブごとの使い方の文をなくし(ヘルプの「2つのタブ」に移しました)、区分のヒント枠に、「2つのタブは同じリストの見方で、チェックは連動する」「持ち歩き・持ち出し・備蓄は別のリスト」という説明を加えました。","切り替えタブの真ん中に、連動を示す⇄の印を入れました。"] },
   { v:"1.40.0", lines:["保管場所の編集画面に、「初期の保管場所を戻す」ボタンを追加しました。消してしまった初期の保管場所(バッグA・リュックA・未定など)だけを元の並びの位置に戻し、自分で作った保管場所はそのまま残ります。すべての場所に置く設定の用品には、戻した場所も加えます。"] },
   { v:"1.39.4", lines:["「場所未定」の名前を「未定」に変えました(保管場所・絞り込み・ヒント文・ヘルプ)。これまでの「場所未定」は、チェックを引き継いで「未定」になります。"] },
   { v:"1.39.3", lines:["用品名の編集欄を、連番の位置からではなく、いまの用品名と同じ位置から始まるようにしました(連番はそのまま表示します)。"] },
@@ -1605,6 +1611,7 @@ var ICON_EYE_OFF = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden=
 var ICON_PIN = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 14v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var ICON_PIN_ON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6zM12 14v7" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var ICON_DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>';
+var ICON_LINK = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 8h12l-3-3M18 16H6l3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var delUndo = null;   // 直前に削除した保管場所/候補(「元に戻す」用)
 var ICON_GRIP = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
 var ICON_X = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
@@ -1828,7 +1835,7 @@ function buildByLocationHtml(g, meta){
       }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべてチェック済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
-  var html = '<div class="loc-group">'+ viewNoteHtml("vloc", "場所ごとに、用意できた用品をチェック。何か1つチェックが入った用品は、進捗バーが進みます。「未定」も、場所のひとつです。", "loc-note");
+  var html = '<div class="loc-group">';
   var rows = 0;
   grp.locations.forEach(function(loc, li){
     if(onlyUnplanned && loc !== UND_LOC) return;
@@ -1864,11 +1871,12 @@ function renderMain(){
             ? '<textarea class="desc-textarea" id="desc-edit-input" maxlength="' + MAX_DESC + '" aria-label="' + meta.label + 'のヒント文">' + esc(grp.desc) + '</textarea>'
               + '<div class="desc-edit-btns"><button type="button" class="btn" data-act="save-desc" data-g="' + g + '">保存</button><button type="button" class="btn btn-ghost" data-act="cancel-desc">キャンセル</button>'
               + (grp.desc !== DEFAULT_DESC[g] ? '<button type="button" class="btn btn-ghost" data-act="reset-desc" data-g="' + g + '">初期の文に戻す</button>' : '') + '</div>'
-            : '<span class="desc-text">' + esc(grp.desc).replace(/\n/g, "<br>") + '</span><button type="button" class="desc-pencil" data-act="edit-desc" data-g="' + g + '" aria-label="' + meta.label + 'のヒント文を編集">' + ICON_EDIT + '</button>')
+            : '<span class="desc-text">' + esc(grp.desc).replace(/\n/g, "<br>") + '</span><button type="button" class="desc-pencil" data-act="edit-desc" data-g="' + g + '" aria-label="' + meta.label + 'のヒント文を編集">' + ICON_EDIT + '</button>'
+              + '<p class="link-note"><span class="ln-ic" aria-hidden="true">' + ICON_LINK + '</span>「防災用品」と「どこにある？」は、同じリストの2つの見方で、チェックは連動します。区分ごとに別のリストです。</p>')
           + '<button type="button" class="fold-x" data-act="toggle-fold" data-key="desc" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>')
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">' + VIEW_ICONS.item + '防災用品</button>'
-    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + 'どこにある？</button></div>';
+    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + 'どこにある？</button><span class="vt-link" aria-hidden="true">' + ICON_LINK + '</span></div>';
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '">'
     + '<div class="fb-seg" role="group" aria-label="表示する防災用品の絞り込み">'
@@ -1877,8 +1885,7 @@ function renderMain(){
     + '<button type="button" class="fb-eye' + (showHidden ? " on" : "") + '" aria-pressed="' + showHidden + '" aria-label="非表示にした用品を表示(' + hiddenCount + '件)" title="非表示にした用品を表示" data-act="toggle-show-hidden">' + (showHidden ? ICON_EYE : ICON_EYE_OFF) + (hiddenCount ? '<span class="fb-n">' + hiddenCount + '</span>' : '') + '</button>'
     + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
-    html += viewNoteHtml("vitem", "用意できた場所にチェック。まだ場所を決めていないときは「未定」にチェック。何か1つチェックが入ると、進捗バーが進みます。場所は右の鉛筆で編集できます。", "view-note")
-      + '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
+    html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
       + '<div class="footer-note"><span class="hint-fine">左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名をタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
@@ -2114,6 +2121,7 @@ function buildSettingsHtml(){
     return '<p class="help-lead">知りたい項目をタップすると開きます。</p>'
       + '<h3 class="acc-sub" style="border-top:0;margin-top:6px;padding-top:0">アプリの特徴</h3>'
       + qa("feat", "どんなアプリ？", '<p>家族の防災用品を、<b>持ち歩き・持ち出し・備蓄</b>の3つに分けて、「どこに置くか」と「そろったか」を管理するチェックリストです。</p><ul><li>データはこの端末のブラウザ内だけに保存され、サーバーには送りません。</li><li>一度開けば、電波がなくても使えます。</li><li>家族とはCSVで、LINEなどにはMarkdownの文章で共有できます。</li><li>用品も保管場所も、自由に追加・名前変更できます。</li></ul>')
+      + qa("views", "2つのタブ(防災用品／どこにある？)", '<p>どちらも同じリストを、別の見方で見るタブです。チェックはどちらで入れても連動します。</p><ul><li><b>防災用品</b>: 用品ごとに、置く場所の箱にチェックします。用意できた場所にチェックを入れ、まだ場所を決めていないときは「未定」にチェックします。何か1つチェックが入ると、進捗バーが進みます。場所は用品の右の鉛筆で編集できます。</li><li><b>どこにある？</b>: 場所ごとに、用意できた用品をチェックします。バッグや棚の中身を確かめるときに便利です。「未定」も場所のひとつです。</li></ul>')
       + qa("tabs", "3つの区分(タブ)", '<p>画面上部のタブで切り替えます。</p><ul><li><b>持ち歩き</b>: いつも身につけて出かけるもの(バッグやポーチの中など)</li><li><b>持ち出し</b>: 避難するときにすぐ持って出るもの</li><li><b>備蓄</b>: 自宅で過ごすために蓄えておくもの</li></ul><p>区分ごとに、保管場所・用品・進捗バーが別々になります。</p>')
       + '<h3 class="acc-sub">主な使い方</h3>'
       + qa("start", "はじめかた", '<ol><li>区分のタブを選びます。用品の下には、その区分の保管場所と「未定」が、最初から並んでいます。</li><li>実際に用意できたら、その場所の箱にチェックを入れます。まだ場所を決めていないときは「未定」にチェックします。</li><li>どこか1つでもチェックが入ると、その用品は準備済みになり、進捗バーが進みます。</li><li>置かない場所は、用品の右の鉛筆で外せます(場所を決めておくのがおすすめですが、決めなくても使えます)。</li></ol>')
