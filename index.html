@@ -287,12 +287,13 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .group-desc.closed .desc-link{ margin:0; }
   .group-desc.closed .text-link{ min-height:32px; padding:0; }
   .hint-coarse{ display:none; }
+  /* ピン留め・非表示のアイコンは、タッチでもマウスでも出さない(スワイプ/ドラッグで操作する) */
+  .items .item-top .pin-btn, .items .item-top [data-act="toggle-hide"]{ display:none; }
   /* タッチ端末(スワイプで操作できる)では、ピン留め・非表示のアイコンは出さず、並べ替えと編集だけを右上に小さく置く */
   @media (pointer:coarse){
     .hint-fine{ display:none; }
     .hint-coarse{ display:inline; }
     .items .item-top{ align-items:flex-start; gap:0; min-height:44px; }
-    .items .item-top .pin-btn, .items .item-top [data-act="toggle-hide"]{ display:none; }
     .items .item-top .row-btn{ width:30px; height:40px; }
     .items .item-top .row-btn svg{ width:19px; height:19px; }
     .items .item-top .drag-handle{ width:26px; height:40px; margin-right:0; }
@@ -542,11 +543,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.42.0";
-var APP_VERSION_DATE = "2026-10-25";
+var APP_VERSION = "1.42.1";
+var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.42.1", lines:["パソコンでも、用品の行のピン留め・非表示のアイコンを出さないようにしました。マウスのドラッグ(左で非表示、右でピン留め)で操作できます。"] },
   { v:"1.42.0", lines:["タブの印を「0」「1」「2」から、「0次」「1次」「2次」に変えました。","各次のタブの下にあったヒント枠をなくしました。説明文はヘルプの「0次・1次・2次の3つの区分」に移し、書き換えは設定の「ヒント文」から行えます。"] },
   { v:"1.41.0", lines:["ヒント文を整理しました。「防災用品」「どこにある？」タブごとの使い方の文をなくし(ヘルプの「2つのタブ」に移しました)、区分のヒント枠に、「2つのタブは同じリストの見方で、チェックは連動する」「持ち歩き・持ち出し・備蓄は別のリスト」という説明を加えました。","切り替えタブの真ん中に、連動を示す⇄の印を入れました。"] },
   { v:"1.40.0", lines:["保管場所の編集画面に、「初期の保管場所を戻す」ボタンを追加しました。消してしまった初期の保管場所(バッグA・リュックA・未定など)だけを元の並びの位置に戻し、自分で作った保管場所はそのまま残ります。すべての場所に置く設定の用品には、戻した場所も加えます。"] },
@@ -1880,7 +1882,7 @@ function renderMain(){
     html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
-      + '<div class="footer-note"><span class="hint-fine">左にスワイプするか <span class="inline-ic">' + ICON_EYE_OFF + '</span> を押すと非表示になります</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名をタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
+      + '<div class="footer-note"><span class="hint-fine">左にスワイプ(マウスはドラッグ)で非表示、右にスワイプでピン留めします</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名をタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
   } else {
     html += '<div id="list-area" style="' + accentStyle(meta) + '">' + buildByLocationHtml(g, meta) + '</div>';
   }
