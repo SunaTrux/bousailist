@@ -549,11 +549,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.45.0";
+var APP_VERSION = "1.45.1";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.45.1", lines:["絞り込みの名前を、「未チェック」→「未配置」、「チェック済」→「配置済」に変えました。用品の画面と「どこにある？」の画面で、同じ言葉(すべて／未配置／配置済)で揃えています。"] },
   { v:"1.45.0", lines:["「どこにある？」で、チェック済の用品だけを見られるようにしました。絞り込みバーの「チェック済」を押すと、チェックした用品だけが場所ごとに並びます(「場所未定」の絞り込みは、用品の画面だけになりました)。"] },
   { v:"1.44.0", lines:["場所の「未定」を、「場所未定」に戻しました(絞り込みも「場所未定」)。これまでのチェックはそのまま引き継ぎます。"] },
   { v:"1.43.3", lines:["「場所を編集」のボタンを、絞り込みバーの右側(目と虫めがねの間)の、小さな鉛筆ボタンに変えました。押すと、その下に編集パネルが開きます。","「どこにある？」の一番下にあったボタンも、同じ鉛筆に集約しました。"] },
@@ -1833,7 +1834,7 @@ function buildItemRowsHtml(g, meta){
   var vis = grp.items.filter(isShown);
   if(!vis.length){
     if(searchKey) return '<div class="empty">「' + esc(searchQuery.trim()) + '」に合う防災用品はありません。</div>';
-    if(onlyUnchecked && grp.items.some(function(it){ return !it.hidden || showHidden; })) return '<div class="empty">未チェックの防災用品はありません。すべてチェック済みです。</div>';
+    if(onlyUnchecked && grp.items.some(function(it){ return !it.hidden || showHidden; })) return '<div class="empty">未配置の防災用品はありません。すべて配置済みです。</div>';
     if(onlyUnplanned && grp.items.some(function(it){ return !it.hidden || showHidden; })) return '<div class="empty">場所未定の防災用品はありません。すべて場所が決まっています。</div>';
     return '<div class="empty">すべて非表示になっています。上のスイッチで表示できます。</div>';
   }
@@ -1860,7 +1861,7 @@ function buildByLocationHtml(g, meta){
         return '<div class="loc-group-item sq' + (it.hidden ? ' is-hidden' : '') + '">'
           + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + it.checked + '" aria-label="' + esc(it.name) + 'のチェック(どこにも置いていない用品)"><span class="checkbox' + (it.checked ? " checked" : "") + '" style="' + (it.checked ? accentStyle(meta) : "") + '">' + (it.checked ? ICON_TICK : "") + '</span></button>'
           + '<div class="item-name' + (it.checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
-      }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべてチェック済みです</div>');
+      }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべて配置済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
   var html = '<div class="loc-group">';
@@ -1874,11 +1875,11 @@ function buildByLocationHtml(g, meta){
     rows++;
     html += '<div class="loc-head"><span class="loc-tag" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + done + '/' + base.length + '</span></div>';
     html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
-      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyChecked ? 'チェック済みの用品はありません' : 'すべてチェック済みです') : (searchKey ? '合う防災用品はありません' : 'ここに防災用品はありません')) + '</div>';
+      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyChecked ? '配置済みの用品はありません' : 'すべて配置済みです') : (searchKey ? '合う防災用品はありません' : 'ここに防災用品はありません')) + '</div>';
   });
   var un = unassignedHtml();
   if(onlyUnplanned && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">場所未定の防災用品はありません。</div>';
-  if(onlyChecked && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">チェック済みの防災用品はまだありません。</div>';
+  if(onlyChecked && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">配置済みの防災用品はまだありません。</div>';
   return html + un + locAdd + '</div>';
 }
 
@@ -1901,7 +1902,7 @@ function renderMain(){
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '">'
     + '<div class="fb-seg" role="group" aria-label="表示する防災用品の絞り込み">'
-    + [["all","すべて",!onlyUnchecked && !onlyUnplanned && !onlyChecked],["unchecked","未チェック",onlyUnchecked],(viewMode === "location" ? ["checked","チェック済",onlyChecked] : ["unplanned","場所未定",onlyUnplanned])].map(function(o){
+    + [["all","すべて",!onlyUnchecked && !onlyUnplanned && !onlyChecked],["unchecked","未配置",onlyUnchecked],(viewMode === "location" ? ["checked","配置済",onlyChecked] : ["unplanned","場所未定",onlyUnplanned])].map(function(o){
         return '<button type="button" class="' + (o[2] ? "on" : "") + '" aria-pressed="' + o[2] + '" data-act="set-filter" data-f="' + o[0] + '">' + o[1] + '</button>'; }).join("") + '</div>'
     + '<button type="button" class="fb-eye' + (showHidden ? " on" : "") + '" aria-pressed="' + showHidden + '" aria-label="非表示にした用品を表示(' + hiddenCount + '件)" title="非表示にした用品を表示" data-act="toggle-show-hidden">' + (showHidden ? ICON_EYE : ICON_EYE_OFF) + (hiddenCount ? '<span class="fb-n">' + hiddenCount + '</span>' : '') + '</button>'
     + '<button type="button" class="fb-eye fb-loc' + (locEditorFor === "__loc" ? " on" : "") + '" aria-expanded="' + (locEditorFor === "__loc") + '" aria-label="場所を編集(追加・名前の変更・削除・並べ替え)" title="場所を編集" data-act="open-loc-editor" data-at="__loc">' + ICON_EDIT + '</button>'
@@ -2152,7 +2153,7 @@ function buildSettingsHtml(){
       + qa("chip", "場所のチェックボックス", '<p>用品の下には、その次の保管場所が「箱＋場所名」で横に並びます。保管場所は、同じ次のすべての用品で共通です。</p><ul><li><b>箱にチェック</b>: その場所に用意できた</li><li><b>未定</b>: 場所は決めていないけれど、用意した(「場所未定」も場所のひとつです)</li></ul><p>用品名の左の数字は、ただの連番です。チェックの影響は受けません。</p>')
       + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、用品側の、その場所の箱にもチェックが入ります。</li><li>「場所未定」も場所のひとつです。場所を決めずに準備した用品は、ここにまとまります。</li></ul>')
       + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。どこか1つでも場所(「場所未定」を含む)にチェックが入った用品を、準備済みとして数えます。区分ごとに計算します。</p><p>場所を決めておくのがおすすめですが、強制ではありません。決めていなくても、「場所未定」にチェックすれば、準備した分として進みます。</p>')
-      + qa("filter", "絞り込みと検索", '<ul><li><b>すべて／未チェック／場所未定／チェック済</b>: 「未チェック」にすると、まだ準備済みでない用品だけが表示されます。「場所未定」は用品の画面、「チェック済」は「どこにある？」の画面で使え、チェックした用品だけを場所ごとに見られます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
+      + qa("filter", "絞り込みと検索", '<ul><li><b>すべて／未配置／場所未定／配置済</b>: 「配置済」は、場所の箱にチェックを入れた(置いた)ことを表します。「未配置」にすると、まだ置いていない用品だけが表示されます(用品の画面は、どの場所にもチェックのない用品。「どこにある？」の画面は、その場所にまだ置いていない用品)。「場所未定」は用品の画面だけで、場所を決めずに準備した用品を見られます。「配置済」は「どこにある？」の画面だけで、置いた用品だけを場所ごとに見られます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
       + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、その場で名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
       + qa("places", "保管場所を増やす・直す", '<p>用品の一覧の上の絞り込みバーにある鉛筆ボタン(「どこにある？」でも同じ場所です)から、その次の保管場所を、追加・名前の変更・削除・並べ替えできます。名前を変えると、その次のすべての用品に反映されます。場所を消すと、その場所のチェックも消えます(削除の直後なら「元に戻す」で戻せます)。候補からの追加や、消してしまった初期の場所を戻すこともできます(自分で作った場所は残ります)。</p><p>各次のヒント文は、設定の「ヒント文」で書き換えられます。</p>')
       + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、Markdownで友達に渡したり、もらったパックを自分のパックとして保存したりもできます。</p>')
