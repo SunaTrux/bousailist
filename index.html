@@ -443,6 +443,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .loc-group{ padding:0 20px 16px; }
   .loc-head{ display:flex; align-items:center; gap:8px; padding:14px 0 8px; border-bottom:1px solid var(--line); }
   .loc-tag{ display:inline-flex; align-items:center; min-height:26px; max-width:100%; padding:0 10px; border:1px solid var(--accent,var(--ink)); border-radius:13px; background:var(--accent,var(--ink)); color:var(--on-accent,#fff); font-size:12px; font-weight:700; line-height:1.2; overflow-wrap:anywhere; }
+  .loc-tag.und{ background:var(--ink-soft); border-color:var(--ink-soft); color:var(--on-accent,#fff); }   /* 「場所未定」は、ほかの場所と区別できるように、グレーにする */
   .loc-tag.none{ background:transparent; border:1px dashed var(--ink-soft); color:var(--ink-soft); }
   .loc-count{ font-size:12px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
   .loc-group-title{ font-size:13px; font-weight:700; color:var(--ink-soft); padding:16px 0 8px; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
@@ -549,11 +550,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.46.0";
+var APP_VERSION = "1.46.1";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.46.1", lines:["「どこにある？」の「場所未定」の見出しを、ほかの場所と区別できるように、グレーにしました。"] },
   { v:"1.46.0", lines:["「どこにある？」は、開くたびに「配置済」の絞り込みから始まるようにしました(「すべて」「未配置」にも切り替えられます)。用品の画面の絞り込みは、戻ったときに元へ戻ります。","「配置済」のときは、一番下に「場所未定にあるのは、持っているけれど、どこに置いておくかはまだ決めていない用品です」と案内を出します。"] },
   { v:"1.45.1", lines:["絞り込みの名前を、「未チェック」→「未配置」、「チェック済」→「配置済」に変えました。用品の画面と「どこにある？」の画面で、同じ言葉(すべて／未配置／配置済)で揃えています。"] },
   { v:"1.45.0", lines:["「どこにある？」で、チェック済の用品だけを見られるようにしました。絞り込みバーの「チェック済」を押すと、チェックした用品だけが場所ごとに並びます(「場所未定」の絞り込みは、用品の画面だけになりました)。"] },
@@ -1875,7 +1877,7 @@ function buildByLocationHtml(g, meta){
     var shown = base.filter(function(it){ var on = (it.have || []).indexOf(loc) !== -1, kv = keepVisible[it.id + "|" + loc]; return !(onlyUnchecked && on && !kv) && !(onlyChecked && !on && !kv); });
     if(onlyChecked && !shown.length) return;   // チェック済の用品がない場所は、見出しごと出さない
     rows++;
-    html += '<div class="loc-head"><span class="loc-tag" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + done + '/' + base.length + '</span></div>';
+    html += '<div class="loc-head"><span class="loc-tag' + (loc === UND_LOC ? ' und' : '') + '" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + done + '/' + base.length + '</span></div>';
     html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
       : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyChecked ? '配置済みの用品はありません' : 'すべて配置済みです') : (searchKey ? '合う防災用品はありません' : 'ここに防災用品はありません')) + '</div>';
   });
