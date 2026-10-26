@@ -549,11 +549,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.45.1";
+var APP_VERSION = "1.46.0";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.46.0", lines:["「どこにある？」は、開くたびに「配置済」の絞り込みから始まるようにしました(「すべて」「未配置」にも切り替えられます)。用品の画面の絞り込みは、戻ったときに元へ戻ります。","「配置済」のときは、一番下に「場所未定にあるのは、持っているけれど、どこに置いておくかはまだ決めていない用品です」と案内を出します。"] },
   { v:"1.45.1", lines:["絞り込みの名前を、「未チェック」→「未配置」、「チェック済」→「配置済」に変えました。用品の画面と「どこにある？」の画面で、同じ言葉(すべて／未配置／配置済)で揃えています。"] },
   { v:"1.45.0", lines:["「どこにある？」で、チェック済の用品だけを見られるようにしました。絞り込みバーの「チェック済」を押すと、チェックした用品だけが場所ごとに並びます(「場所未定」の絞り込みは、用品の画面だけになりました)。"] },
   { v:"1.44.0", lines:["場所の「未定」を、「場所未定」に戻しました(絞り込みも「場所未定」)。これまでのチェックはそのまま引き継ぎます。"] },
@@ -675,6 +676,7 @@ var searchQuery = "";   // 検索窓の文字(保存しない)
 var searchKey = "";     // 検索用に正規化した文字
 function foldKana(s){ return s.replace(/[\u30A1-\u30F6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0x60); }); }
 function searchNorm(s){ return foldKana(String(s).normalize("NFKC").toLowerCase()); }
+var savedItemFilter = null;   // 「どこにある？」を開いている間、用品の画面の絞り込みを預かる
 var keepVisible = {};   // 絞り込み中にチェックした用品は、絞り込みを切り替えるまで一覧に残す(押し間違いを直せるように)
 function isShown(it){
   if(it.hidden && !showHidden) return false;
@@ -1879,8 +1881,9 @@ function buildByLocationHtml(g, meta){
   });
   var un = unassignedHtml();
   if(onlyUnplanned && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">場所未定の防災用品はありません。</div>';
-  if(onlyChecked && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">配置済みの防災用品はまだありません。</div>';
-  return html + un + locAdd + '</div>';
+  if(onlyChecked && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">配置済みの防災用品はまだありません。用品の画面で場所の箱にチェックすると、ここに並びます(「すべて」で全部の用品を見られます)。</div>';
+  var undHint = (onlyChecked && grp.locations.indexOf(UND_LOC) !== -1 && (un || rows)) ? '<p class="footer-note" style="grid-column:1 / -1">「配置済」で「' + esc(UND_LOC) + '」にあるのは、持っているけれど、どこに置いておくかはまだ決めていない用品です。</p>' : '';
+  return html + un + undHint + locAdd + '</div>';
 }
 
 function renderMain(){
@@ -2332,8 +2335,9 @@ var ACTIONS = {
   "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); render(); save(); },
   "view": function(t){
     viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item";
-    if(viewMode === "location" && onlyUnplanned){ onlyUnplanned = false; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, "0"); }   // 「場所未定」の絞り込みは用品の画面だけ、「チェック済」はどこにある？だけ
-    if(viewMode === "item" && onlyChecked){ onlyChecked = false; keepVisible = {}; }
+    // 絞り込みは画面ごと。「どこにある？」は、開くたびに「配置済」から始める。用品の画面の絞り込みは、戻ったときに元へ戻す
+    if(viewMode === "location" && !onlyChecked && !savedItemFilter){ savedItemFilter = { uc:onlyUnchecked, up:onlyUnplanned }; onlyUnchecked = false; onlyUnplanned = false; onlyChecked = true; keepVisible = {}; }
+    if(viewMode === "item" && savedItemFilter){ onlyUnchecked = savedItemFilter.uc; onlyUnplanned = savedItemFilter.up; onlyChecked = false; savedItemFilter = null; keepVisible = {}; }
     clearTransient(); render();
   },
   "toggle-loc-editor": function(){ delUndo = null; pickFor = null; renameLoc = null; locMsg = ""; locEditorFor = null; pendingDeleteLoc = null; render(); },
@@ -2531,7 +2535,7 @@ var ACTIONS = {
     var f = t.getAttribute("data-f"), uc = f === "unchecked", up = f === "unplanned" && viewMode !== "location", ck = f === "checked" && viewMode === "location";
     if(uc === onlyUnchecked && up === onlyUnplanned && ck === onlyChecked) return;
     onlyUnchecked = uc; onlyUnplanned = up; onlyChecked = ck; keepVisible = {};
-    lsSet(ONLYUNCHECKED_KEY, uc ? "1" : (up ? "u" : "0")); closeSwipe(); render();
+    if(viewMode === "item") lsSet(ONLYUNCHECKED_KEY, uc ? "1" : (up ? "u" : "0")); closeSwipe(); render();
   },
   "toggle-only-unchecked": function(){ onlyUnchecked = !onlyUnchecked; onlyUnplanned = false; onlyChecked = false; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, onlyUnchecked ? "1" : "0"); closeSwipe(); render(); },
   "toggle-pin": function(t){
