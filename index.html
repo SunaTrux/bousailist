@@ -388,7 +388,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .fb-seg button{ min-height:30px; padding:0 11px; background:transparent; color:var(--ink-soft); font-size:12px; font-weight:500; white-space:nowrap; }
   .fb-seg button + button{ border-left:1.5px solid var(--line); }
   .fb-seg button.on{ background:var(--accent-soft,var(--paper)); color:var(--ink); font-weight:700; }
+  @media (max-width:440px){ .filter-bar{ gap:6px; } .fb-seg button{ padding:0 8px; } .fb-eye{ min-width:34px; padding:0 7px; } .fb-search{ flex-basis:34px; } }
   @media (max-width:360px){ .filter-bar{ gap:5px; padding-left:8px; padding-right:8px; } .fb-seg button{ padding:0 4px; font-size:11px; } .fb-eye{ min-width:30px; padding:0 5px; } .fb-search{ flex-basis:32px; } }
+  @media (max-width:330px){ .filter-bar{ gap:4px; padding-left:6px; padding-right:6px; } .fb-seg button{ padding:0 3px; font-size:10.5px; } .fb-eye{ min-width:28px; padding:0 4px; } .fb-search{ flex-basis:30px; } }
   .fb-n{ margin-left:5px; font-variant-numeric:tabular-nums; }
   .fb-eye{ display:inline-flex; flex:none; align-items:center; justify-content:center; min-width:38px; min-height:30px; padding:0 10px; border:1.5px solid var(--line); border-radius:15px; background:var(--card); color:var(--ink-soft); font-size:12px; }
   .fb-eye .fb-n{ margin-left:4px; }
@@ -547,11 +549,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.44.0";
+var APP_VERSION = "1.45.0";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.45.0", lines:["「どこにある？」で、チェック済の用品だけを見られるようにしました。絞り込みバーの「チェック済」を押すと、チェックした用品だけが場所ごとに並びます(「場所未定」の絞り込みは、用品の画面だけになりました)。"] },
   { v:"1.44.0", lines:["場所の「未定」を、「場所未定」に戻しました(絞り込みも「場所未定」)。これまでのチェックはそのまま引き継ぎます。"] },
   { v:"1.43.3", lines:["「場所を編集」のボタンを、絞り込みバーの右側(目と虫めがねの間)の、小さな鉛筆ボタンに変えました。押すと、その下に編集パネルが開きます。","「どこにある？」の一番下にあったボタンも、同じ鉛筆に集約しました。"] },
   { v:"1.43.2", lines:["ボタンの名前を「場所を編集」に変えました。","スマホの画面の拡大率によって、用品の行の境界線が途中で欠けて見えることがあったのを直しました。"] },
@@ -665,7 +668,8 @@ var OVERVIEW_KEY = "bousai-hide-overview";   // "1" なら、画面上部の進�
 var SHOWHIDDEN_KEY = "bousai-show-hidden";   // 非表示にした用品も一覧に出すか(初期は出さない)
 var ONLYUNCHECKED_KEY = "bousai-only-unchecked";   // 未チェックの用品だけ表示するか(初期は全部表示)
 var filterVal = (function(){ try{ return window.localStorage.getItem("bousai-only-unchecked"); }catch(e){ return null; } })();
-var onlyUnchecked = filterVal === "1", onlyUnplanned = filterVal === "u";   // 絞り込み: すべて / 未チェック / 未定
+var onlyUnchecked = filterVal === "1", onlyUnplanned = filterVal === "u", onlyChecked = false;   // onlyChecked: 「どこにある？」だけの絞り込み(チェック済だけ。保存しない)
+   // 絞り込み: すべて / 未チェック / 未定
 var searchQuery = "";   // 検索窓の文字(保存しない)
 var searchKey = "";     // 検索用に正規化した文字
 function foldKana(s){ return s.replace(/[\u30A1-\u30F6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0) - 0x60); }); }
@@ -1848,7 +1852,7 @@ function buildByLocationHtml(g, meta){
   function unassignedHtml(){
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && !it.locations.length; });
     if(!base.length) return "";
-    var shown = base.filter(function(it){ return !(onlyUnchecked && it.checked && !keepVisible[it.id]); });
+    var shown = base.filter(function(it){ return !(onlyUnchecked && it.checked && !keepVisible[it.id]) && !(onlyChecked && !it.checked && !keepVisible[it.id]); });
     var done = base.filter(function(it){ return it.checked; }).length;
     return '<div class="loc-head"><span class="loc-tag none">場所未定</span><span class="loc-count">' + done + '/' + base.length + '</span></div>'
       + (shown.length ? shown.map(function(it){
@@ -1864,15 +1868,17 @@ function buildByLocationHtml(g, meta){
   grp.locations.forEach(function(loc, li){
     if(onlyUnplanned && loc !== UND_LOC) return;
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && it.locations.indexOf(loc) !== -1 && (!onlyUnplanned || isUnplanned(it) || keepVisible[it.id]); });
-    rows++;
     var done = base.filter(function(it){ return (it.have || []).indexOf(loc) !== -1; }).length;
-    var shown = base.filter(function(it){ return !(onlyUnchecked && (it.have || []).indexOf(loc) !== -1 && !keepVisible[it.id + "|" + loc]); });
+    var shown = base.filter(function(it){ var on = (it.have || []).indexOf(loc) !== -1, kv = keepVisible[it.id + "|" + loc]; return !(onlyUnchecked && on && !kv) && !(onlyChecked && !on && !kv); });
+    if(onlyChecked && !shown.length) return;   // チェック済の用品がない場所は、見出しごと出さない
+    rows++;
     html += '<div class="loc-head"><span class="loc-tag" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + done + '/' + base.length + '</span></div>';
     html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
-      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? 'すべてチェック済みです' : (searchKey ? '合う防災用品はありません' : 'ここに防災用品はありません')) + '</div>';
+      : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyChecked ? 'チェック済みの用品はありません' : 'すべてチェック済みです') : (searchKey ? '合う防災用品はありません' : 'ここに防災用品はありません')) + '</div>';
   });
   var un = unassignedHtml();
   if(onlyUnplanned && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">場所未定の防災用品はありません。</div>';
+  if(onlyChecked && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">チェック済みの防災用品はまだありません。</div>';
   return html + un + locAdd + '</div>';
 }
 
@@ -1895,7 +1901,7 @@ function renderMain(){
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '">'
     + '<div class="fb-seg" role="group" aria-label="表示する防災用品の絞り込み">'
-    + [["all","すべて",!onlyUnchecked && !onlyUnplanned],["unchecked","未チェック",onlyUnchecked],["unplanned","場所未定",onlyUnplanned]].map(function(o){
+    + [["all","すべて",!onlyUnchecked && !onlyUnplanned && !onlyChecked],["unchecked","未チェック",onlyUnchecked],(viewMode === "location" ? ["checked","チェック済",onlyChecked] : ["unplanned","場所未定",onlyUnplanned])].map(function(o){
         return '<button type="button" class="' + (o[2] ? "on" : "") + '" aria-pressed="' + o[2] + '" data-act="set-filter" data-f="' + o[0] + '">' + o[1] + '</button>'; }).join("") + '</div>'
     + '<button type="button" class="fb-eye' + (showHidden ? " on" : "") + '" aria-pressed="' + showHidden + '" aria-label="非表示にした用品を表示(' + hiddenCount + '件)" title="非表示にした用品を表示" data-act="toggle-show-hidden">' + (showHidden ? ICON_EYE : ICON_EYE_OFF) + (hiddenCount ? '<span class="fb-n">' + hiddenCount + '</span>' : '') + '</button>'
     + '<button type="button" class="fb-eye fb-loc' + (locEditorFor === "__loc" ? " on" : "") + '" aria-expanded="' + (locEditorFor === "__loc") + '" aria-label="場所を編集(追加・名前の変更・削除・並べ替え)" title="場所を編集" data-act="open-loc-editor" data-at="__loc">' + ICON_EDIT + '</button>'
@@ -2146,7 +2152,7 @@ function buildSettingsHtml(){
       + qa("chip", "場所のチェックボックス", '<p>用品の下には、その次の保管場所が「箱＋場所名」で横に並びます。保管場所は、同じ次のすべての用品で共通です。</p><ul><li><b>箱にチェック</b>: その場所に用意できた</li><li><b>未定</b>: 場所は決めていないけれど、用意した(「場所未定」も場所のひとつです)</li></ul><p>用品名の左の数字は、ただの連番です。チェックの影響は受けません。</p>')
       + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、用品側の、その場所の箱にもチェックが入ります。</li><li>「場所未定」も場所のひとつです。場所を決めずに準備した用品は、ここにまとまります。</li></ul>')
       + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。どこか1つでも場所(「場所未定」を含む)にチェックが入った用品を、準備済みとして数えます。区分ごとに計算します。</p><p>場所を決めておくのがおすすめですが、強制ではありません。決めていなくても、「場所未定」にチェックすれば、準備した分として進みます。</p>')
-      + qa("filter", "絞り込みと検索", '<ul><li><b>全｜未</b>: 「未」にすると、まだ準備済みでない用品だけが表示されます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
+      + qa("filter", "絞り込みと検索", '<ul><li><b>すべて／未チェック／場所未定／チェック済</b>: 「未チェック」にすると、まだ準備済みでない用品だけが表示されます。「場所未定」は用品の画面、「チェック済」は「どこにある？」の画面で使え、チェックした用品だけを場所ごとに見られます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
       + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、その場で名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
       + qa("places", "保管場所を増やす・直す", '<p>用品の一覧の上の絞り込みバーにある鉛筆ボタン(「どこにある？」でも同じ場所です)から、その次の保管場所を、追加・名前の変更・削除・並べ替えできます。名前を変えると、その次のすべての用品に反映されます。場所を消すと、その場所のチェックも消えます(削除の直後なら「元に戻す」で戻せます)。候補からの追加や、消してしまった初期の場所を戻すこともできます(自分で作った場所は残ります)。</p><p>各次のヒント文は、設定の「ヒント文」で書き換えられます。</p>')
       + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、Markdownで友達に渡したり、もらったパックを自分のパックとして保存したりもできます。</p>')
@@ -2323,7 +2329,12 @@ function syncPackEditFromDom(){
 }
 var ACTIONS = {
   "tab": function(t){ state.activeTab = getGroup(t); keepVisible = {}; clearTransient(); render(); save(); },
-  "view": function(t){ viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item"; clearTransient(); render(); },
+  "view": function(t){
+    viewMode = t.getAttribute("data-mode") === "location" ? "location" : "item";
+    if(viewMode === "location" && onlyUnplanned){ onlyUnplanned = false; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, "0"); }   // 「場所未定」の絞り込みは用品の画面だけ、「チェック済」はどこにある？だけ
+    if(viewMode === "item" && onlyChecked){ onlyChecked = false; keepVisible = {}; }
+    clearTransient(); render();
+  },
   "toggle-loc-editor": function(){ delUndo = null; pickFor = null; renameLoc = null; locMsg = ""; locEditorFor = null; pendingDeleteLoc = null; render(); },
   "open-loc-editor": function(t){
     var at = t.getAttribute("data-at");
@@ -2347,6 +2358,7 @@ var ACTIONS = {
     else { it.checked = !it.checked; }
     syncItem(it);
     if(onlyUnchecked){ if(it.checked) keepVisible[it.id] = true; else delete keepVisible[it.id]; }
+    if(onlyChecked) keepVisible[it.id] = true;
     if(onlyUnplanned) keepVisible[it.id] = true;
     render(); save();
   },
@@ -2396,6 +2408,7 @@ var ACTIONS = {
     if(at === -1) it.have.push(loc); else it.have.splice(at, 1);
     syncItem(it);
     if(onlyUnchecked){ var kk = it.id + "|" + loc; if(at === -1) keepVisible[kk] = true; else delete keepVisible[kk]; }
+    if(onlyChecked) keepVisible[it.id + "|" + loc] = true;   // 外したあとも、切り替えるまで残す(押し間違いを直せるように)
     if(onlyUnplanned) keepVisible[it.id] = true;
     render(); save();
   },
@@ -2513,8 +2526,13 @@ var ACTIONS = {
   "open-settings": function(){ clearTransient(); resetSettingsUi(); showSettings = true; render(); window.scrollTo(0, 0); },
   "close-settings": function(){ showSettings = false; resetSettingsUi(); render(); window.scrollTo(0, 0); },
   "toggle-hide": function(t){ var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return; it.hidden = !it.hidden; closeSwipe(); render(); save(); },
-  "set-filter": function(t){ var f = t.getAttribute("data-f"), uc = f === "unchecked", up = f === "unplanned"; if(uc === onlyUnchecked && up === onlyUnplanned) return; onlyUnchecked = uc; onlyUnplanned = up; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, uc ? "1" : (up ? "u" : "0")); closeSwipe(); render(); },
-  "toggle-only-unchecked": function(){ onlyUnchecked = !onlyUnchecked; onlyUnplanned = false; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, onlyUnchecked ? "1" : "0"); closeSwipe(); render(); },
+  "set-filter": function(t){
+    var f = t.getAttribute("data-f"), uc = f === "unchecked", up = f === "unplanned" && viewMode !== "location", ck = f === "checked" && viewMode === "location";
+    if(uc === onlyUnchecked && up === onlyUnplanned && ck === onlyChecked) return;
+    onlyUnchecked = uc; onlyUnplanned = up; onlyChecked = ck; keepVisible = {};
+    lsSet(ONLYUNCHECKED_KEY, uc ? "1" : (up ? "u" : "0")); closeSwipe(); render();
+  },
+  "toggle-only-unchecked": function(){ onlyUnchecked = !onlyUnchecked; onlyUnplanned = false; onlyChecked = false; keepVisible = {}; lsSet(ONLYUNCHECKED_KEY, onlyUnchecked ? "1" : "0"); closeSwipe(); render(); },
   "toggle-pin": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return;
     it.pinned = !it.pinned;
