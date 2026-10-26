@@ -550,11 +550,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.47.0";
+var APP_VERSION = "1.48.0";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.48.0", lines:["作者に感想や不具合を送れるようにしました。設定の「感想・ご意見を送る」から、フォームを開けます(バンドマン持ち物リスト、プレイヤーズセットリストと同じフォームで、このアプリが自動で選ばれます)。"] },
   { v:"1.47.0", lines:["自分で作った拡張パックを、家族や友だちに簡単に送れるようにしました。設定の「拡張パック」で、自分のパックの「友だちに送る」を押すと、リンク付きのメッセージが作られます(LINEなどの送る画面が開きます)。","もらった人は、リンクを開くと「パックが届きました」と出るので、「リストに追加する」を押すだけで取り込めます。ホーム画面のアプリで使っている人は、メッセージ全体を「もらったパックを取り込む」に貼り付けられます。"] },
   { v:"1.46.1", lines:["「どこにある？」の「場所未定」の見出しを、ほかの場所と区別できるように、グレーにしました。"] },
   { v:"1.46.0", lines:["「どこにある？」は、開くたびに「配置済」の絞り込みから始まるようにしました(「すべて」「未配置」にも切り替えられます)。用品の画面の絞り込みは、戻ったときに元へ戻ります。","「配置済」のときは、一番下に「場所未定にあるのは、持っているけれど、どこに置いておくかはまだ決めていない用品です」と案内を出します。"] },
@@ -1662,6 +1663,8 @@ function planJsonImport(text, cur){
 /* ================= UI state ================= */
 var viewMode = "item";
 var APP_URL = "https://sunatrux.github.io/bousailist/";
+/* ご意見・感想フォーム(Tally)。バンドマン持ち物リスト・プレイヤーズセットリストと共通で、?app= でフォームの「アプリを選択」が自動で選ばれる */
+var FEEDBACK_URL = "https://tally.so/r/9qL0A4", FEEDBACK_APP_NAME = "わが家の防災リスト";
 var REC_TITLE = "わが家の防災リスト";
 var REC_TEXT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくせる防災チェックリストです。ホーム画面に追加すると、アプリのように使えます。入力したデータはこの端末の中だけに保存され、サーバーには送られません。";
 var recMsg = null;
@@ -2212,6 +2215,7 @@ function buildSettingsHtml(){
     share:'<path d="M12 15V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v8h14v-8"/>',
     recommend:'<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
     danger:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
+    feedback:'<path d="M4 5h16v11H9.5L5 20v-4H4z"/><path d="M8 9.5h8M8 12.5h5"/>',
     refs:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M8 7.5h7"/>',
     update:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'
   };
@@ -2271,6 +2275,8 @@ function buildSettingsHtml(){
     + (swUpdated ? '<button type="button" class="settings-btn" data-act="reload-app">再読み込みして更新する' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + '</button>' : '')
     + msgHtml(updateMsg);
 
+  var fbBody = '<p class="note">使ってみた感想や、「ここが使いにくい」「動かない」などは、下のフォームから気軽にどうぞ。不具合の場合は、どの画面で何をしたかと、使っている端末・ブラウザを書いてもらえると助かります(今のバージョン: v' + esc(APP_VERSION) + ')。</p>'
+    + '<a class="settings-btn" href="' + esc(FEEDBACK_URL + "?app=" + encodeURIComponent(FEEDBACK_APP_NAME) + "&version=" + encodeURIComponent(APP_VERSION)) + '" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">感想・ご意見フォームを開く</a>';
   var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。</p>'
     + '<textarea class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
     + '<div class="btn-row"><button type="button" class="btn" data-act="rec-share">友達に送る</button><button type="button" class="btn btn-ghost" data-act="rec-copy">文章をコピー</button></div>' + msgHtml(recMsg);
@@ -2310,6 +2316,7 @@ function buildSettingsHtml(){
     + grpLabel("データ") + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
     + grpLabel("アプリ") + acc("recommend", "このアプリを友達に勧める", "URLと説明を送る", recBody)
+    + acc("feedback", "感想・ご意見を送る", "作者に届きます", fbBody)
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
     + acc("update", "アプリの更新", swUpdated ? "新しい版があります" : "最新版を確認", updBody)
   var wideHtml = "";
