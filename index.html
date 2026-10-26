@@ -195,6 +195,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     transition:transform .2s ease; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
   }
   .swipe-content.dragging{ transition:none; }
+  /* 閉じているときは、裏のボタンを見せない(画面の拡大率によって、行の境界線に1pxはみ出して見えるため) */
+  .swipe-wrap:not(:has(.swipe-content.open, .swipe-content.open-l, .swipe-content.dragging)) > .swipe-del,
+  .swipe-wrap:not(:has(.swipe-content.open, .swipe-content.open-l, .swipe-content.dragging)) > .swipe-pin{ visibility:hidden; transition:visibility 0s linear .3s; }
   .swipe-content.open{ transform:translateX(-88px); }
   .swipe-content.open-l{ transform:translateX(88px); }
   .swipe-pin{
@@ -544,11 +547,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.43.1";
+var APP_VERSION = "1.43.2";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.43.2", lines:["ボタンの名前を「場所を編集」に変えました。","スマホの画面の拡大率によって、用品の行の境界線が途中で欠けて見えることがあったのを直しました。"] },
   { v:"1.43.1", lines:["設定の「表示」に「進捗バー」を追加しました。画面上部の進捗欄を、表示する／非表示にする から選べます。"] },
   { v:"1.43.0", lines:["保管場所を、用品ごとではなく、次(0次・1次・2次)ごとに共通にしました。どの用品も、その次のすべての場所の箱が並びます。","場所の追加・名前の変更・削除・並べ替えは、用品の一覧の一番上の「保管場所を追加・編集」にまとめました。用品ごとの鉛筆はなくなりました。","これまで用品ごとに絞っていた場所は、その次の場所に揃います(チェックは残ります)。"] },
   { v:"1.42.1", lines:["パソコンでも、用品の行のピン留め・非表示のアイコンを出さないようにしました。マウスのドラッグ(左で非表示、右でピン留め)で操作できます。"] },
@@ -1727,7 +1731,7 @@ function buildItemRow(g, meta, item, locations, num){
     + '<button type="button" class="swipe-del swipe-hide" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" tabindex="' + (open ? 0 : -1) + '" aria-hidden="' + (open ? "false" : "true") + '">' + (hid ? "表示する" : "非表示") + '</button>'
     + '<div class="swipe-content' + (open ? " open" : "") + (openL ? " open-l" : "") + '" data-swipe-id="' + id + '" data-pin="1"' + (editing ? ' data-noswipe="1"' : "") + '>'
     + top
-    + (locations.length ? '' : '<div class="hint">保管場所が未設定です(上の「保管場所を追加・編集」で追加できます)</div>')
+    + (locations.length ? '' : '<div class="hint">保管場所が未設定です(上の「場所を編集」で追加できます)</div>')
     + '<div class="locations">' + pills + '</div>'
     + '</div></div></div>';
 }
@@ -1807,7 +1811,7 @@ function buildPinnedHtml(){
     + '<p class="pins-hint">右にスワイプでピン留めを解除</p></section>';
 }
 function buildLocAddHtml(g, meta, top){
-  return '<div class="loc-add-row' + (top ? ' top' : '') + '"><button type="button" class="loc-pill loc-add loc-add-wide" data-act="open-loc-editor" data-at="__loc" aria-expanded="' + (locEditorFor === "__loc") + '">' + (top ? ICON_EDIT : ICON_PLUS) + '<span>保管場所を追加・編集</span></button></div>' + buildLocEditorHtml(g, meta, "__loc");
+  return '<div class="loc-add-row' + (top ? ' top' : '') + '"><button type="button" class="loc-pill loc-add loc-add-wide" data-act="open-loc-editor" data-at="__loc" aria-expanded="' + (locEditorFor === "__loc") + '">' + (top ? ICON_EDIT : ICON_PLUS) + '<span>場所を編集</span></button></div>' + buildLocEditorHtml(g, meta, "__loc");
 }
 function buildItemsHtml(g, meta){ return buildLocAddHtml(g, meta, true) + buildItemRowsHtml(g, meta); }
 function buildItemRowsHtml(g, meta){
@@ -2125,7 +2129,7 @@ function buildSettingsHtml(){
     return '<p class="help-lead">知りたい項目をタップすると開きます。</p>'
       + '<h3 class="acc-sub" style="border-top:0;margin-top:6px;padding-top:0">アプリの特徴</h3>'
       + qa("feat", "どんなアプリ？", '<p>家族の防災用品を、<b>持ち歩き・持ち出し・備蓄</b>の3つに分けて、「どこに置くか」と「そろったか」を管理するチェックリストです。</p><ul><li>データはこの端末のブラウザ内だけに保存され、サーバーには送りません。</li><li>一度開けば、電波がなくても使えます。</li><li>家族とはCSVで、LINEなどにはMarkdownの文章で共有できます。</li><li>用品も保管場所も、自由に追加・名前変更できます。</li></ul>')
-      + qa("views", "2つのタブ(防災用品／どこにある？)", '<p>どちらも同じリストを、別の見方で見るタブです。チェックはどちらで入れても連動します。</p><ul><li><b>防災用品</b>: 用品ごとに、置く場所の箱にチェックします。用意できた場所にチェックを入れ、まだ場所を決めていないときは「未定」にチェックします。何か1つチェックが入ると、進捗バーが進みます。場所は、用品の上の「保管場所を追加・編集」で、次ごとにまとめて編集できます。</li><li><b>どこにある？</b>: 場所ごとに、用意できた用品をチェックします。バッグや棚の中身を確かめるときに便利です。「未定」も場所のひとつです。</li></ul>')
+      + qa("views", "2つのタブ(防災用品／どこにある？)", '<p>どちらも同じリストを、別の見方で見るタブです。チェックはどちらで入れても連動します。</p><ul><li><b>防災用品</b>: 用品ごとに、置く場所の箱にチェックします。用意できた場所にチェックを入れ、まだ場所を決めていないときは「未定」にチェックします。何か1つチェックが入ると、進捗バーが進みます。場所は、用品の上の「場所を編集」で、次ごとにまとめて編集できます。</li><li><b>どこにある？</b>: 場所ごとに、用意できた用品をチェックします。バッグや棚の中身を確かめるときに便利です。「未定」も場所のひとつです。</li></ul>')
       + qa("tabs", "0次・1次・2次の3つの区分(タブ)", '<p>画面上部のタブで切り替えます。それぞれ別のリストで、保管場所・用品・進捗バーが別々になります。</p><ul>' + GROUP_ORDER.map(function(g){ return '<li><b>' + GROUP_META[g].num + ' ' + GROUP_META[g].label + '</b>: ' + esc(state.groups[g].desc).replace(/\n/g, "<br>") + '</li>'; }).join("") + '</ul><p>各次の説明文は、設定の「ヒント文」で書き換えられます。</p>')
       + '<h3 class="acc-sub">主な使い方</h3>'
       + qa("start", "はじめかた", '<ol><li>区分のタブを選びます。用品の下には、その区分の保管場所と「未定」が、最初から並んでいます。</li><li>実際に用意できたら、その場所の箱にチェックを入れます。まだ場所を決めていないときは「未定」にチェックします。</li><li>どこか1つでもチェックが入ると、その用品は準備済みになり、進捗バーが進みます。</li><li>保管場所は、その次の用品すべてで共通です。置かない場所の箱は、空のままにしておきます(場所を決めておくのがおすすめですが、決めなくても使えます)。</li></ol>')
@@ -2134,7 +2138,7 @@ function buildSettingsHtml(){
       + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。どこか1つでも場所(「未定」を含む)にチェックが入った用品を、準備済みとして数えます。区分ごとに計算します。</p><p>場所を決めておくのがおすすめですが、強制ではありません。決めていなくても、「未定」にチェックすれば、準備した分として進みます。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>全｜未</b>: 「未」にすると、まだ準備済みでない用品だけが表示されます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
       + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、その場で名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
-      + qa("places", "保管場所を増やす・直す", '<p>用品の一覧の一番上にある「保管場所を追加・編集」から、その次の保管場所を、追加・名前の変更・削除・並べ替えできます(「どこにある？」の一番下からも開けます)。名前を変えると、その次のすべての用品に反映されます。場所を消すと、その場所のチェックも消えます(削除の直後なら「元に戻す」で戻せます)。候補からの追加や、消してしまった初期の場所を戻すこともできます(自分で作った場所は残ります)。</p><p>各次のヒント文は、設定の「ヒント文」で書き換えられます。</p>')
+      + qa("places", "保管場所を増やす・直す", '<p>用品の一覧の一番上にある「場所を編集」から、その次の保管場所を、追加・名前の変更・削除・並べ替えできます(「どこにある？」の一番下からも開けます)。名前を変えると、その次のすべての用品に反映されます。場所を消すと、その場所のチェックも消えます(削除の直後なら「元に戻す」で戻せます)。候補からの追加や、消してしまった初期の場所を戻すこともできます(自分で作った場所は残ります)。</p><p>各次のヒント文は、設定の「ヒント文」で書き換えられます。</p>')
       + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、Markdownで友達に渡したり、もらったパックを自分のパックとして保存したりもできます。</p>')
       + '<h3 class="acc-sub">便利な使い方例</h3>'
       + qa("ex1", "例: 玄関・車・職場など、場所ごとに点検", '<p>「どこにある？」タブで場所ごとの一覧を見ながら、実際の袋や棚の中身と見比べます。足りないものが見つかったら、その場でチェックを外す(または追加する)と、リストと現物がずれません。</p>')
