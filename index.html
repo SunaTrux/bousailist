@@ -550,11 +550,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.46.1";
+var APP_VERSION = "1.47.0";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.47.0", lines:["自分で作った拡張パックを、家族や友だちに簡単に送れるようにしました。設定の「拡張パック」で、自分のパックの「友だちに送る」を押すと、リンク付きのメッセージが作られます(LINEなどの送る画面が開きます)。","もらった人は、リンクを開くと「パックが届きました」と出るので、「リストに追加する」を押すだけで取り込めます。ホーム画面のアプリで使っている人は、メッセージ全体を「もらったパックを取り込む」に貼り付けられます。"] },
   { v:"1.46.1", lines:["「どこにある？」の「場所未定」の見出しを、ほかの場所と区別できるように、グレーにしました。"] },
   { v:"1.46.0", lines:["「どこにある？」は、開くたびに「配置済」の絞り込みから始まるようにしました(「すべて」「未配置」にも切り替えられます)。用品の画面の絞り込みは、戻ったときに元へ戻ります。","「配置済」のときは、一番下に「場所未定にあるのは、持っているけれど、どこに置いておくかはまだ決めていない用品です」と案内を出します。"] },
   { v:"1.45.1", lines:["絞り込みの名前を、「未チェック」→「未配置」、「チェック済」→「配置済」に変えました。用品の画面と「どこにある？」の画面で、同じ言葉(すべて／未配置／配置済)で揃えています。"] },
@@ -753,7 +754,8 @@ function parsePackLine(line){
 function parsePackMd(text){
   var plan = { ok:false, fatal:[], warnings:[], title:"", g:null, items:[], skipped:0 };
   text = String(text == null ? "" : text).replace(/^﻿/, "");
-  if(!text.trim()){ plan.fatal.push("内容が空です。もらったパックの文章を貼り付けるか、ファイルを選んでください。"); return plan; }
+  if(!text.trim()){ plan.fatal.push("内容が空です。もらったパックのリンクや文章を貼り付けるか、ファイルを選んでください。"); return plan; }
+  var pcode = findPackCode(text); if(pcode) return parsePackCode(pcode);   // 送られてきたリンク(メッセージごと貼り付けてもよい)
   if(text.length > MAX_PACK_MD){ plan.fatal.push("データが大きすぎます(上限 約3万文字)。"); return plan; }
   if(text.indexOf("\u0000") !== -1){ plan.fatal.push("テキストファイルではないようです。"); return plan; }
   var lines = text.split(/\r\n|\n|\r/), seen = {}, gotTitle = false, over = 0, dup = 0, multi = false;
@@ -783,6 +785,40 @@ function parsePackMd(text){
   if(dup) plan.warnings.push("同じ名前の用品が重複していました(" + dup + "件)。1つにまとめます。");
   if(over) plan.warnings.push("用品が多すぎるため、" + MAX_PACK_ITEMS + "件までにしました(" + over + "件は取り込みません)。");
   if(plan.skipped) plan.warnings.push("用品として読めない行を " + plan.skipped + "行 無視しました。");
+  plan.ok = true;
+  return plan;
+}
+/* パックを、リンク(#pack=...)で送る/受け取る。中身は、名前・区分・用品を小さくまとめて base64url にしたもの */
+var LETTER_BY_CAT = { food:"f", life:"l", other:"o" }, MAX_PACK_CODE = 20000;
+function b64uEncode(str){
+  var bytes = new TextEncoder().encode(str), bin = "";
+  for(var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64uDecode(code){
+  var b = code.replace(/-/g, "+").replace(/_/g, "/"); while(b.length % 4) b += "=";
+  var bin = atob(b), bytes = new Uint8Array(bin.length);
+  for(var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder("utf-8", { fatal:true }).decode(bytes);
+}
+function packToCode(p){ return b64uEncode(JSON.stringify({ v:1, t:p.title, g:p.g, i:p.items.map(function(d){ return [d.name, LETTER_BY_CAT[d.cat] || "o"]; }) })); }
+function packLink(p){ return APP_URL + "#pack=" + packToCode(p); }
+function packShareText(p){
+  return "「" + p.title + "」(防災用品 " + p.items.length + "件・" + GROUP_META[p.g].label + "用)を送ります。\n"
+    + "下のリンクを開くと、「わが家の防災リスト」に取り込めます。\n" + packLink(p) + "\n\n"
+    + "※ホーム画面に追加したアプリで使っている人は、このメッセージ全体をコピーして、アプリの「設定」→「拡張パック」→「もらったパックを取り込む」に貼り付けてください。";
+}
+function findPackCode(text){ var m = String(text == null ? "" : text).match(/[#&?]pack=([A-Za-z0-9_-]{8,})/); return m ? m[1] : null; }
+function parsePackCode(code){
+  var plan = { ok:false, fatal:[], warnings:[], title:"", g:null, items:[], skipped:0 };
+  var obj = null;
+  try{ if(code.length > MAX_PACK_CODE) throw new Error("big"); obj = JSON.parse(b64uDecode(code)); }catch(e){ obj = null; }
+  if(!isPlainObject(obj) || obj.v !== 1 || !Array.isArray(obj.i)){ plan.fatal.push("パックのリンクを読み取れませんでした。リンクが途中で切れていないか確認してください。"); return plan; }
+  var raw = { title:obj.t, g:obj.g, items:obj.i.map(function(a){ return Array.isArray(a) ? { name:a[0], cat:CAT_BY_LETTER[a[1]] } : null; }).filter(function(x){ return x && typeof x.name === "string"; }) };
+  var sp = sanitizePacks([raw]);
+  if(!sp.length){ plan.fatal.push("パックに用品が見つかりませんでした。"); return plan; }
+  plan.title = sp[0].title; plan.g = sp[0].g; plan.items = sp[0].items;
+  if(raw.items.length > plan.items.length) plan.warnings.push("同じ名前の用品や、多すぎる用品は、まとめました。");
   plan.ok = true;
   return plan;
 }
@@ -1255,6 +1291,19 @@ function prepareUpdateNotice(hadData){
 }
 function noticesHtml(){
   var h = "";
+  if(incomingPack){
+    var ip = incomingPack, pl = ip.plan;
+    if(ip.done) h += '<div class="notice" role="status"><div class="notice-body">' + esc(ip.done) + '</div><button type="button" class="notice-x" data-act="pack-in-close" aria-label="お知らせを閉じる">' + ICON_X + '</button></div>';
+    else if(!pl.ok) h += '<div class="notice" role="alert"><div class="notice-body">' + esc(pl.fatal[0] || "パックを読み取れませんでした。") + '</div><button type="button" class="notice-x" data-act="pack-in-close" aria-label="お知らせを閉じる">' + ICON_X + '</button></div>';
+    else {
+      var names = pl.items.slice(0, 6).map(function(d){ return esc(d.name); }).join("、") + (pl.items.length > 6 ? " ほか" + (pl.items.length - 6) + "件" : "");
+      h += '<div class="notice" role="region" aria-label="届いたパック"><div class="notice-body"><b>「' + esc(pl.title) + '」のパックが届きました(' + pl.items.length + '件)</b>'
+        + '<div class="note" style="margin:4px 0 8px">' + names + '</div>'
+        + '<div class="field-title" style="margin:0 0 6px">追加先の区分</div>' + packSegHtml("pack-in-g", ip.g)
+        + '<div class="btn-row"><button type="button" class="btn" data-act="pack-in-add">リストに追加する</button><button type="button" class="btn btn-ghost" data-act="pack-in-save">パックとして保存だけ</button><button type="button" class="btn btn-ghost" data-act="pack-in-close">やめる</button></div>'
+        + '<div class="note" style="margin-top:6px">追加すると、同じ名前の用品はそのままで、新しい用品だけが入ります。どちらも、自分のパックとして残ります。</div>' + msgHtml(ip.msg) + '</div></div>';
+    }
+  }
   if(swUpdated) h += '<div class="notice" role="status"><div class="notice-body">新しいバージョン' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + 'があります。</div><button type="button" class="btn" data-act="reload-app">再読み込み</button></div>';
   if(updateNotes){
     h += '<div class="notice" role="status"><div class="notice-body"><b>v' + esc(APP_VERSION) + ' にアップデートしました</b>';
@@ -1276,6 +1325,7 @@ function load(){
     loadPrev();
     render();
     save();
+    checkIncomingPack();
   });
 }
 
@@ -1627,8 +1677,25 @@ var pendingReset = false, pendingRestore = false, resetBackupMsg = null, dangerM
 var packEdit = null;      // 作成・編集中のパック {id, title, g, text, msg}
 var packFrom = null;      // 「今のリストから作る」 {g, pick:{id:true}}
 var packImpOpen = false, packImp = { text:"", file:"", enc:"", garbled:false, msg:null, plan:null, g:"g1" };
-var packExportId = null, packMsg = null, pendingDeletePack = null;
-function closePackPanels(){ packEdit = null; packFrom = null; packImpOpen = false; packImp.plan = null; packImp.msg = null; packExportId = null; pendingDeletePack = null; packMsg = null; }
+var packExportId = null, packMsg = null, pendingDeletePack = null, packSendId = null;
+var incomingPack = null;   // リンクで届いたパック {plan, g, msg, done}
+function saveIncomingPack(){
+  var ip = incomingPack; if(!ip || !ip.plan || !ip.plan.ok) return null;
+  if(!state.packs) state.packs = [];
+  if(state.packs.length >= MAX_PACKS){ ip.msg = { type:"error", text:"自分のパックは " + MAX_PACKS + " 個までです。設定の「拡張パック」で、不要なものを削除してからやり直してください。" }; render(); return null; }
+  var np = { id:newId(), title:ip.plan.title, g:ip.g, items:ip.plan.items.map(function(d){ return { name:d.name, cat:d.cat }; }) };
+  state.packs.push(np);
+  return np;
+}
+function checkIncomingPack(){
+  if(!state) return;
+  var code = findPackCode(window.location.hash); if(!code) return;
+  try{ window.history.replaceState(null, "", window.location.pathname + window.location.search); }catch(e){}
+  var plan = parsePackCode(code);
+  incomingPack = { plan:plan, g:plan.g || "g1", msg:null, done:null };
+  showSettings = false; render(); window.scrollTo(0, 0);
+}
+function closePackPanels(){ packEdit = null; packFrom = null; packImpOpen = false; packImp.plan = null; packImp.msg = null; packExportId = null; packSendId = null; pendingDeletePack = null; packMsg = null; }
 var setOpen = null, setPick = {}, setMsg = {};  // 拡張パック: 開いているセット・選択中の品・完了メッセージ
 var helpOpen = [];
 var setSec = "help";
@@ -1989,10 +2056,18 @@ function packCardHtml(pack){
     + '<div class="btn-row"><button type="button" class="btn" data-act="add-set" data-set="' + pid + '"' + (n ? "" : " disabled") + '>選んだ用品を追加(' + n + '件)</button></div>'
     + msgHtml(setMsg[pack.id]);
   if(pack.mine){
-    h += '<div class="pack-tools"><button type="button" class="btn btn-ghost" data-act="pack-edit" data-set="' + pid + '">編集</button>'
+    h += '<div class="pack-tools"><button type="button" class="btn" data-act="pack-send" data-set="' + pid + '">' + (packSendId === pack.id ? "送る画面を閉じる" : "友だちに送る") + '</button>'
+      + '<button type="button" class="btn btn-ghost" data-act="pack-edit" data-set="' + pid + '">編集</button>'
       + '<button type="button" class="btn btn-ghost" data-act="pack-export" data-set="' + pid + '">' + (packExportId === pack.id ? "書き出しを閉じる" : "Markdownで書き出す") + '</button>'
       + '<button type="button" class="btn btn-ghost" style="color:var(--clay)" data-act="pack-del-req" data-set="' + pid + '">削除</button></div>';
     if(pendingDeletePack === pack.id) h += '<div class="confirm-row" style="margin-left:0" role="alert"><span>「' + esc(pack.title) + '」を削除します。追加済みの用品は消えません。よろしいですか？</span><button type="button" class="btn btn-danger" data-act="pack-del-do" data-set="' + pid + '">削除</button><button type="button" class="btn btn-ghost" data-act="pack-del-cancel">キャンセル</button></div>';
+    if(packSendId === pack.id){
+      var sendMsg = packShareText(findPack(pack.id));
+      h += '<div class="panel" style="margin-top:10px"><p class="note">LINEやメールなどで送れます。受け取った人が、メッセージのリンクを開くと、取り込みの確認が出ます。</p>'
+        + '<div class="btn-row"><button type="button" class="btn" data-act="pack-send-do" data-set="' + pid + '">送る</button><button type="button" class="btn btn-ghost" data-act="pack-send-copy">コピー</button></div>'
+        + (sendMsg.length > 6000 ? '<div class="msg warn">用品が多いため、リンクが長くなります。うまく送れないときは、「Markdownで書き出す」を使ってください。</div>' : '')
+        + '<textarea class="code-box" id="pack-send-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:150px" aria-label="送るメッセージ">' + esc(sendMsg) + '</textarea>' + msgHtml(packMsg) + '</div>';
+    }
     if(packExportId === pack.id){
       h += '<div class="panel" style="margin-top:10px"><p class="note">この文章を、LINEやメモで送れます。受け取った人は、設定の「拡張パック」から取り込めます。</p>'
         + '<div class="btn-row"><button type="button" class="btn" data-act="pack-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="pack-download" data-set="' + pid + '">ファイルでダウンロード</button></div>'
@@ -2011,7 +2086,7 @@ function buildPacksHtml(){
   h += '<h3 class="acc-sub">自分のパック</h3>';
   var mine = all.filter(function(p){ return p.mine; });
   h += mine.length ? mine.map(packCardHtml).join('') : '<p class="note">まだありません。自分で作るか、もらったパックを取り込めます。</p>';
-  h += msgHtml(packMsg && !packExportId ? packMsg : null);
+  h += msgHtml(packMsg && !packExportId && !packSendId ? packMsg : null);
   h += '<div class="pack-actions"><button type="button" class="settings-btn" data-act="pack-new">パックを作る</button>'
     + '<button type="button" class="settings-btn" data-act="pack-from-open">今のリストからパックを作る</button>'
     + '<button type="button" class="settings-btn" data-act="pack-imp-open">' + (packImpOpen ? "取り込みを閉じる" : "もらったパックを取り込む") + '</button></div>';
@@ -2035,10 +2110,10 @@ function buildPacksHtml(){
       + '<div class="btn-row"><button type="button" class="btn" data-act="pack-save">保存</button><button type="button" class="btn btn-ghost" data-act="pack-cancel">キャンセル</button></div>' + msgHtml(packEdit.msg) + '</div>';
   }
   if(packImpOpen){
-    h += '<div class="panel pack-panel"><p class="note">もらったパックの文章(Markdown)を貼り付けるか、ファイルを選んでください。取り込む前に内容を確認できます。</p>'
+    h += '<div class="panel pack-panel"><p class="note">もらったパックのリンクや文章(Markdown)を貼り付けるか、ファイルを選んでください。LINEなどのメッセージは、全体をそのまま貼り付けて大丈夫です。取り込む前に内容を確認できます。</p>'
       + '<p class="field-title">ファイルを選ぶ</p><input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" data-change="pack-imp-file" style="margin-bottom:12px">'
       + (packImp.file ? '<p class="note">読み込んだファイル: ' + esc(packImp.file) + '</p>' : '')
-      + '<p class="field-title">または文章を貼り付け</p>'
+      + '<p class="field-title">リンクや文章を貼り付け</p>'
       + '<textarea class="code-box" id="pack-imp-text" data-input="pack-imp-text" placeholder="# 拡張パック: ペット用&#10;区分: 持ち出し&#10;&#10;- ペットフード [食品]" aria-label="パックの文章">' + esc(packImp.text) + '</textarea>'
       + '<div class="btn-row"><button type="button" class="btn" data-act="pack-imp-preview">内容を確認する</button></div>'
       + '<div id="pack-imp-preview">' + (packImp.plan ? buildPackPreviewHtml(packImp.plan) : '') + '</div>' + msgHtml(packImp.msg) + '</div>';
@@ -2161,7 +2236,7 @@ function buildSettingsHtml(){
       + qa("filter", "絞り込みと検索", '<ul><li><b>すべて／未配置／場所未定／配置済</b>: 「配置済」は、場所の箱にチェックを入れた(置いた)ことを表します。「未配置」にすると、まだ置いていない用品だけが表示されます(用品の画面は、どの場所にもチェックのない用品。「どこにある？」の画面は、その場所にまだ置いていない用品)。「場所未定」は用品の画面だけで、場所を決めずに準備した用品を見られます。「配置済」は「どこにある？」の画面だけで、置いた用品だけを場所ごとに見られます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
       + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、その場で名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
       + qa("places", "保管場所を増やす・直す", '<p>用品の一覧の上の絞り込みバーにある鉛筆ボタン(「どこにある？」でも同じ場所です)から、その次の保管場所を、追加・名前の変更・削除・並べ替えできます。名前を変えると、その次のすべての用品に反映されます。場所を消すと、その場所のチェックも消えます(削除の直後なら「元に戻す」で戻せます)。候補からの追加や、消してしまった初期の場所を戻すこともできます(自分で作った場所は残ります)。</p><p>各次のヒント文は、設定の「ヒント文」で書き換えられます。</p>')
-      + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、Markdownで友達に渡したり、もらったパックを自分のパックとして保存したりもできます。</p>')
+      + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、家族や友だちに送れます。</p><ul><li><b>送る</b>: 設定の「拡張パック」で、自分のパックの「友だちに送る」を押します。LINEやメールなどの送る画面が開き、リンク付きのメッセージが作られます。</li><li><b>もらう</b>: メッセージのリンクを開くと、「パックが届きました」と出ます。「リストに追加する」を押すだけで取り込めます。</li><li>ホーム画面に追加したアプリで使っているときは、メッセージ全体をコピーして、設定の「拡張パック」→「もらったパックを取り込む」に貼り付けてください。</li></ul><p>Markdownの文章やファイルでの受け渡しもできます。</p>')
       + '<h3 class="acc-sub">便利な使い方例</h3>'
       + qa("ex1", "例: 玄関・車・職場など、場所ごとに点検", '<p>「どこにある？」タブで場所ごとの一覧を見ながら、実際の袋や棚の中身と見比べます。足りないものが見つかったら、その場でチェックを外す(または追加する)と、リストと現物がずれません。</p>')
       + qa("ex2", "例: 定期的な見直し", '<p>季節の変わり目や防災の日など、見直す日を決めて、「未」の絞り込みで残りを確認します。食品や薬のように期限のあるものは、用品名の編集で期限をメモしておく使い方もできます。</p>')
@@ -2604,7 +2679,7 @@ var ACTIONS = {
       if(state.packs.length >= MAX_PACKS){ packEdit.msg = { type:"error", text:"自分のパックは " + MAX_PACKS + " 個までです。不要なものを削除してください。" }; render(); return; }
       var np = { id:newId(), title:title, g:packEdit.g, items:items }; state.packs.push(np); setOpen = np.id;
     }
-    var m = "「" + title + "」を保存しました(" + items.length + "件)。" + (over ? "(用品が多いため " + MAX_PACK_ITEMS + "件までにしました)" : "");
+    var m = "「" + title + "」を保存しました(" + items.length + "件)。「友だちに送る」で、家族や友だちに送れます。" + (over ? "(用品が多いため " + MAX_PACK_ITEMS + "件までにしました)" : "");
     closePackPanels(); packMsg = { type:"ok", text:m }; render(); save();
   },
   "pack-del-req": function(t){ pendingDeletePack = t.getAttribute("data-set"); packExportId = null; render(); },
@@ -2626,7 +2701,28 @@ var ACTIONS = {
     if(!lines.length) return;
     closePackPanels(); packEdit = { id:null, title:"", g:g, text:lines.join("\n"), msg:null }; render(); focusId("pack-title");
   },
-  "pack-export": function(t){ var id = t.getAttribute("data-set"); packExportId = packExportId === id ? null : id; packMsg = null; pendingDeletePack = null; render(); },
+  "pack-export": function(t){ var id = t.getAttribute("data-set"); packExportId = packExportId === id ? null : id; packSendId = null; packMsg = null; pendingDeletePack = null; render(); },
+  "pack-send": function(t){ var id = t.getAttribute("data-set"); packSendId = packSendId === id ? null : id; packExportId = null; packMsg = null; pendingDeletePack = null; render(); },
+  "pack-send-copy": function(){ packMsg = copyFrom("pack-send-text") ? { type:"ok", text:"コピーしました。LINEやメールに貼り付けて送れます。" } : { type:"error", text:"自動コピーに失敗しました。文章を選択して手動でコピーしてください。" }; render(); },
+  "pack-send-do": function(t){
+    var p = findPack(t.getAttribute("data-set")); if(!p) return;
+    var text = packShareText(p);
+    var fallback = function(){ packMsg = copyFrom("pack-send-text") ? { type:"ok", text:"この端末では送る画面を開けなかったため、メッセージをコピーしました。LINEやメールに貼り付けて送れます。" } : { type:"error", text:"送る画面を開けませんでした。「メッセージをコピー」をお使いください。" }; render(); };
+    if(navigator.share){
+      try{ navigator.share({ title:"防災用品パック「" + p.title + "」", text:text }).then(function(){ packMsg = { type:"ok", text:"送る画面を開きました。" }; render(); }, function(err){ if(err && err.name === "AbortError") return; fallback(); }); }catch(e){ fallback(); }
+    } else { fallback(); }
+  },
+  "pack-in-g": function(t){ var g = t.getAttribute("data-g"); if(incomingPack && GROUP_ORDER.indexOf(g) !== -1){ incomingPack.g = g; render(); } },
+  "pack-in-close": function(){ incomingPack = null; render(); },
+  "pack-in-save": function(){ var np = saveIncomingPack(); if(!np) return; incomingPack.done = "「" + np.title + "」を自分のパックに保存しました。設定の「拡張パック」から、いつでもリストに追加できます。"; setOpen = np.id; render(); save(); },
+  "pack-in-add": function(){
+    var np = saveIncomingPack(); if(!np) return;
+    showSettings = false; state.activeTab = np.g; viewMode = "item"; keepVisible = {};
+    ACTIONS["add-set"]({ getAttribute:function(){ return np.id; } });
+    var m = setMsg[np.id];
+    incomingPack.done = "「" + np.title + "」を自分のパックに保存しました。" + (m ? m.text : "");
+    setOpen = null; render(); save();
+  },
   "pack-copy": function(){ packMsg = copyFrom("pack-export-text") ? { type:"ok", text:"コピーしました。LINEやメモに貼り付けて送れます。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
   "pack-download": function(t){
     var p = findPack(t.getAttribute("data-set")); if(!p) return;
@@ -3078,6 +3174,7 @@ window.BousaiApp = {
   getState:function(){ return state; }
 };
 
+window.addEventListener("hashchange", checkIncomingPack);
 loadThemePref();
 load().catch(function(err){
   appEl.innerHTML = '<div class="empty">読み込み中にエラーが発生しました。ページを再読み込みしてください。</div>';

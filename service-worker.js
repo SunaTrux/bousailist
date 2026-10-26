@@ -3,7 +3,7 @@
 //   so a new version reaches users on the next online visit.
 // - Everything else (icons, manifest, web fonts) is served cache-first and filled in as it is used.
 // Bump CACHE_NAME when you want to force every client to drop its old cache.
-const CACHE_NAME = "bousai-list-1.46.1";
+const CACHE_NAME = "bousai-list-1.47.0";
 const PRECACHE = [
   "./",
   "./index.html",
