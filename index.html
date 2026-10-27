@@ -304,6 +304,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   .items .item-top.editing{ align-items:center; gap:2px; min-height:52px; margin-bottom:10px; }   /* 編集中は、入力欄と保管場所チップを離す */
   .item-top.editing .edit-input{ outline-offset:-2px; }
+  .swipe-content input, .swipe-content textarea, .edit-input, input, textarea{ -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
   .drag-handle{ flex-shrink:0; width:30px; height:48px; margin-left:0; margin-right:-4px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; }
   .item.drag-lifted{ position:relative; z-index:6; background:var(--paper); box-shadow:0 6px 18px rgba(0,0,0,.28); transition:none; }
   .item.drag-lifted .swipe-content{ background:var(--paper); }
@@ -552,11 +553,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.50.8";
+var APP_VERSION = "1.50.9";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.50.9", lines:["iPhoneで、用品名などを入力したとき、文字の変換(カタカナ・漢字)の候補が出ない問題を、もう一度直しました。入力欄が「文字を選べない」設定の領域の中にあったため、入力欄だけ選べるようにしました。"] },
   { v:"1.50.8", lines:["iPhoneで、用品名などの日本語入力のあと、カタカナなどに変換できない問題を直しました。入力欄に連絡先の自動入力が出て、変換候補をふさいでいたため、自動入力が出ないようにしました。","変換の確定のEnterで、編集が意図せず確定されることがないようにしました。"] },
   { v:"1.50.7", lines:["「どこにある？」の「配置済」の表示では、用品に取り消し線をつけないようにしました。場所ごとに何があるかを見やすくするためです。","アプリのヒント文の初期の文を、「持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。保管場所まで決めたらチェック。」に変えました(自分で書き換えた文はそのままです)。"] },
   { v:"1.50.6", lines:["ヘルプの特徴の順番を、「初期の用品は公的資料にもとづく」が先頭、「拡張パック」が2番目になるように入れ替えました。"] },
