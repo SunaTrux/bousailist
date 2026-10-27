@@ -552,11 +552,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.50.6";
+var APP_VERSION = "1.50.7";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.50.7", lines:["「どこにある？」の「配置済」の表示では、用品に取り消し線をつけないようにしました。場所ごとに何があるかを見やすくするためです。","アプリのヒント文の初期の文を、「持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。保管場所まで決めたらチェック。」に変えました(自分で書き換えた文はそのままです)。"] },
   { v:"1.50.6", lines:["ヘルプの特徴の順番を、「初期の用品は公的資料にもとづく」が先頭、「拡張パック」が2番目になるように入れ替えました。"] },
   { v:"1.50.5", lines:["ヘルプの「どんなアプリ？」に、アプリの特徴を追加しました。拡張パックで自分なりに用品を増やして、おすすめを家族や友だちに送れること、初期の用品が東京都防災ホームページなどの公的資料にもとづいていることです。"] },
   { v:"1.50.4", lines:["アプリのヒント文の初期の文を、「持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。どこにあるかを決めておこう。」に変えました(自分で書き換えた文はそのままです)。","ヘルプを見直し、重なっていた説明をまとめ、いまの画面とちがう言い方を直しました。"] },
@@ -855,11 +856,12 @@ var GROUP_META = {
   g1:{ num:"1次", label:"持ち出し", accent:"var(--amber)", soft:"var(--amber-soft)" },
   g2:{ num:"2次", label:"備蓄", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
-var DEFAULT_APP_HINT = "持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。どこにあるかを決めておこう。";
+var DEFAULT_APP_HINT = "持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。保管場所まで決めたらチェック。";
+var V1505_APP_HINT = "持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。どこにあるかを決めておこう。";
 var V1500_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくそう。";
 var OLD_DEFAULT_APP_HINT = "0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
 var V8_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";   // 1.12.7〜1.18.x の初期の文
-function isOldAppHint(h){ return h === OLD_DEFAULT_APP_HINT || h === V8_APP_HINT || h === V1500_APP_HINT; }
+function isOldAppHint(h){ return h === OLD_DEFAULT_APP_HINT || h === V8_APP_HINT || h === V1500_APP_HINT || h === V1505_APP_HINT; }
 var MAX_HINT = 200;
 var DEFAULT_DESC = {
   g0:"外出時の災害に備えて、最低限の防災用品を常に携帯しよう。",
@@ -1932,7 +1934,7 @@ function buildByLocationHtml(g, meta){
     var id = esc(it.id), on = (it.have || []).indexOf(loc) !== -1, lock = loc !== UND_LOC && (it.have || []).indexOf(UND_LOC) !== -1;
     return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + (lock ? ' locked' : '') + '">'
       + '<button type="button" class="check-btn"' + (lock ? ' disabled' : '') + ' data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(it.name) + 'が' + esc(loc) + 'にそろった"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span></button>'
-      + '<div class="item-name' + (on ? " checked" : "") + '"' + (lock ? '' : ' data-act="toggle-have"') + ' data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
+      + '<div class="item-name' + (on && !onlyChecked ? " checked" : "") + '"' + (lock ? '' : ' data-act="toggle-have"') + ' data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
   var locAdd = buildLocAddHtml(g, meta);
   function unassignedHtml(){
