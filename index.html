@@ -552,11 +552,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.50.7";
+var APP_VERSION = "1.50.8";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.50.8", lines:["iPhoneで、用品名などの日本語入力のあと、カタカナなどに変換できない問題を直しました。入力欄に連絡先の自動入力が出て、変換候補をふさいでいたため、自動入力が出ないようにしました。","変換の確定のEnterで、編集が意図せず確定されることがないようにしました。"] },
   { v:"1.50.7", lines:["「どこにある？」の「配置済」の表示では、用品に取り消し線をつけないようにしました。場所ごとに何があるかを見やすくするためです。","アプリのヒント文の初期の文を、「持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。保管場所まで決めたらチェック。」に変えました(自分で書き換えた文はそのままです)。"] },
   { v:"1.50.6", lines:["ヘルプの特徴の順番を、「初期の用品は公的資料にもとづく」が先頭、「拡張パック」が2番目になるように入れ替えました。"] },
   { v:"1.50.5", lines:["ヘルプの「どんなアプリ？」に、アプリの特徴を追加しました。拡張パックで自分なりに用品を増やして、おすすめを家族や友だちに送れること、初期の用品が東京都防災ホームページなどの公的資料にもとづいていることです。"] },
@@ -1771,7 +1772,7 @@ function buildLocEditorHtml(g, meta, at){
   var grp = state.groups[g];
   var chips = grp.locations.length ? grp.locations.map(function(loc, i){
     if(renameLoc === g + ":" + i){
-      return '<div class="loc-chip renaming"><input type="text" class="edit-input" id="rename-loc-input" maxlength="' + MAX_LOC_NAME + '" value="' + esc(loc) + '" data-enter="save-rename-loc" data-g="' + g + '" data-li="' + i + '" aria-label="保管場所の名前">'
+      return '<div class="loc-chip renaming"><input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="edit-input" id="rename-loc-input" maxlength="' + MAX_LOC_NAME + '" value="' + esc(loc) + '" data-enter="save-rename-loc" data-g="' + g + '" data-li="' + i + '" aria-label="保管場所の名前">'
         + '<button type="button" class="btn" data-act="save-rename-loc" data-g="' + g + '" data-li="' + i + '">保存</button>'
         + '<button type="button" class="chip-x" data-act="cancel-rename-loc" aria-label="名前の変更をやめる">' + ICON_X + '</button></div>';
     }
@@ -1788,7 +1789,7 @@ function buildLocEditorHtml(g, meta, at){
       })()
     + suggestHtml(g, grp)
     + '<div class="field-title">新しい保管場所</div>'
-    + '<div class="add-line"><input type="text" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="例:' + esc(LOC_INPUT_EXAMPLE[g]) + '" aria-label="新しい保管場所" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
+    + '<div class="add-line"><input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="new-loc-input" maxlength="' + MAX_LOC_NAME + '" placeholder="例:' + esc(LOC_INPUT_EXAMPLE[g]) + '" aria-label="新しい保管場所" data-enter="add-loc" data-g="' + g + '" enterkeyhint="done">'
     + '<button type="button" class="btn" data-act="add-loc" data-g="' + g + '">追加</button></div>'
     + '<button type="button" class="btn btn-ghost edit-close" style="margin-top:14px" data-act="toggle-loc-editor">閉じる</button></div>';
 }
@@ -1811,7 +1812,7 @@ function buildItemRow(g, meta, item, locations, num){
   if(editing){
     top = '<div class="item-top editing">'
       + '<span class="check-btn status" aria-hidden="true"><span class="stat-num">' + (num || "") + '</span></span>'   // 連番はそのまま。入力欄は、いまの用品名と同じ位置から始める
-      + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
+      + '<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="edit-input" id="edit-item-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
       + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>';
   } else {
@@ -1843,7 +1844,7 @@ function buildMasterRow(g, item){
   var id = esc(item.id), top;
   if(editing){
     top = '<div class="item-top">'
-      + '<input type="text" class="edit-input" id="edit-name-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
+      + '<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="edit-input" id="edit-item-input" maxlength="' + MAX_NAME + '" value="' + esc(item.name) + '" data-enter="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="品名">'
       + '<button type="button" class="icon-btn" data-act="save-edit" data-g="' + g + '" data-id="' + id + '" aria-label="保存" style="color:var(--teal)">' + ICON_OK + '</button>'
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>'
       + '<div class="cat-edit"><label for="edit-cat-input">分類</label><select id="edit-cat-input">' + CATS.map(function(c){ return '<option value="' + c[0] + '"' + ((catKey(item.cat) || guessCat(item.name)) === c[0] ? ' selected' : '') + '>' + c[1] + '</option>'; }).join('') + '</select></div>';
@@ -1997,7 +1998,7 @@ function renderMain(){
     + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
   if(viewMode === "item"){
     html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
-      + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
+      + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
       + '<div class="footer-note"><span class="hint-fine">左にスワイプ(マウスはドラッグ)で非表示、右にスワイプでピン留めします</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名をタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
   } else {
@@ -2082,12 +2083,12 @@ function packCardHtml(pack){
       h += '<div class="panel" style="margin-top:10px"><p class="note">LINEやメールなどで送れます。受け取った人が、メッセージのリンクを開くと、取り込みの確認が出ます。</p>'
         + '<div class="btn-row"><button type="button" class="btn" data-act="pack-send-do" data-set="' + pid + '">送る</button><button type="button" class="btn btn-ghost" data-act="pack-send-copy">コピー</button></div>'
         + (sendMsg.length > 6000 ? '<div class="msg warn">用品が多いため、リンクが長くなります。うまく送れないときは、「Markdownで書き出す」を使ってください。</div>' : '')
-        + '<textarea class="code-box" id="pack-send-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:150px" aria-label="送るメッセージ">' + esc(sendMsg) + '</textarea>' + msgHtml(packMsg) + '</div>';
+        + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="pack-send-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:150px" aria-label="送るメッセージ">' + esc(sendMsg) + '</textarea>' + msgHtml(packMsg) + '</div>';
     }
     if(packExportId === pack.id){
       h += '<div class="panel" style="margin-top:10px"><p class="note">この文章を、LINEやメモで送れます。受け取った人は、設定の「拡張パック」から取り込めます。</p>'
         + '<div class="btn-row"><button type="button" class="btn" data-act="pack-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="pack-download" data-set="' + pid + '">ファイルでダウンロード</button></div>'
-        + '<textarea class="code-box" id="pack-export-text" readonly aria-label="パックの内容">' + esc(packToMd(findPack(pack.id))) + '</textarea>' + msgHtml(packMsg) + '</div>';
+        + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="pack-export-text" readonly aria-label="パックの内容">' + esc(packToMd(findPack(pack.id))) + '</textarea>' + msgHtml(packMsg) + '</div>';
     }
   }
   return h + '</div></div>';
@@ -2119,10 +2120,10 @@ function buildPacksHtml(){
   if(packEdit){
     h += '<div class="panel pack-panel"><p class="field-title">' + (packEdit.id ? "パックを編集" : "新しいパック") + '</p>'
       + '<p class="field-title">パック名(' + MAX_PACK_TITLE + '文字まで。作った人の名前を入れても構いません)</p>'
-      + '<input type="text" id="pack-title" maxlength="' + MAX_PACK_TITLE + '" value="' + esc(packEdit.title) + '" placeholder="例:ペット用" aria-label="パック名" style="margin-bottom:12px;width:100%;box-sizing:border-box">'
+      + '<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="pack-title" maxlength="' + MAX_PACK_TITLE + '" value="' + esc(packEdit.title) + '" placeholder="例:ペット用" aria-label="パック名" style="margin-bottom:12px;width:100%;box-sizing:border-box">'
       + '<p class="field-title">追加先の区分</p>' + packSegHtml("pack-g", packEdit.g)
       + '<p class="field-title">用品(1行に1つ。分類は名前の後ろに [食品] [生活] [その他] と書くと指定できます。なければ自動で決めます)</p>'
-      + '<textarea class="code-box" id="pack-items" maxlength="6000" placeholder="ペットフード [食品]&#10;リード&#10;ケージ [生活]" aria-label="パックの用品">' + esc(packEdit.text) + '</textarea>'
+      + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="pack-items" maxlength="6000" placeholder="ペットフード [食品]&#10;リード&#10;ケージ [生活]" aria-label="パックの用品">' + esc(packEdit.text) + '</textarea>'
       + '<div class="btn-row"><button type="button" class="btn" data-act="pack-save">保存</button><button type="button" class="btn btn-ghost" data-act="pack-cancel">キャンセル</button></div>' + msgHtml(packEdit.msg) + '</div>';
   }
   if(packImpOpen){
@@ -2130,7 +2131,7 @@ function buildPacksHtml(){
       + '<p class="field-title">ファイルを選ぶ</p><input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" data-change="pack-imp-file" style="margin-bottom:12px">'
       + (packImp.file ? '<p class="note">読み込んだファイル: ' + esc(packImp.file) + '</p>' : '')
       + '<p class="field-title">リンクや文章を貼り付け</p>'
-      + '<textarea class="code-box" id="pack-imp-text" data-input="pack-imp-text" placeholder="# 拡張パック: ペット用&#10;区分: 持ち出し&#10;&#10;- ペットフード [食品]" aria-label="パックの文章">' + esc(packImp.text) + '</textarea>'
+      + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="pack-imp-text" data-input="pack-imp-text" placeholder="# 拡張パック: ペット用&#10;区分: 持ち出し&#10;&#10;- ペットフード [食品]" aria-label="パックの文章">' + esc(packImp.text) + '</textarea>'
       + '<div class="btn-row"><button type="button" class="btn" data-act="pack-imp-preview">内容を確認する</button></div>'
       + '<div id="pack-imp-preview">' + (packImp.plan ? buildPackPreviewHtml(packImp.plan) : '') + '</div>' + msgHtml(packImp.msg) + '</div>';
   }
@@ -2157,12 +2158,12 @@ function buildSettingsHtml(){
   var mdExport = '<button type="button" class="settings-btn" data-act="panel" data-p="mdExport">' + (panels.mdExport ? "Markdownを閉じる" : "Markdownで書き出し") + '</button>';
   if(panels.mdExport){
     mdExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="md-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="md-download">.mdファイルをダウンロード</button></div>'
-      + '<textarea class="code-box" id="md-export-text" readonly aria-label="Markdownの内容">' + esc(buildMarkdownText()) + '</textarea>' + msgHtml(mdMsg) + '</div>';
+      + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="md-export-text" readonly aria-label="Markdownの内容">' + esc(buildMarkdownText()) + '</textarea>' + msgHtml(mdMsg) + '</div>';
   }
   var csvExport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvExport">' + (panels.csvExport ? "CSVエクスポートを閉じる" : "リストをCSVでエクスポート") + '</button>';
   if(panels.csvExport){
     csvExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="csv-download">CSVをダウンロード</button><button type="button" class="btn btn-ghost" data-act="csv-copy">テキストをコピー</button></div>'
-      + '<textarea class="code-box" id="csv-export-text" readonly aria-label="CSVの内容">' + esc(buildCsvText()) + '</textarea>' + msgHtml(csv.exportMsg) + '</div>';
+      + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="csv-export-text" readonly aria-label="CSVの内容">' + esc(buildCsvText()) + '</textarea>' + msgHtml(csv.exportMsg) + '</div>';
   }
   var csvImport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvImport">' + (panels.csvImport ? "CSVインポートを閉じる" : "CSVからインポート") + '</button>';
   if(panels.csvImport){
@@ -2172,14 +2173,14 @@ function buildSettingsHtml(){
       + '<p class="field-title">CSVファイルを選ぶ</p><input type="file" accept=".csv,.txt,text/csv,text/plain" data-change="csv-file" style="margin-bottom:12px">'
       + (csv.file ? '<p class="note">読み込んだファイル: ' + esc(csv.file) + '(文字コード: ' + esc(csv.enc) + ')</p>' : '')
       + '<p class="field-title">またはCSVのテキストを貼り付け</p>'
-      + '<textarea class="code-box" id="csv-import-text" data-input="csv-text" placeholder="区分,品名,チェック,保管場所" aria-label="CSVのテキスト">' + esc(csv.text) + '</textarea>'
+      + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="csv-import-text" data-input="csv-text" placeholder="区分,品名,チェック,保管場所" aria-label="CSVのテキスト">' + esc(csv.text) + '</textarea>'
       + '<div class="btn-row"><button type="button" class="btn" data-act="csv-preview">内容を確認する</button></div>'
       + '<div id="csv-preview">' + (csv.plan ? buildCsvPreviewHtml(csv.plan) : "") + '</div>' + msgHtml(csv.msg) + '</div>';
   }
   var jsonExport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonExport">' + (panels.jsonExport ? "エクスポートを閉じる" : "全データをエクスポート") + '</button>';
   if(panels.jsonExport){
     jsonExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="json-download">ファイルをダウンロード</button><button type="button" class="btn btn-ghost" data-act="json-copy">テキストをコピー</button></div>'
-      + '<textarea class="code-box" id="json-export-text" readonly aria-label="バックアップの内容">' + esc(JSON.stringify(state, null, 2)) + '</textarea>' + msgHtml(json.exportMsg) + '</div>';
+      + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="json-export-text" readonly aria-label="バックアップの内容">' + esc(JSON.stringify(state, null, 2)) + '</textarea>' + msgHtml(json.exportMsg) + '</div>';
   }
   var jsonImport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonImport">' + (panels.jsonImport ? "インポートを閉じる" : "データをインポート") + '</button>';
   if(panels.jsonImport){
@@ -2187,7 +2188,7 @@ function buildSettingsHtml(){
       + '<p class="field-title">バックアップファイルを選ぶ</p><input type="file" accept=".json,application/json,text/plain" data-change="json-file" style="margin-bottom:12px">'
       + (json.file ? '<p class="note">読み込んだファイル: ' + esc(json.file) + '(文字コード: ' + esc(json.enc) + ')</p>' : '')
       + '<p class="field-title">またはテキストを貼り付け</p>'
-      + '<textarea class="code-box" id="json-import-text" data-input="json-text" placeholder="{...}" aria-label="バックアップのテキスト">' + esc(json.text) + '</textarea>'
+      + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="json-import-text" data-input="json-text" placeholder="{...}" aria-label="バックアップのテキスト">' + esc(json.text) + '</textarea>'
       + '<div class="btn-row"><button type="button" class="btn" data-act="json-preview">内容を確認する</button></div>'
       + '<div id="json-preview">' + (json.plan ? buildJsonPreviewHtml(json.plan) : "") + '</div>' + msgHtml(json.msg) + '</div>';
   }
@@ -2305,7 +2306,7 @@ function buildSettingsHtml(){
   var fbBody = '<p class="note">使ってみた感想や、「ここが使いにくい」「動かない」などは、下のフォームから気軽にどうぞ。不具合の場合は、どの画面で何をしたかを書いてもらえると助かります。端末・ブラウザ・バージョンは自動で一緒に届きます(今のバージョン: v' + esc(APP_VERSION) + ')。</p>'
     + '<a class="settings-btn" href="' + esc(FEEDBACK_URL + "?app=" + encodeURIComponent(FEEDBACK_APP_NAME) + "&version=" + encodeURIComponent(APP_VERSION) + "&device=" + encodeURIComponent(deviceInfo())) + '" target="_blank" rel="noopener">感想を送る</a>';
   var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。</p>'
-    + '<textarea class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
+    + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
     + '<div class="btn-row"><button type="button" class="btn" data-act="rec-share">友達に送る</button><button type="button" class="btn btn-ghost" data-act="rec-copy">文章をコピー</button></div>' + msgHtml(recMsg);
   var myPacks = state.packs || [], recPack = recPackId ? myPacks.filter(function(p){ return p.id === recPackId; })[0] : null;
   recBody += '<h3 class="acc-sub">自分の拡張パックも送る</h3>';
@@ -2314,7 +2315,7 @@ function buildSettingsHtml(){
     recBody += '<p class="note">送りたいパックを選んでください。リンクを開いた人は、アプリがそのまま開いて、パックを取り込めます。</p><div class="pack-tools">'
       + myPacks.map(function(p){ var on = recPack && recPack.id === p.id; return '<button type="button" class="btn ' + (on ? "" : "btn-ghost") + '" data-act="rec-pack-pick" data-set="' + esc(p.id) + '" aria-pressed="' + (!!on) + '">' + esc(p.title) + '(' + p.items.length + '件)</button>'; }).join("") + '</div>';
     if(recPack){
-      recBody += '<textarea class="code-box" id="rec-pack-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:150px;margin-top:10px" aria-label="送るメッセージ">' + esc(packShareText({ title:recPack.title, g:recPack.g, items:recPack.items })) + '</textarea>'
+      recBody += '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="code-box" id="rec-pack-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:150px;margin-top:10px" aria-label="送るメッセージ">' + esc(packShareText({ title:recPack.title, g:recPack.g, items:recPack.items })) + '</textarea>'
         + '<div class="btn-row"><button type="button" class="btn" data-act="rec-pack-share">送る</button><button type="button" class="btn btn-ghost" data-act="rec-pack-copy">コピー</button></div>' + msgHtml(recPackMsg);
     }
   }
@@ -2324,13 +2325,13 @@ function buildSettingsHtml(){
     + [["show", "表示する", !ovHidden], ["hide", "非表示にする", ovHidden]].map(function(o){ return '<button type="button" class="' + (o[2] ? "active" : "") + '" data-act="set-overview" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join("") + '</div>';
   var curHint = state.appHint || DEFAULT_APP_HINT;
   var hintBody = '<p class="note">トップ画面のタイトルの下に出る説明文です。自由に書き換えられます(' + MAX_HINT + '文字まで・改行できます)。空にすると、初期の文に戻ります。</p>'
-    + '<textarea class="desc-textarea" id="app-hint-input" maxlength="' + MAX_HINT + '" data-change="app-hint" aria-label="アプリのヒント文">' + esc(curHint) + '</textarea>'
+    + '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="desc-textarea" id="app-hint-input" maxlength="' + MAX_HINT + '" data-change="app-hint" aria-label="アプリのヒント文">' + esc(curHint) + '</textarea>'
     + (state.appHint ? '<button type="button" class="settings-btn" data-act="reset-hint">初期の文に戻す</button>' : '<p class="note" style="margin:0">いまは初期の文です。</p>')
     + '<h3 class="acc-sub">各次のヒント文</h3><p class="note">0次・1次・2次の説明文です。ヘルプの「3つの区分」に表示されます。</p>'
     + GROUP_ORDER.map(function(g){
         var m = GROUP_META[g], grp = state.groups[g];
         if(editingDescG === g){
-          return '<div class="desc-block"><div class="field-title">' + m.num + ' ' + m.label + '</div><textarea class="desc-textarea" id="desc-edit-input" maxlength="' + MAX_DESC + '" aria-label="' + m.label + 'のヒント文">' + esc(grp.desc) + '</textarea>'
+          return '<div class="desc-block"><div class="field-title">' + m.num + ' ' + m.label + '</div><textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="desc-textarea" id="desc-edit-input" maxlength="' + MAX_DESC + '" aria-label="' + m.label + 'のヒント文">' + esc(grp.desc) + '</textarea>'
             + '<div class="desc-edit-btns"><button type="button" class="btn" data-act="save-desc" data-g="' + g + '">保存</button><button type="button" class="btn btn-ghost" data-act="cancel-desc">キャンセル</button>'
             + (grp.desc !== DEFAULT_DESC[g] ? '<button type="button" class="btn btn-ghost" data-act="reset-desc" data-g="' + g + '">初期の文に戻す</button>' : '') + '</div></div>';
         }
@@ -2558,9 +2559,9 @@ var ACTIONS = {
     state.groups[g].items.push({ id:newId(), name:name, checked:false, cat:guessCat(name), locations:state.groups[g].locations.slice(), have:[] });   // 最初から、並んでいる場所すべてに置く用品として追加
     render(); save(); focusId("new-item-input");
   },
-  "start-edit": function(t){ clearTransient(); editingItemId = t.getAttribute("data-id"); render(); focusId("edit-name-input"); var el = document.getElementById("edit-name-input"); if(el && el.select) el.select(); },
+  "start-edit": function(t){ clearTransient(); editingItemId = t.getAttribute("data-id"); render(); focusId("edit-item-input"); var el = document.getElementById("edit-item-input"); if(el && el.select) el.select(); },
   "save-edit": function(t){
-    var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), input = document.getElementById("edit-name-input");
+    var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")), input = document.getElementById("edit-item-input");
     var name = input ? cleanLine(input.value, MAX_NAME) : "";
     var csel = document.getElementById("edit-cat-input");
     if(it && name) it.name = name;
@@ -2910,10 +2911,12 @@ appEl.addEventListener("click", function(e){
   var fn = ACTIONS[t.getAttribute("data-act")];
   if(fn) fn(t, e);
 });
+var lastCompEnd = -1000;
+appEl.addEventListener("compositionend", function(e){ lastCompEnd = e.timeStamp; });
 appEl.addEventListener("keydown", function(e){
   var t = e.target;
   if(!t || !t.getAttribute) return;
-  if(e.key === "Enter" && !e.isComposing && t.getAttribute("data-enter")){
+  if(e.key === "Enter" && !e.isComposing && e.keyCode !== 229 && !(e.timeStamp - lastCompEnd < 60) && t.getAttribute("data-enter")){
     e.preventDefault();
     var fn = ACTIONS[t.getAttribute("data-enter")];
     if(fn) fn(t, e);
