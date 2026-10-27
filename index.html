@@ -162,7 +162,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; white-space:nowrap;
   }
   .tab .stamp svg{ width:21px; height:21px; display:block; }
-  .tab .tlabel{ font-size:12px; font-weight:700; }
+  .tab .tlabel{ display:inline-flex; align-items:center; justify-content:center; gap:4px; font-size:12px; font-weight:700; }
+  .tab .tlabel svg{ width:16px; height:16px; flex:none; }
   .tab.active{ color:var(--ink); }
   .tab.active::after{ content:''; position:absolute; left:0; right:0; bottom:-1px; height:3px; background:var(--accent,var(--ink)); }
   .tab.active .stamp{ background:var(--accent-soft,var(--card)); border-color:var(--accent,var(--ink)); }
@@ -227,8 +228,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .group-desc{ padding-left:28px; padding-right:28px; }
     .filter-bar{ padding-left:28px; padding-right:28px; }
     .filter-bar .fb-search.has-q{ max-width:240px; }
-    .items{ padding:0 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-items:start; }
-    .loc-group{ padding:0 28px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); column-gap:36px; align-content:start; }
+    .items{ padding:0 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); column-gap:56px; align-items:start; }
+    .loc-group{ padding:0 28px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); column-gap:56px; align-content:start; }
     .loc-group > .loc-group-title, .loc-group > .loc-head, .loc-group > .note{ grid-column:1 / -1; }
     .pins{ padding-left:28px; padding-right:28px; }
     .pin-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 400px)); gap:5px 20px; }
@@ -550,11 +551,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.49.0";
+var APP_VERSION = "1.50.0";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.50.0", lines:["非表示にしていた用品をピン留めすると、表示に戻るようにしました。","パソコンの画面で、用品の列を広くして、見やすくしました(1列の幅を広げ、列のあいだも広げました)。","設定を整理しました。「書き出し・共有・バックアップ」は、自分用の「書き出し・バックアップ」になりました。新しい「コミュニケーション」に、「家族に共有」「友だちに紹介・パックを送る」「作者に感想を送る」を集めました。","タブの下の名前の横に、スニーカー・リュック・家のアイコンを付けました。"] },
   { v:"1.49.0", lines:["設定の「このアプリを友達に勧める」の下に、自分で作った拡張パックを送る欄を追加しました。パックを選んで「送る」を押すと、リンク付きのメッセージが作られます。リンクを開いた人は、アプリがそのまま開いて、パックを取り込めます。"] },
   { v:"1.48.0", lines:["作者に感想や不具合を送れるようにしました。設定の「感想・ご意見を送る」から、フォームを開けます(バンドマン持ち物リスト、プレイヤーズセットリストと同じフォームで、このアプリが自動で選ばれます)。"] },
   { v:"1.47.0", lines:["自分で作った拡張パックを、家族や友だちに簡単に送れるようにしました。設定の「拡張パック」で、自分のパックの「友だちに送る」を押すと、リンク付きのメッセージが作られます(LINEなどの送る画面が開きます)。","もらった人は、リンクを開くと「パックが届きました」と出るので、「リストに追加する」を押すだけで取り込めます。ホーム画面のアプリで使っている人は、メッセージ全体を「もらったパックを取り込む」に貼り付けられます。"] },
@@ -1751,7 +1753,7 @@ function buildTabsHtml(){
   return GROUP_ORDER.map(function(g){
     var m = GROUP_META[g], on = g === state.activeTab;
     return '<button type="button" class="tab' + (on ? " active" : "") + '" style="' + (on ? accentStyle(m) : "") + '" data-act="tab" data-g="' + g + '"'
-      + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + m.num + '</div><div class="tlabel">' + m.label + '</div></button>';
+      + (on ? ' aria-current="true"' : "") + '><div class="stamp">' + m.num + '</div><div class="tlabel">' + TAB_ICONS[g] + '<span>' + m.label + '</span></div></button>';
   }).join("");
 }
 function buildLocEditorHtml(g, meta, at){
@@ -2200,7 +2202,7 @@ function buildSettingsHtml(){
   var themeName = themePref === "light" ? "ライト" : themePref === "dark" ? "ダーク" : "端末に合わせる";
   var pendingBy = {
     master: !!(pendingDeleteId || pendingDeleteLoc),
-    share: !!(csv.plan || json.plan),
+    backup: !!json.plan, family: !!csv.plan,
     sets: !!(packEdit || packFrom || packImp.plan || pendingDeletePack),
     danger: !!(pendingReset || pendingRestore),
     hint: !!editingDescG
@@ -2213,7 +2215,8 @@ function buildSettingsHtml(){
     guide:'<path d="M6 21V4"/><path d="M6 4h12l-2.5 4L18 12H6"/>',
     sets:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
     master:'<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
-    share:'<path d="M12 15V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v8h14v-8"/>',
+    backup:'<path d="M12 15V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v8h14v-8"/>',
+    family:'<circle cx="8.5" cy="8" r="2.6"/><circle cx="16.5" cy="9" r="2.2"/><path d="M3.5 19c.4-3.2 2.4-5 5-5s4.6 1.8 5 5"/><path d="M14.5 14.4c.7-.3 1.4-.4 2-.4 2.2 0 3.6 1.5 4 4.6"/>',
     recommend:'<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
     danger:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>',
     feedback:'<path d="M4 5h16v11H9.5L5 20v-4H4z"/><path d="M8 9.5h8M8 12.5h5"/>',
@@ -2239,15 +2242,15 @@ function buildSettingsHtml(){
       + qa("where", "「どこにある？」タブ", '<p>保管場所ごとに、置く用品を並べて見るタブです。バッグや棚ごとに「そろっているか」を確かめるときに便利です。</p><ul><li>その場所に用意できた用品をチェックすると、用品側の、その場所の箱にもチェックが入ります。</li><li>「場所未定」も場所のひとつです。場所を決めずに準備した用品は、ここにまとまります。</li></ul>')
       + qa("prog", "進捗バーと「準備済み」", '<p>上部の進捗バーは、準備済みの用品の割合です。どこか1つでも場所(「場所未定」を含む)にチェックが入った用品を、準備済みとして数えます。区分ごとに計算します。</p><p>場所を決めておくのがおすすめですが、強制ではありません。決めていなくても、「場所未定」にチェックすれば、準備した分として進みます。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>すべて／未配置／場所未定／配置済</b>: 「配置済」は、場所の箱にチェックを入れた(置いた)ことを表します。「未配置」にすると、まだ置いていない用品だけが表示されます(用品の画面は、どの場所にもチェックのない用品。「どこにある？」の画面は、その場所にまだ置いていない用品)。「場所未定」は用品の画面だけで、場所を決めずに準備した用品を見られます。「配置済」は「どこにある？」の画面だけで、置いた用品だけを場所ごとに見られます。</li><li><b>目のアイコン</b>: 非表示にした用品の表示・非表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
-      + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、その場で名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
+      + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、その場で名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。非表示にしていた用品をピン留めすると、表示に戻ります。</li><li>使わない用品は「非表示」にすると、一覧から隠せます(削除はされません)。</li><li>用品の削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
       + qa("places", "保管場所を増やす・直す", '<p>用品の一覧の上の絞り込みバーにある鉛筆ボタン(「どこにある？」でも同じ場所です)から、その次の保管場所を、追加・名前の変更・削除・並べ替えできます。名前を変えると、その次のすべての用品に反映されます。場所を消すと、その場所のチェックも消えます(削除の直後なら「元に戻す」で戻せます)。候補からの追加や、消してしまった初期の場所を戻すこともできます(自分で作った場所は残ります)。</p><p>各次のヒント文は、設定の「ヒント文」で書き換えられます。</p>')
       + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、選んで追加できます(設定の「拡張パック」)。追加した用品は「用品名（高齢者用）」のように、見分けがつく名前になります。</p><p>自分でパックを作って、家族や友だちに送れます。</p><ul><li><b>送る</b>: 設定の「拡張パック」で、自分のパックの「友だちに送る」を押します。LINEやメールなどの送る画面が開き、リンク付きのメッセージが作られます。</li><li><b>もらう</b>: メッセージのリンクを開くと、「パックが届きました」と出ます。「リストに追加する」を押すだけで取り込めます。</li><li>ホーム画面に追加したアプリで使っているときは、メッセージ全体をコピーして、設定の「拡張パック」→「もらったパックを取り込む」に貼り付けてください。</li></ul><p>Markdownの文章やファイルでの受け渡しもできます。</p>')
       + '<h3 class="acc-sub">便利な使い方例</h3>'
       + qa("ex1", "例: 玄関・車・職場など、場所ごとに点検", '<p>「どこにある？」タブで場所ごとの一覧を見ながら、実際の袋や棚の中身と見比べます。足りないものが見つかったら、その場でチェックを外す(または追加する)と、リストと現物がずれません。</p>')
       + qa("ex2", "例: 定期的な見直し", '<p>季節の変わり目や防災の日など、見直す日を決めて、「未」の絞り込みで残りを確認します。食品や薬のように期限のあるものは、用品名の編集で期限をメモしておく使い方もできます。</p>')
       + qa("ex3", "例: 家族でリストを共有", '<p>1人が設定の「家族と共有(CSV)」で書き出し、LINEやメールで送ります。受け取った人は「マージ」で取り込むと、自分の用品を消さずに、新しい用品だけ追加されます。</p>')
-      + qa("ex4", "例: 友達に防災の備えを伝える", '<p>「このアプリを友達に勧める」からURLと説明を送れます。パック名にひと言入れた自作パックを送って、持ち物の例として渡すのもおすすめです。</p>')
-      + qa("ex5", "例: 現状を文章でLINEに送る", '<p>設定の「書き出し・共有・バックアップ」の「メモ・LINE用(Markdown)」で、いまのリストを読みやすい文章にして送れます。</p>')
+      + qa("ex4", "例: 友達に防災の備えを伝える", '<p>設定の「コミュニケーション」→「友だちに紹介・パックを送る」からURLと説明を送れます。パック名にひと言入れた自作パックを送って、持ち物の例として渡すのもおすすめです。</p>')
+      + qa("ex5", "例: 現状を文章でLINEに送る", '<p>設定の「コミュニケーション」→「家族に共有」の「メモ・LINE用(Markdown)」で、いまのリストを読みやすい文章にして送れます。</p>')
       + '<h3 class="acc-sub">データのこと</h3>'
       + qa("data", "データはどこに保存される？", '<p>この端末のブラウザの中だけです。別の端末とは自動では同期されません。引っ越しや機種変更の前に、設定の「JSON」でバックアップを書き出してください。</p><p>ブラウザのデータを消去すると、中身も消えます。</p>')
       + qa("home", "ホーム画面に追加する", '<ul><li><b>iPhone(Safari)</b>: 共有ボタン →「ホーム画面に追加」</li><li><b>Android(Chrome)</b>: メニュー →「ホーム画面に追加」(または「アプリをインストール」)</li></ul><p>ホーム画面から開くと、アプリのように使えます。</p>')
@@ -2310,9 +2313,9 @@ function buildSettingsHtml(){
         }
         return '<div class="desc-block"><div class="field-title">' + m.num + ' ' + m.label + '</div><p class="note" style="margin:0 0 6px">' + esc(grp.desc).replace(/\n/g, "<br>") + '</p><button type="button" class="btn btn-ghost" data-act="edit-desc" data-g="' + g + '">編集</button></div>';
       }).join("");
-  var shareBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
-    + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport
-    + '<h3 class="acc-sub">自分用の完全バックアップ(JSON)</h3>' + '<p class="note">説明文や設定も含めた完全なバックアップです。自分用の保管・端末の引っ越しに向いています。</p>' + jsonExport + jsonImport;
+  var familyBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
+    + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport;
+  var backupBody = '<p class="note">自分のための書き出しです。説明文や設定も含めた完全なバックアップ(JSON)を保管したり、端末を引っ越したりするときに使います。</p>' + jsonExport + jsonImport;
   var dangerBody = msgHtml(dangerMsg, "danger-msg") + restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">持ち歩き・持ち出し・備蓄すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
   var dangerSummary = prevSnap ? prevBefore() + "前に戻す・初期化" : "初期化";
 
@@ -2325,10 +2328,12 @@ function buildSettingsHtml(){
     + grpLabel("表示") + acc("theme", "テーマ", themeName, themeBody)
     + acc("overview", "進捗バー", ovHidden ? "非表示" : "表示", overviewBody)
     + acc("hint", "ヒント文", "アプリ・各次", hintBody)
-    + grpLabel("データ") + acc("share", "書き出し・共有・バックアップ", "Markdown / CSV / JSON", shareBody)
+    + grpLabel("データ") + acc("backup", "書き出し・バックアップ", "自分用(JSON)", backupBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
-    + grpLabel("アプリ") + acc("recommend", "このアプリを友達に勧める", "URLと説明・自作パックを送る", recBody)
-    + acc("feedback", "感想・ご意見を送る", "作者に届きます", fbBody)
+    + grpLabel("コミュニケーション") + acc("family", "家族に共有", "文章(LINE・メモ)・CSV", familyBody)
+    + acc("recommend", "友だちに紹介・パックを送る", "URLと説明・自作パックを送る", recBody)
+    + acc("feedback", "作者に感想を送る", "フォームで届きます", fbBody)
+    + grpLabel("アプリ")
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
     + acc("update", "アプリの更新", swUpdated ? "新しい版があります" : "最新版を確認", updBody)
   var wideHtml = "";
@@ -2647,6 +2652,7 @@ var ACTIONS = {
   "toggle-pin": function(t){
     var g = getGroup(t), it = findItem(g, t.getAttribute("data-id")); if(!it) return;
     it.pinned = !it.pinned;
+    if(it.pinned && it.hidden) it.hidden = false;   // 非表示の用品をピン留めしたら、表示に戻す(ピン留めが見えなくなるのを防ぐ)
     closeSwipe(); render(); save();
   },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
@@ -2778,7 +2784,7 @@ var ACTIONS = {
   "toggle-help": function(t){ var k = t.getAttribute("data-h"), i = helpOpen.indexOf(k); if(i >= 0) helpOpen.splice(i, 1); else helpOpen.push(k); render(); var b = appEl.querySelector('[data-h="' + k + '"]'); if(b && b.focus) b.focus(); },
   "toggle-sec": function(t){
     var k = t.getAttribute("data-sec"), idx = openSecs.indexOf(k);
-    var pend = { hint: !!editingDescG, master: !!(pendingDeleteId || pendingDeleteLoc), share: !!(csv.plan || json.plan), sets: !!(packEdit || packFrom || packImp.plan || pendingDeletePack), danger: !!(pendingReset || pendingRestore) };
+    var pend = { hint: !!editingDescG, master: !!(pendingDeleteId || pendingDeleteLoc), backup: !!json.plan, family: !!csv.plan, sets: !!(packEdit || packFrom || packImp.plan || pendingDeletePack), danger: !!(pendingReset || pendingRestore) };
     if(idx >= 0){ if(!pend[k]) openSecs.splice(idx, 1); }
     else {
       openSecs = openSecs.filter(function(x){ return pend[x]; });  // 確認中・作業中の見出しは開いたまま残す
@@ -2824,7 +2830,7 @@ var ACTIONS = {
   },
   "reset-backup": function(){
     try{ downloadFile(JSON.stringify(state, null, 2), exportFileName("バックアップ", ".json"), "application/json;charset=utf-8", false); resetBackupMsg = { type:"ok", text:"バックアップを保存しました。端末のダウンロードを確認してください。続けて初期化できます。" }; }
-    catch(e){ resetBackupMsg = { type:"error", text:"保存できませんでした。キャンセルして、「書き出し・共有・バックアップ」の「テキストをコピー」を使ってください。" }; }
+    catch(e){ resetBackupMsg = { type:"error", text:"保存できませんでした。キャンセルして、「書き出し・バックアップ」の「テキストをコピー」を使ってください。" }; }
     render();
   },
   "json-copy": function(){ json.exportMsg = copyFrom("json-export-text") ? { type:"ok", text:"コピーしました。" } : { type:"error", text:"自動コピーに失敗しました。テキストを選択して手動でコピーしてください。" }; render(); },
