@@ -554,11 +554,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.51.0";
+var APP_VERSION = "1.52.0";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.52.0", lines:["「場所未定」を、いつも保管場所の一番最後に表示する固定の場所にしました。保管場所の編集画面には出さず、名前の変更・削除・並べ替えはできません。","保管場所を追加しても、「場所未定」は最後のままです。"] },
   { v:"1.51.0", lines:["iPhoneで、用品名の入力中に文字の変換(カタカナ・漢字)の候補が出ない問題を、バンドマン持ち物リストと同じ入力欄の作りにそろえて直しました。","用品名を編集している間は、行をスワイプ用の枠から外し、入力欄をふつうの入力欄にしました。"] },
   { v:"1.50.9", lines:["iPhoneで、用品名などを入力したとき、文字の変換(カタカナ・漢字)の候補が出ない問題を、もう一度直しました。入力欄が「文字を選べない」設定の領域の中にあったため、入力欄だけ選べるようにしました。"] },
   { v:"1.50.8", lines:["iPhoneで、用品名などの日本語入力のあと、カタカナなどに変換できない問題を直しました。入力欄に連絡先の自動入力が出て、変換候補をふさいでいたため、自動入力が出ないようにしました。","変換の確定のEnterで、編集が意図せず確定されることがないようにしました。"] },
@@ -1074,6 +1075,7 @@ function syncItem(it){
 }
 /* 保管場所は、次(区分)ごとに共通。どの用品も、その次のすべての場所の箱を持つ */
 function normalizeLocs(st){
+  ensureUndLast(st);
   GROUP_ORDER.forEach(function(g){
     var grp = st.groups[g]; if(!grp || !Array.isArray(grp.items) || !Array.isArray(grp.locations)) return;
     grp.items.forEach(function(it){
@@ -1082,6 +1084,14 @@ function normalizeLocs(st){
       it.locations = grp.locations.slice(); it.und = false;
       syncItem(it);
     });
+  });
+}
+/* 「場所未定」は固定の場所: いつも最後に1つだけ置く(編集画面には出さない) */
+function ensureUndLast(st){
+  GROUP_ORDER.forEach(function(g){
+    var grp = st.groups[g]; if(!grp || !Array.isArray(grp.locations)) return;
+    var rest = grp.locations.filter(function(l){ return keyOf(l) !== keyOf(UND_LOC); }).slice(0, MAX_LOCATIONS - 1);
+    rest.push(UND_LOC); grp.locations = rest;
   });
 }
 function isUnplanned(it){ return !it.locations.length || (it.have || []).indexOf(UND_LOC) !== -1; }
@@ -1774,21 +1784,23 @@ function buildTabsHtml(){
 function buildLocEditorHtml(g, meta, at){
   if(locEditorFor !== at) return "";
   var grp = state.groups[g];
-  var chips = grp.locations.length ? grp.locations.map(function(loc, i){
+  var shownLocs = grp.locations.filter(function(l){ return l !== UND_LOC; });
+  var chips = shownLocs.length ? grp.locations.map(function(loc, i){
+    if(loc === UND_LOC) return "";
     if(renameLoc === g + ":" + i){
       return '<div class="loc-chip renaming"><input type="text" autocomplete="off" class="edit-input" id="rename-loc-input" maxlength="' + MAX_LOC_NAME + '" value="' + esc(loc) + '" data-enter="save-rename-loc" data-g="' + g + '" data-li="' + i + '" aria-label="保管場所の名前">'
         + '<button type="button" class="btn" data-act="save-rename-loc" data-g="' + g + '" data-li="' + i + '">保存</button>'
         + '<button type="button" class="chip-x" data-act="cancel-rename-loc" aria-label="名前の変更をやめる">' + ICON_X + '</button></div>';
     }
     return '<div class="loc-chip" data-ci="' + i + '"><button type="button" class="chip-grip" data-grip="loc" data-g="' + g + '" data-i="' + i + '" aria-label="' + esc(loc) + 'を並べ替え(ドラッグ、または左右キー)">' + ICON_DOTS + '</button><span>' + esc(loc) + '</span><button type="button" class="chip-x" data-act="req-rename-loc" data-g="' + g + '" data-li="' + i + '" aria-label="' + esc(loc) + 'の名前を変更">' + ICON_EDIT + '</button><button type="button" class="chip-x" data-act="req-del-loc" data-g="' + g + '" data-li="' + i + '" aria-label="' + esc(loc) + 'を削除">' + ICON_X + '</button></div>';
-  }).join("") : '<span class="note">保管場所がありません</span>';
+  }).join("") : '<span class="note">保管場所がありません(「場所未定」だけです)</span>';
   return '<div class="loc-settings inline">'
     + (delUndo && delUndo.g === g ? '<div class="del-msg" role="status"><span>「' + esc(delUndo.name) + '」を削除しました。</span><button type="button" class="btn btn-ghost" data-act="undo-del">元に戻す</button></div>' : '')
     + (locMsg ? '<div class="msg' + (locMsgOk ? '' : ' error') + '" role="status">' + esc(locMsg) + '</div>' : '')
-    + '<div class="field-title">' + meta.label + 'の保管場所(すべての用品で共通です。鉛筆で名前を変更、✕で削除、ドラッグで並べ替え)</div>'
+    + '<div class="field-title">' + meta.label + 'の保管場所(すべての用品で共通です。鉛筆で名前を変更、✕で削除、ドラッグで並べ替え。「場所未定」は、いつも最後に出ます)</div>'
     + '<div class="loc-chips">' + chips + '</div>'
     + (function(){
-        var miss = DEFAULT_LOCATIONS[g].filter(function(n){ return findLoc(grp.locations, n) === -1; });
+        var miss = DEFAULT_LOCATIONS[g].filter(function(n){ return n !== UND_LOC && findLoc(grp.locations, n) === -1; });
         return miss.length ? '<button type="button" class="btn btn-ghost" style="margin:0 0 12px" data-act="restore-locs" data-g="' + g + '">初期の保管場所を戻す(' + esc(miss.join("・")) + ')</button>' : "";
       })()
     + suggestHtml(g, grp)
@@ -2256,7 +2268,7 @@ function buildSettingsHtml(){
       + qa("prog", "進捗バー", '<p>準備済み(どこか1か所でも、「場所未定」を含めてチェックがある)用品の割合です。フェーズごとに計算します。設定の「進捗バー」で、表示・非表示を切り替えられます。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>未配置</b>: まだ置いていない用品だけを表示します。</li><li><b>場所未定</b>(防災用品のみ): 場所を決めずに準備した用品を表示します。</li><li><b>配置済</b>(どこにある？のみ): 置いた用品だけを、場所ごとに表示します。最初はこの表示です。</li><li><b>目のアイコン</b>: 非表示にした用品の表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
       + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。非表示の用品をピン留めすると、表示に戻ります。</li><li>使わない用品は「非表示」で隠せます(削除はされません)。行をスワイプ(PCはドラッグ)すると、ピン留めと非表示ができます。</li><li>削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
-      + qa("places", "保管場所を増やす・直す", '<p>絞り込みバーの鉛筆ボタン(「どこにある？」でも同じ)で、そのフェーズの保管場所を、追加・名前変更・削除・並べ替えできます。変更は、同じフェーズのすべての用品に反映されます。</p><p>場所を消すと、その場所のチェックも消えます(直後なら「元に戻す」で戻せます)。候補からの追加や、消した初期の場所を戻すこともできます。</p>')
+      + qa("places", "保管場所を増やす・直す", '<p>絞り込みバーの鉛筆ボタン(「どこにある？」でも同じ)で、そのフェーズの保管場所を、追加・名前変更・削除・並べ替えできます。変更は、同じフェーズのすべての用品に反映されます。「場所未定」は固定で、いつも最後に出ます(編集はできません)。</p><p>場所を消すと、その場所のチェックも消えます(直後なら「元に戻す」で戻せます)。候補からの追加や、消した初期の場所を戻すこともできます。</p>')
       + qa("packs", "拡張パックで用品をまとめて追加", '<p>職場用・乳児用・高齢者用などの用品セットを、設定の「拡張パック」から追加できます。追加した用品は「用品名（高齢者用）」のように区別できます。自分で作ったパックは、家族や友だちに送れます。</p><ul><li><b>送る</b>: 自分のパックの「友だちに送る」を押し、LINEやメールで送ります。</li><li><b>もらう</b>: メッセージのリンクを開き、「リストに追加する」を押します。</li><li>ホーム画面のアプリでは、メッセージ全体をコピーして、「拡張パック」の「もらったパックを取り込む」に貼り付けます。</li></ul><p>Markdownの文章やファイルでも受け渡せます。</p>')
       + '<h3 class="acc-sub">便利な使い方例</h3>'
       + qa("ex1", "例: 玄関・車・職場など、場所ごとに点検", '<p>「どこにある？」で場所ごとの一覧を、実物の袋や棚と見比べます。足りなければ、その場でチェックを外します。</p>')
