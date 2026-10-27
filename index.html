@@ -214,7 +214,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .items{ display:grid; grid-template-columns:1fr 1fr; column-gap:28px; align-items:start; }
     .loc-group{ display:grid; grid-template-columns:1fr 1fr; column-gap:28px; align-content:start; }
     .loc-group > .loc-group-title, .loc-group > .loc-head, .loc-group > .note{ grid-column:1 / -1; }
-    .pin-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; }
+    .pins .pin-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px 28px; }
     .item-top .drag-handle{ display:none; }
   }
   /* 広い画面(パソコン・タブレット・スマホ横): 画面の幅に合わせて、用品を自動で段組みにする。
@@ -231,8 +231,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .items{ padding:0 28px; display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); column-gap:56px; align-items:start; }
     .loc-group{ padding:0 28px 16px; display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); column-gap:56px; align-content:start; }
     .loc-group > .loc-group-title, .loc-group > .loc-head, .loc-group > .note{ grid-column:1 / -1; }
-    .pins{ padding-left:28px; padding-right:28px; }
-    .pin-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 400px)); gap:5px 20px; }
+    #app .pins{ padding-left:28px; padding-right:28px; }
+    .pins .pin-list{ display:grid; grid-template-columns:1fr 1fr; gap:5px 28px; }   /* ピン留めは横に長いので、いつも2列(下の基本の指定より強くする) */
     .add-row{ padding-left:28px; padding-right:28px; max-width:640px; }
     .items .item-top .drag-handle{ display:none; }
   }
@@ -259,7 +259,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .header h1{ font-size:18px; }
     .header p{ margin-top:2px; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     #app .header-top .settings-open, .header .btn{ min-height:36px; }
-    .pins{ padding-top:6px; padding-bottom:4px; }
+    #app .pins{ padding-top:6px; padding-bottom:4px; }
     .pins-hint{ display:none; }
     .overview{ padding:6px 28px; }
     .tab{ display:flex; align-items:center; justify-content:center; gap:8px; padding:5px 4px 4px; }
@@ -551,11 +551,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.50.0";
+var APP_VERSION = "1.50.1";
 var APP_VERSION_DATE = "2026-10-26";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.50.1", lines:["パソコンやスマホ横で、ピン留めの用品を、いつも2列で並べるようにしました。"] },
   { v:"1.50.0", lines:["非表示にしていた用品をピン留めすると、表示に戻るようにしました。","パソコンの画面で、用品の列を広くして、見やすくしました(1列の幅を広げ、列のあいだも広げました)。","設定を整理しました。「書き出し・共有・バックアップ」は、自分用の「書き出し・バックアップ」になりました。新しい「コミュニケーション」に、「家族に共有」「友だちに紹介・パックを送る」「作者に感想を送る」を集めました。","タブの下の名前の横に、スニーカー・リュック・家のアイコンを付けました。"] },
   { v:"1.49.0", lines:["設定の「このアプリを友達に勧める」の下に、自分で作った拡張パックを送る欄を追加しました。パックを選んで「送る」を押すと、リンク付きのメッセージが作られます。リンクを開いた人は、アプリがそのまま開いて、パックを取り込めます。"] },
   { v:"1.48.0", lines:["作者に感想や不具合を送れるようにしました。設定の「感想・ご意見を送る」から、フォームを開けます(バンドマン持ち物リスト、プレイヤーズセットリストと同じフォームで、このアプリが自動で選ばれます)。"] },
