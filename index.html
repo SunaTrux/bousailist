@@ -552,11 +552,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.50.2";
+var APP_VERSION = "1.50.3";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.50.3", lines:["感想を送るとき、使っている端末・ブラウザ・バージョンが自動で一緒に届くようにしました(入力は不要です)。"] },
   { v:"1.50.2", lines:["設定の感想ボタンの見た目を整え、名前を「感想を送る」に変えました。"] },
   { v:"1.50.1", lines:["パソコンやスマホ横で、ピン留めの用品を、いつも2列で並べるようにしました。"] },
   { v:"1.50.0", lines:["非表示にしていた用品をピン留めすると、表示に戻るようにしました。","パソコンの画面で、用品の列を広くして、見やすくしました(1列の幅を広げ、列のあいだも広げました)。","設定を整理しました。「書き出し・共有・バックアップ」は、自分用の「書き出し・バックアップ」になりました。新しい「コミュニケーション」に、「家族に共有」「友だちに紹介・パックを送る」「作者に感想を送る」を集めました。","タブの下の名前の横に、スニーカー・リュック・家のアイコンを付けました。"] },
@@ -2282,8 +2283,25 @@ function buildSettingsHtml(){
     + (swUpdated ? '<button type="button" class="settings-btn" data-act="reload-app">再読み込みして更新する' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + '</button>' : '')
     + msgHtml(updateMsg);
 
-  var fbBody = '<p class="note">使ってみた感想や、「ここが使いにくい」「動かない」などは、下のフォームから気軽にどうぞ。不具合の場合は、どの画面で何をしたかと、使っている端末・ブラウザを書いてもらえると助かります(今のバージョン: v' + esc(APP_VERSION) + ')。</p>'
-    + '<a class="settings-btn" href="' + esc(FEEDBACK_URL + "?app=" + encodeURIComponent(FEEDBACK_APP_NAME) + "&version=" + encodeURIComponent(APP_VERSION)) + '" target="_blank" rel="noopener">感想を送る</a>';
+  function deviceInfo(){
+    var ua = navigator.userAgent || "", os = "", br = "", m;
+    if(/iPhone/.test(ua)) os = "iPhone"; else if(/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) os = "iPad";
+    else if(/Android/.test(ua)) os = "Android"; else if(/Windows/.test(ua)) os = "Windows"; else if(/Mac OS X/.test(ua)) os = "Mac"; else if(/CrOS/.test(ua)) os = "ChromeOS"; else if(/Linux/.test(ua)) os = "Linux";
+    if((m = /(?:iPhone OS|CPU OS) (\d+)[_.](\d+)/.exec(ua))) os += " iOS " + m[1] + "." + m[2];
+    else if((m = /Android (\d+(?:\.\d+)?)/.exec(ua))) os += " " + m[1];
+    else if((m = /Windows NT (\d+\.\d+)/.exec(ua))) os += " NT " + m[1];
+    else if((m = /Mac OS X (\d+)[_.](\d+)/.exec(ua))) os += " " + m[1] + "." + m[2];
+    if((m = /(EdgiOS|EdgA|Edg)\/(\d+)/.exec(ua))) br = "Edge " + m[2];
+    else if((m = /(FxiOS|Firefox)\/(\d+)/.exec(ua))) br = "Firefox " + m[2];
+    else if((m = /(CriOS|Chrome)\/(\d+)/.exec(ua))) br = "Chrome " + m[2];
+    else if((m = /Version\/(\d+(?:\.\d+)?).*Safari/.exec(ua))) br = "Safari " + m[1];
+    else if(/Safari/.test(ua)) br = "Safari";
+    if(/Line\//.test(ua)) br += " (LINE内)";
+    var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+    return [os || "不明", br || "不明", standalone ? "ホーム画面" : "ブラウザ表示", innerWidth + "x" + innerHeight].join(" / ");
+  }
+  var fbBody = '<p class="note">使ってみた感想や、「ここが使いにくい」「動かない」などは、下のフォームから気軽にどうぞ。不具合の場合は、どの画面で何をしたかを書いてもらえると助かります。端末・ブラウザ・バージョンは自動で一緒に届きます(今のバージョン: v' + esc(APP_VERSION) + ')。</p>'
+    + '<a class="settings-btn" href="' + esc(FEEDBACK_URL + "?app=" + encodeURIComponent(FEEDBACK_APP_NAME) + "&version=" + encodeURIComponent(APP_VERSION) + "&device=" + encodeURIComponent(deviceInfo())) + '" target="_blank" rel="noopener">感想を送る</a>';
   var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。</p>'
     + '<textarea class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
     + '<div class="btn-row"><button type="button" class="btn" data-act="rec-share">友達に送る</button><button type="button" class="btn btn-ghost" data-act="rec-copy">文章をコピー</button></div>' + msgHtml(recMsg);
