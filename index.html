@@ -558,11 +558,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.54.4";
+var APP_VERSION = "1.55.0";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.55.0", lines:["入れられる数の上限を整理しました(用品は各フェーズ500件、保管場所は30個、用品名は100文字、場所名は30文字、自分のパックは20個・1パック100件まで)。上限に達したときは、黙って止まらずに、メッセージを出すようにしました。ヘルプの「データのこと」にも書きました。"] },
   { v:"1.54.4", lines:["用品の追加欄の入力例を、すでにある「携帯充電器」から「推しの写真」に変えました。"] },
   { v:"1.54.3", lines:["検索窓の右端に、小さなクリアボタンをつけました。1回タップすると、入力した内容を消せます。"] },
   { v:"1.54.2", lines:["検索窓に日本語を入力している途中、文字が虫めがねの上に重なって見えていたのを直しました。"] },
@@ -851,6 +852,7 @@ function parsePackCode(code){
   return plan;
 }
 var CONTENT_VERSION = 16;
+var addMsg = null;   // 用品の追加欄の下に出すメッセージ(上限など)
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
 var OPEN_W = 88;
@@ -2045,6 +2047,7 @@ function renderMain(){
     + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"><button type="button" class="fb-clear" data-act="clear-search" aria-label="検索の入力を消す" title="入力を消す"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg></button></div></div>';
   if(viewMode === "item"){
     html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
+      + (addMsg ? '<div style="padding:0 16px">' + msgHtml(addMsg) + '</div>' : '')
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" autocomplete="off" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:推しの写真)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
       + '<div class="footer-note"><span class="hint-fine">左にスワイプ(マウスはドラッグ)で非表示、右にスワイプでピン留めします</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名をタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
@@ -2308,6 +2311,7 @@ function buildSettingsHtml(){
       + qa("ex4", "例: 友だちに防災の備えを伝える", '<p>設定の「友だちに紹介・パックを送る」から、アプリのURLと説明を送れます。自作パックを持ち物の例として渡すのもおすすめです。</p>')
       + '<h3 class="acc-sub">データのこと</h3>'
       + qa("data", "データはどこに保存される？", '<p>この端末のブラウザの中だけで、別の端末とは同期されません。機種変更の前に、設定の「書き出し・バックアップ」でJSONを書き出してください。ブラウザのデータを消すと、中身も消えます。</p>')
+      + qa("limit", "入れられる数の上限", '<ul><li>用品: 各フェーズ 500件まで(名前は100文字まで)</li><li>保管場所: 各フェーズ 30個まで(「場所未定」を含む。名前は30文字まで)</li><li>自分の拡張パック: 20個まで(1パックに100件まで)</li></ul><p>上限に達したら、不要な用品や場所を削除してください。</p>')
       + qa("home", "ホーム画面に追加する", '<ul><li><b>iPhone(Safari)</b>: 共有ボタン →「ホーム画面に追加」</li><li><b>Android(Chrome)</b>: メニュー →「ホーム画面に追加」(または「アプリをインストール」)</li></ul><p>ホーム画面から開くと、アプリのように使えます。</p>')
       + '<h3 class="acc-sub">困ったとき</h3>'
       + qa("faq1", "用品が見つからない", '<p>「非表示」か、絞り込みの可能性があります。目のアイコンと、絞り込み(すべて／未配置など)を確認してください。</p>')
@@ -2443,7 +2447,7 @@ function findItem(g, id){
   for(var i = 0; i < items.length; i++){ if(items[i].id === id) return items[i]; }
   return null;
 }
-function clearTransient(){ renameLoc = null; locMsg = ""; pickFor = null; delUndo = null; coachItemId = null; locEditorFor = null; editingDescG = null; openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
+function clearTransient(){ addMsg = null; renameLoc = null; locMsg = ""; pickFor = null; delUndo = null; coachItemId = null; locEditorFor = null; editingDescG = null; openSwipeId = null; editingItemId = null; pendingDeleteId = null; pendingDeleteLoc = null; }
 /* メモ・LINE・印刷向けの読み物(取り込み用ではありません)。非表示の用品は含めません。 */
 function buildMarkdownText(){
   function one(v){ return String(v).replace(/[\r\n]+/g, " ").trim(); }
@@ -2602,7 +2606,9 @@ var ACTIONS = {
   "add-item": function(t){
     var g = getGroup(t), input = document.getElementById("new-item-input");
     var name = input ? cleanLine(input.value, MAX_NAME) : "";
-    if(!name || state.groups[g].items.length >= MAX_ITEMS) return;
+    if(!name) return;
+    if(state.groups[g].items.length >= MAX_ITEMS){ addMsg = { type:"error", text:"1つのフェーズに入れられる用品は " + MAX_ITEMS + " 件までです。不要な用品を、設定の「防災用品マスタ」で削除してください。" }; render(); return; }
+    addMsg = null;
     state.groups[g].items.push({ id:newId(), name:name, checked:false, cat:guessCat(name), locations:state.groups[g].locations.slice(), have:[] });   // 最初から、並んでいる場所すべてに置く用品として追加
     render(); save(); focusId("new-item-input");
   },
@@ -2629,7 +2635,8 @@ var ACTIONS = {
   "add-loc": function(t){
     var g = getGroup(t), input = document.getElementById("new-loc-input"), grp = state.groups[g];
     var name = input ? cleanLine(input.value, MAX_LOC_NAME) : "";
-    if(!name || findLoc(grp.locations, name) !== -1 || grp.locations.length >= MAX_LOCATIONS){ if(input) input.value = ""; return; }
+    if(name && findLoc(grp.locations, name) === -1 && grp.locations.length >= MAX_LOCATIONS){ locMsg = "保管場所は、「場所未定」を入れて " + MAX_LOCATIONS + " 個までです。不要な場所を削除してください。"; locMsgOk = false; render(); return; }
+    if(!name || findLoc(grp.locations, name) !== -1){ if(input) input.value = ""; return; }
     grp.locations.push(name); pickAddLoc(g, name); render(); save(); focusId("new-loc-input");
   },
   "add-loc-suggest": function(t){
