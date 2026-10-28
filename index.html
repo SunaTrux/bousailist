@@ -413,6 +413,14 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .fb-search:focus-within{ position:absolute; right:14px; top:50%; transform:translateY(-50%); width:min(260px, calc(100% - 28px)); max-width:none; z-index:3; filter:drop-shadow(0 1px 4px rgba(0,0,0,.18)); }
   .fb-search input::-webkit-search-cancel-button, .fb-search input::-webkit-search-decoration{ -webkit-appearance:none; appearance:none; display:none; }
   .master-search{ width:100%; min-height:44px; margin:0 0 12px; padding:0 12px; border:1.5px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; font-size:16px; -webkit-appearance:none; appearance:none; }
+  .sbox{ position:relative; margin:0 0 12px; }
+  .sbox .master-search, .sbox input{ margin:0; padding-left:36px; padding-right:12px; width:100%; min-height:44px; border:1.5px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; font-size:16px; -webkit-appearance:none; appearance:none; }
+  .sbox input:focus{ outline:none; border-color:var(--accent,var(--ink)); }
+  .sbox input::placeholder{ font-size:14px; color:var(--ink-soft); opacity:.8; }
+  .sbox > svg{ position:absolute; left:12px; top:50%; width:16px; height:16px; margin-top:-8px; color:var(--ink-soft); pointer-events:none; }
+  .sbox.has-q input{ padding-right:38px; }
+  .sbox.has-q .fb-clear{ display:flex; right:9px; }
+  .sbox input::-webkit-search-cancel-button, .sbox input::-webkit-search-decoration{ -webkit-appearance:none; appearance:none; display:none; }
   .master-search:focus{ outline:none; border-color:var(--accent,var(--ink)); }
   .set-row.hit .set-name{ background:var(--accent-soft,rgba(200,120,60,.25)); border-radius:4px; padding:0 4px; font-weight:700; }
   .master-search::placeholder{ font-size:14px; color:var(--ink-soft); opacity:.8; }
@@ -562,11 +570,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.57.0";
+var APP_VERSION = "1.57.1";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.57.1", lines:["防災用品マスタと拡張パックの検索窓に、虫めがねのアイコンと、右端の入力クリアボタンをつけました。"] },
   { v:"1.57.0", lines:["設定の「拡張パック」に、検索窓をつけました。パック名や用品名で探せて、合うパックは開いて、合う用品に色がつきます。ひらがな・カタカナの違いは区別せずに探します。"] },
   { v:"1.56.0", lines:["設定の「防災用品マスタ」に、用品名の検索窓をつけました。用品がすでにあるか調べるときに使えます。ひらがな・カタカナの違いは区別せずに探します。","「持ち歩きEx」に、「日焼け止め」「折りたたみ傘(晴雨兼用)」を追加しました。"] },
   { v:"1.55.0", lines:["入れられる数の上限を整理しました(用品は各フェーズ500件、保管場所は30個、用品名は100文字、場所名は30文字、自分のパックは20個・1パック100件まで)。上限に達したときは、黙って止まらずに、メッセージを出すようにしました。ヘルプの「データのこと」にも書きました。"] },
@@ -1800,6 +1809,10 @@ var ICON_GRIP = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="tr
 var ICON_X = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 var ICON_OK = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 var ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>';
+function sboxHtml(id, ph, val, label){
+  return '<div class="sbox' + (val ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="' + id + '" autocomplete="off" enterkeyhint="search" maxlength="30" placeholder="' + ph + '" value="' + esc(val) + '" aria-label="' + label + '">'
+    + '<button type="button" class="fb-clear" data-act="clear-box" data-target="' + id + '" aria-label="入力を消す" title="入力を消す"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg></button></div>';
+}
 var ICON_TICK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 
 function accentStyle(meta){ return "--accent:" + meta.accent + ";--accent-soft:" + meta.soft + ";"; }
@@ -1956,7 +1969,7 @@ function buildMasterListHtml(){
 }
 function buildMasterHtml(){
   var h = '<p class="note">防災用品を完全に削除するのは、ここです。区分ごとに「食品・生活・その他」へ分けてあります(分類は ✎ の編集で変えられます)。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。メイン画面で非表示にした用品も、ここに表示されます。</p>';
-  h += '<input type="search" id="master-search" class="master-search" autocomplete="off" enterkeyhint="search" maxlength="30" placeholder="用品名で検索(すでにあるか調べる)" value="' + esc(masterQuery) + '" aria-label="防災用品マスタを検索"><div id="master-list">' + buildMasterListHtml() + '</div>';
+  h += sboxHtml('master-search', '用品名で検索(すでにあるか調べる)', masterQuery, '防災用品マスタを検索') + '<div id="master-list">' + buildMasterListHtml() + '</div>';
   return h;
 }
 function buildPinnedHtml(){
@@ -2180,7 +2193,7 @@ function buildPackListHtml(){
 }
 function buildPacksHtml(){
   var h = '<p class="note">場面に合わせた用品を、まとめて追加できます。追加したい用品を選んで「追加」を押してください。すでにある同じ名前の用品は追加されません。</p>';
-  h += '<input type="search" id="pack-search" class="master-search" autocomplete="off" enterkeyhint="search" maxlength="30" placeholder="パック名・用品名で検索" value="' + esc(packQuery) + '" aria-label="拡張パックを検索"><div id="pack-list">' + buildPackListHtml() + '</div>';
+  h += sboxHtml('pack-search', 'パック名・用品名で検索', packQuery, '拡張パックを検索') + '<div id="pack-list">' + buildPackListHtml() + '</div>';
   h += msgHtml(packMsg && !packExportId && !packSendId ? packMsg : null);
   h += '<div class="pack-actions"><button type="button" class="settings-btn" data-act="pack-new">パックを作る</button>'
     + '<button type="button" class="settings-btn" data-act="pack-from-open">今のリストからパックを作る</button>'
@@ -2763,6 +2776,7 @@ var ACTIONS = {
   },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
   "clear-search": function(){ var el = document.getElementById("search-input"); if(!el) return; el.value = ""; searchComposing = false; onSearchInput(el); try{ el.focus(); }catch(e){} },
+  "clear-box": function(t){ var el = document.getElementById(t.getAttribute("data-target")); if(!el) return; el.value = ""; if(el.id === "master-search"){ masterComposing = false; onMasterInput(el); } else if(el.id === "pack-search"){ packComposing = false; onPackSearchInput(el); } try{ el.focus(); }catch(e){} },
   "set-overview": function(t){ if(t.getAttribute("data-v") === "hide") lsSet(OVERVIEW_KEY, "1"); else lsDel(OVERVIEW_KEY); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
   "toggle-set": function(t){ var id = t.getAttribute("data-set"); setOpen = setOpen === id ? null : id; setMsg = {}; packMsg = null; if(packExportId !== id) packExportId = null; pendingDeletePack = null; render(); },
@@ -3051,12 +3065,12 @@ function onSearchInput(t){
   applySearch();
 }
 function onPackSearchInput(t){
-  packQuery = t.value;
+  packQuery = t.value; if(t.parentNode && t.parentNode.classList) t.parentNode.classList.toggle("has-q", !!t.value);
   var box = document.getElementById("pack-list");
   if(box) box.innerHTML = buildPackListHtml();
 }
 function onMasterInput(t){
-  masterQuery = t.value;
+  masterQuery = t.value; if(t.parentNode && t.parentNode.classList) t.parentNode.classList.toggle("has-q", !!t.value);
   var box = document.getElementById("master-list");
   if(box) box.innerHTML = buildMasterListHtml();
 }
