@@ -92,7 +92,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .notice-x{ flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); }
   .banner{ margin:0; padding:10px 20px; font-size:13px; background:var(--clay-soft); border-bottom:1px solid var(--clay); }
 
-  .overview{ padding:8px 20px 8px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:5px; }
+  .overview{ touch-action:pan-y; transition:transform .18s ease, opacity .18s ease; padding:8px 20px 8px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:5px; }
   .ov-row{ display:flex; align-items:center; gap:10px; line-height:1.2; }
   .ov-label{ font-size:12px; font-weight:700; width:60px; flex-shrink:0; }
   .ov-track{ flex:1; min-width:0; height:6px; background:var(--card); border:1px solid var(--line); overflow:hidden; }
@@ -554,11 +554,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.53.0";
+var APP_VERSION = "1.54.0";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.54.0", lines:["上の進捗バーを、左にスワイプすると非表示にできるようにしました。もう一度出すときは、設定の「進捗バー」で選びます。","アプリのヒント文の初期の文を、「持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。備えておく場所を決めたらチェック。」に変えました(自分で書き換えた文はそのままです)。"] },
   { v:"1.53.0", lines:["持ち出しの初期の用品を分けました。「不織布マスク😷」「手指消毒」「体温計」、「雨具」「防寒着」、「缶切り」「ライター」「ナイフ」です。いま使っているリストでは、変更していない用品だけが、チェックを引き継いで分かれます。","備蓄の「衛生用品(生理用品・水のいらないシャンプー)」を「水のいらないシャンプー」にしました。","備蓄の初期の保管場所を、「キッチン」「洗面所」にしました。「リビング」は候補に移しました(いまの保管場所は、リビングに置いたものがなければ入れ替わります)。"] },
   { v:"1.52.0", lines:["「場所未定」を、いつも保管場所の一番最後に表示する固定の場所にしました。保管場所の編集画面には出さず、名前の変更・削除・並べ替えはできません。","保管場所を追加しても、「場所未定」は最後のままです。"] },
   { v:"1.51.0", lines:["iPhoneで、用品名の入力中に文字の変換(カタカナ・漢字)の候補が出ない問題を、バンドマン持ち物リストと同じ入力欄の作りにそろえて直しました。","用品名を編集している間は、行をスワイプ用の枠から外し、入力欄をふつうの入力欄にしました。"] },
@@ -863,12 +864,13 @@ var GROUP_META = {
   g1:{ num:"1次", label:"持ち出し", accent:"var(--amber)", soft:"var(--amber-soft)" },
   g2:{ num:"2次", label:"備蓄", accent:"var(--teal)",  soft:"var(--teal-soft)" }
 };
-var DEFAULT_APP_HINT = "持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。保管場所まで決めたらチェック。";
+var DEFAULT_APP_HINT = "持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。備えておく場所を決めたらチェック。";
+var V1507_APP_HINT = "持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。保管場所まで決めたらチェック。";
 var V1505_APP_HINT = "持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。どこにあるかを決めておこう。";
 var V1500_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくそう。";
 var OLD_DEFAULT_APP_HINT = "0次・1次・2次の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";
 var V8_APP_HINT = "持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理。どの防災用品がどこにあるか？誰が持ってるか？把握しよう。";   // 1.12.7〜1.18.x の初期の文
-function isOldAppHint(h){ return h === OLD_DEFAULT_APP_HINT || h === V8_APP_HINT || h === V1500_APP_HINT || h === V1505_APP_HINT; }
+function isOldAppHint(h){ return h === OLD_DEFAULT_APP_HINT || h === V8_APP_HINT || h === V1500_APP_HINT || h === V1505_APP_HINT || h === V1507_APP_HINT; }
 var MAX_HINT = 200;
 var DEFAULT_DESC = {
   g0:"外出時の災害に備えて、最低限の防災用品を常に携帯しよう。",
@@ -2286,7 +2288,7 @@ function buildSettingsHtml(){
       + '<h3 class="acc-sub">主な使い方</h3>'
       + qa("start", "はじめかた", '<ol><li>フェーズのタブを選びます。</li><li>用品が用意できたら、置いた場所の箱にチェックします。置き場所が未定なら「場所未定」にチェックします。</li><li>どこか1つでもチェックが入ると準備済みになり、進捗バーが進みます。</li></ol><p>保管場所は、同じフェーズのすべての用品で共通です。場所を決めておくのがおすすめですが、決めなくても使えます。</p>')
       + qa("views", "防災用品／どこにある？", '<p>同じリストの別の見方で、チェックは連動します。</p><ul><li><b>防災用品</b>: 用品ごとに、置いた場所を確かめます。</li><li><b>どこにある？</b>: 場所ごとに、置いた用品を確かめます。バッグや棚の中身の点検に向いています。「場所未定」も場所のひとつです。</li></ul>')
-      + qa("prog", "進捗バー", '<p>準備済み(どこか1か所でも、「場所未定」を含めてチェックがある)用品の割合です。フェーズごとに計算します。設定の「進捗バー」で、表示・非表示を切り替えられます。</p>')
+      + qa("prog", "進捗バー", '<p>準備済み(どこか1か所でも、「場所未定」を含めてチェックがある)用品の割合です。フェーズごとに計算します。左にスワイプすると非表示になります。設定の「進捗バー」で、表示・非表示を切り替えられます。</p>')
       + qa("filter", "絞り込みと検索", '<ul><li><b>未配置</b>: まだ置いていない用品だけを表示します。</li><li><b>場所未定</b>(防災用品のみ): 場所を決めずに準備した用品を表示します。</li><li><b>配置済</b>(どこにある？のみ): 置いた用品だけを、場所ごとに表示します。最初はこの表示です。</li><li><b>目のアイコン</b>: 非表示にした用品の表示を切り替えます(数は非表示の件数)。</li><li><b>虫めがね</b>: 用品名で検索します。</li></ul>')
       + qa("edit", "用品の編集・ピン留め・非表示", '<ul><li>用品名をタップすると、名前を編集できます。</li><li>ピン留めした用品は、一覧の上にまとまります。非表示の用品をピン留めすると、表示に戻ります。</li><li>使わない用品は「非表示」で隠せます(削除はされません)。行をスワイプ(PCはドラッグ)すると、ピン留めと非表示ができます。</li><li>削除は、設定の「防災用品マスタ」でだけ行います。</li></ul>')
       + qa("places", "保管場所を増やす・直す", '<p>絞り込みバーの鉛筆ボタン(「どこにある？」でも同じ)で、そのフェーズの保管場所を、追加・名前変更・削除・並べ替えできます。変更は、同じフェーズのすべての用品に反映されます。「場所未定」は固定で、いつも最後に出ます(編集はできません)。</p><p>場所を消すと、その場所のチェックも消えます(直後なら「元に戻す」で戻せます)。候補からの追加や、消した初期の場所を戻すこともできます。</p>')
@@ -2358,7 +2360,7 @@ function buildSettingsHtml(){
   }
   var themeBody = '<div class="seg">' + seg + '</div>';
   var ovHidden = lsGet(OVERVIEW_KEY) === "1";
-  var overviewBody = '<p class="note">画面上部の、持ち歩き・持ち出し・備蓄の進捗バーを出すかどうかを選べます。非表示にしても、チェックの記録はそのままです。</p><div class="seg">'
+  var overviewBody = '<p class="note">画面上部の、持ち歩き・持ち出し・備蓄の進捗バーを出すかどうかを選べます。非表示にしても、チェックの記録はそのままです。画面の進捗バーを左にスワイプしても、非表示にできます。</p><div class="seg">'
     + [["show", "表示する", !ovHidden], ["hide", "非表示にする", ovHidden]].map(function(o){ return '<button type="button" class="' + (o[2] ? "active" : "") + '" data-act="set-overview" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join("") + '</div>';
   var curHint = state.appHint || DEFAULT_APP_HINT;
   var hintBody = '<p class="note">トップ画面のタイトルの下に出る説明文です。自由に書き換えられます(' + MAX_HINT + '文字まで・改行できます)。空にすると、初期の文に戻ります。</p>'
@@ -2949,6 +2951,30 @@ appEl.addEventListener("click", function(e){
   if(fn) fn(t, e);
 });
 var lastCompEnd = -1000;
+/* 進捗バー: 左にスワイプすると非表示(戻すのは、設定の「進捗バー」) */
+var ovSwipe = null;
+appEl.addEventListener("pointerdown", function(e){
+  if(e.pointerType === "mouse" && e.button !== 0) return;
+  var ov = e.target && e.target.closest ? e.target.closest(".overview") : null;
+  if(!ov) return;
+  ovSwipe = { el:ov, pid:e.pointerId, x0:e.clientX, y0:e.clientY, on:false };
+});
+appEl.addEventListener("pointermove", function(e){
+  if(!ovSwipe || e.pointerId !== ovSwipe.pid) return;
+  var dx = e.clientX - ovSwipe.x0, dy = e.clientY - ovSwipe.y0;
+  if(!ovSwipe.on){ if(Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)){ ovSwipe = null; return; } if(dx < -10 && Math.abs(dx) > Math.abs(dy)) ovSwipe.on = true; else return; }
+  var x = Math.min(0, dx); ovSwipe.el.style.transition = "none"; ovSwipe.el.style.transform = "translateX(" + x + "px)"; ovSwipe.el.style.opacity = String(Math.max(.2, 1 + x / 260));
+});
+function endOvSwipe(e, cancel){
+  if(!ovSwipe || e.pointerId !== ovSwipe.pid) return;
+  var s = ovSwipe, dx = e.clientX - s.x0; ovSwipe = null;
+  if(!s.on) return;
+  s.el.style.transition = "";
+  if(!cancel && dx < -70){ lsSet(OVERVIEW_KEY, "1"); render(); }
+  else { s.el.style.transform = ""; s.el.style.opacity = ""; }
+}
+appEl.addEventListener("pointerup", function(e){ endOvSwipe(e, false); });
+appEl.addEventListener("pointercancel", function(e){ endOvSwipe(e, true); });
 appEl.addEventListener("compositionend", function(e){ lastCompEnd = e.timeStamp; });
 appEl.addEventListener("keydown", function(e){
   var t = e.target;
