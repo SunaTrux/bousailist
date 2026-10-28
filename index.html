@@ -411,6 +411,10 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .fb-search input:focus{ outline:none; border-color:var(--accent,var(--ink)); background:var(--paper); }
   .filter-bar{ position:relative; }
   .fb-search:focus-within{ position:absolute; right:14px; top:50%; transform:translateY(-50%); width:min(260px, calc(100% - 28px)); max-width:none; z-index:3; filter:drop-shadow(0 1px 4px rgba(0,0,0,.18)); }
+  .fb-search input::-webkit-search-cancel-button, .fb-search input::-webkit-search-decoration{ -webkit-appearance:none; appearance:none; display:none; }
+  .fb-clear{ display:none; position:absolute; right:5px; top:50%; width:22px; height:22px; margin-top:-11px; padding:0; border:0; border-radius:50%; background:var(--line); color:var(--ink-soft); align-items:center; justify-content:center; }
+  .fb-search.has-q .fb-clear{ display:flex; }
+  .fb-search.has-q input{ padding-right:30px; }
   .fb-search svg{ position:absolute; left:9px; top:50%; width:13px; height:13px; margin-top:-6.5px; color:var(--ink-soft); pointer-events:none; }
   .import-sum{ margin:0; padding:10px 12px; border-bottom:1px solid var(--line); font-size:13px; display:grid; grid-template-columns:auto 1fr; gap:4px 12px; }
   .import-sum dt{ color:var(--ink-soft); }
@@ -554,11 +558,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.54.2";
+var APP_VERSION = "1.54.3";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.54.3", lines:["検索窓の右端に、小さなクリアボタンをつけました。1回タップすると、入力した内容を消せます。"] },
   { v:"1.54.2", lines:["検索窓に日本語を入力している途中、文字が虫めがねの上に重なって見えていたのを直しました。"] },
   { v:"1.54.1", lines:["「どこにある？」の「配置済」で出る「場所未定」の説明は、場所未定に用品が1つ以上あるときだけ出すようにしました。"] },
   { v:"1.54.0", lines:["上の進捗バーを、左にスワイプすると非表示にできるようにしました。もう一度出すときは、設定の「進捗バー」で選びます。","アプリのヒント文の初期の文を、「持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。備えておく場所を決めたらチェック。」に変えました(自分で書き換えた文はそのままです)。"] },
@@ -2036,7 +2041,7 @@ function renderMain(){
         return '<button type="button" class="' + (o[2] ? "on" : "") + '" aria-pressed="' + o[2] + '" data-act="set-filter" data-f="' + o[0] + '">' + o[1] + '</button>'; }).join("") + '</div>'
     + '<button type="button" class="fb-eye' + (showHidden ? " on" : "") + '" aria-pressed="' + showHidden + '" aria-label="非表示にした用品を表示(' + hiddenCount + '件)" title="非表示にした用品を表示" data-act="toggle-show-hidden">' + (showHidden ? ICON_EYE : ICON_EYE_OFF) + (hiddenCount ? '<span class="fb-n">' + hiddenCount + '</span>' : '') + '</button>'
     + '<button type="button" class="fb-eye fb-loc' + (locEditorFor === "__loc" ? " on" : "") + '" aria-expanded="' + (locEditorFor === "__loc") + '" aria-label="場所を編集(追加・名前の変更・削除・並べ替え)" title="場所を編集" data-act="open-loc-editor" data-at="__loc">' + ICON_EDIT + '</button>'
-    + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"></div></div>';
+    + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"><button type="button" class="fb-clear" data-act="clear-search" aria-label="検索の入力を消す" title="入力を消す"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg></button></div></div>';
   if(viewMode === "item"){
     html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
       + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" autocomplete="off" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
@@ -2721,6 +2726,7 @@ var ACTIONS = {
     closeSwipe(); render(); save();
   },
   "toggle-show-hidden": function(){ showHidden = !showHidden; lsSet(SHOWHIDDEN_KEY, showHidden ? "1" : "0"); closeSwipe(); render(); },
+  "clear-search": function(){ var el = document.getElementById("search-input"); if(!el) return; el.value = ""; searchComposing = false; onSearchInput(el); try{ el.focus(); }catch(e){} },
   "set-overview": function(t){ if(t.getAttribute("data-v") === "hide") lsSet(OVERVIEW_KEY, "1"); else lsDel(OVERVIEW_KEY); render(); },
   "theme": function(t){ var v = t.getAttribute("data-theme"); setThemePref(v === "light" || v === "dark" ? v : null); },
   "toggle-set": function(t){ var id = t.getAttribute("data-set"); setOpen = setOpen === id ? null : id; setMsg = {}; packMsg = null; if(packExportId !== id) packExportId = null; pendingDeletePack = null; render(); },
@@ -2953,6 +2959,7 @@ appEl.addEventListener("click", function(e){
   if(fn) fn(t, e);
 });
 var lastCompEnd = -1000;
+appEl.addEventListener("mousedown", function(e){ if(e.target && e.target.closest && e.target.closest(".fb-clear")) e.preventDefault(); });   // 入力欄のフォーカスを外さない
 /* 進捗バー: 左にスワイプすると非表示(戻すのは、設定の「進捗バー」) */
 var ovSwipe = null;
 appEl.addEventListener("pointerdown", function(e){
