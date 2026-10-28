@@ -412,6 +412,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .filter-bar{ position:relative; }
   .fb-search:focus-within{ position:absolute; right:14px; top:50%; transform:translateY(-50%); width:min(260px, calc(100% - 28px)); max-width:none; z-index:3; filter:drop-shadow(0 1px 4px rgba(0,0,0,.18)); }
   .fb-search input::-webkit-search-cancel-button, .fb-search input::-webkit-search-decoration{ -webkit-appearance:none; appearance:none; display:none; }
+  .master-search{ width:100%; min-height:44px; margin:0 0 12px; padding:0 12px; border:1.5px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; font-size:16px; -webkit-appearance:none; appearance:none; }
+  .master-search:focus{ outline:none; border-color:var(--accent,var(--ink)); }
+  .master-search::placeholder{ font-size:14px; color:var(--ink-soft); opacity:.8; }
   .fb-clear{ display:none; position:absolute; right:5px; top:50%; width:22px; height:22px; margin-top:-11px; padding:0; border:0; border-radius:50%; background:var(--line); color:var(--ink-soft); align-items:center; justify-content:center; }
   .fb-search.has-q .fb-clear{ display:flex; }
   .fb-search.has-q input{ padding-right:30px; }
@@ -558,11 +561,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.55.0";
+var APP_VERSION = "1.56.0";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.56.0", lines:["設定の「防災用品マスタ」に、用品名の検索窓をつけました。用品がすでにあるか調べるときに使えます。ひらがな・カタカナの違いは区別せずに探します。","「持ち歩きEx」に、「日焼け止め」「折りたたみ傘(晴雨兼用)」を追加しました。"] },
   { v:"1.55.0", lines:["入れられる数の上限を整理しました(用品は各フェーズ500件、保管場所は30個、用品名は100文字、場所名は30文字、自分のパックは20個・1パック100件まで)。上限に達したときは、黙って止まらずに、メッセージを出すようにしました。ヘルプの「データのこと」にも書きました。"] },
   { v:"1.54.4", lines:["用品の追加欄の入力例を、すでにある「携帯充電器」から「推しの写真」に変えました。"] },
   { v:"1.54.3", lines:["検索窓の右端に、小さなクリアボタンをつけました。1回タップすると、入力した内容を消せます。"] },
@@ -733,7 +737,7 @@ var ADD_SETS = [
     items:[["おむつ(乳児用)","l"],["お尻ふき(乳児用)","l"],["ミルクセット(乳児用)","f"],["離乳食(乳児用)","f"],["母子健康手帳(乳児用)","o"]] },
   { id:"elder", title:"高齢者用セット", note:"高齢の方がいる家庭向け(持ち出しに追加します)。", src:"東京都防災ホームページ「高齢者の地震対策」", g:"g1",
     items:[["常時服用している薬(高齢者用)","l"],["処方箋(高齢者用)","o"],["入れ歯(高齢者用)","l"],["入れ歯洗浄剤(高齢者用)","l"],["老眼鏡(高齢者用)","l"],["補聴器(高齢者用)","l"],["補聴器用電池(高齢者用)","l"],["おかゆ(高齢者用)","f"]] },
-  { id:"ex0", title:"持ち歩きEx", note:"持ち歩きに追加します。", g:"g0", items:[["防犯ブザー","l"]] },
+  { id:"ex0", title:"持ち歩きEx", note:"持ち歩きに追加します。", g:"g0", items:[["防犯ブザー","l"],["日焼け止め","l"],["折りたたみ傘(晴雨兼用)","l"]] },
   { id:"ex1", title:"持ち出しEx", note:"持ち出しに追加します。", g:"g1", items:[["踏み抜き防止中敷き","l"]] },
   { id:"ex2", title:"備蓄Ex", note:"備蓄に追加します。", g:"g2", items:[["ぬいぐるみ","o"]] }
 ];
@@ -852,6 +856,7 @@ function parsePackCode(code){
   return plan;
 }
 var CONTENT_VERSION = 16;
+var masterQuery = "", masterComposing = false;   // 防災用品マスタの検索窓の文字(保存しない)
 var addMsg = null;   // 用品の追加欄の下に出すメッセージ(上限など)
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
 var MAX_CSV_CHARS = 1000000, MAX_CSV_ROWS = 5000, MAX_JSON_CHARS = 3000000, MAX_FILE_BYTES = 3 * 1024 * 1024;
@@ -1770,7 +1775,7 @@ var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled
 var json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
 var appEl = document.getElementById("app");
 
-function resetSettingsUi(){ helpOpen = []; guideMsg = null; recMsg = null; recPackId = null; recPackMsg = null;
+function resetSettingsUi(){ masterQuery = ""; helpOpen = []; guideMsg = null; recMsg = null; recPackId = null; recPackMsg = null;
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
@@ -1922,21 +1927,33 @@ function viewNoteHtml(key, text, cls){
   if(foldClosed[key]) return '<div class="fold-row view-fold ' + cls + '"><button type="button" class="fold-btn" data-act="toggle-fold" data-key="' + key + '" aria-expanded="false">' + ICON_CHEV + 'ヒントを開く</button></div>';
   return '<div class="note fold-box ' + cls + '"><span>' + text + '</span><button type="button" class="fold-x" data-act="toggle-fold" data-key="' + key + '" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>';
 }
-function buildMasterHtml(){
-  var h = '<p class="note">防災用品を完全に削除するのは、ここです。区分ごとに「食品・生活・その他」へ分けてあります(分類は ✎ の編集で変えられます)。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。メイン画面で非表示にした用品も、ここに表示されます。</p>';
+function masterWords(){ return searchNorm(masterQuery).split(/\s+/).filter(function(w){ return w; }); }
+function masterHit(it, words){ var hay = searchNorm(it.name); for(var i = 0; i < words.length; i++){ if(hay.indexOf(words[i]) === -1) return false; } return true; }
+function buildMasterListHtml(){
+  var h = "", words = masterWords(), found = 0;
   GROUP_ORDER.forEach(function(g){
     var grp = state.groups[g];
-    h += '<div class="loc-group-title">' + GROUP_META[g].label + '(' + grp.items.length + ')</div>';
+    var gl = words.length ? grp.items.filter(function(it){ return masterHit(it, words); }) : grp.items;
+    if(words.length && !gl.length) return;
+    found += gl.length;
+    h += '<div class="loc-group-title">' + GROUP_META[g].label + '(' + (words.length ? gl.length + "/" : "") + grp.items.length + ')</div>';
     if(!grp.items.length){ h += '<div class="note" style="padding:6px 0;margin:0">防災用品がありません</div>'; return; }
     CATS.forEach(function(c){
-      var list = grp.items.filter(function(it){ return (catKey(it.cat) || "other") === c[0]; });
+      var list = gl.filter(function(it){ return (catKey(it.cat) || "other") === c[0]; });
+      if(words.length && !list.length) return;
       var key = g + ":" + c[0];
       var busy = list.some(function(it){ return it.id === editingItemId || it.id === pendingDeleteId || it.id === openSwipeId; });
-      var open = !!openCats[key] || busy;
+      var open = !!openCats[key] || busy || words.length > 0;
       h += '<div class="cat-acc"><button type="button" class="cat-btn" data-act="toggle-cat" data-key="' + key + '" aria-expanded="' + open + '"><span class="cat-ch" aria-hidden="true">' + ICON_CHEV + '</span>' + c[1] + '<small>' + list.length + '件</small></button>'
         + (open ? '<div class="cat-body">' + (list.length ? list.map(function(it){ return buildMasterRow(g, it); }).join("") : '<div class="note" style="padding:6px 0;margin:0">なし</div>') + '</div>' : '') + '</div>';
     });
   });
+  if(words.length && !found) h += '<div class="empty">「' + esc(masterQuery.trim()) + '」に合う防災用品はありません。まだ入っていません。</div>';
+  return h;
+}
+function buildMasterHtml(){
+  var h = '<p class="note">防災用品を完全に削除するのは、ここです。区分ごとに「食品・生活・その他」へ分けてあります(分類は ✎ の編集で変えられます)。左にスワイプすると「削除」ボタンが出ます(スワイプできない端末は✕ボタンをお使いください)。削除の前に必ず確認します。メイン画面で非表示にした用品も、ここに表示されます。</p>';
+  h += '<input type="search" id="master-search" class="master-search" autocomplete="off" enterkeyhint="search" maxlength="30" placeholder="用品名で検索(すでにあるか調べる)" value="' + esc(masterQuery) + '" aria-label="防災用品マスタを検索"><div id="master-list">' + buildMasterListHtml() + '</div>';
   return h;
 }
 function buildPinnedHtml(){
@@ -3022,8 +3039,13 @@ function onSearchInput(t){
   searchKey = k; keepVisible = {};
   applySearch();
 }
-appEl.addEventListener("compositionstart", function(e){ if(e.target && e.target.id === "search-input") searchComposing = true; });
-appEl.addEventListener("compositionend", function(e){ if(e.target && e.target.id === "search-input"){ searchComposing = false; onSearchInput(e.target); } });
+function onMasterInput(t){
+  masterQuery = t.value;
+  var box = document.getElementById("master-list");
+  if(box) box.innerHTML = buildMasterListHtml();
+}
+appEl.addEventListener("compositionstart", function(e){ if(e.target && e.target.id === "search-input") searchComposing = true; if(e.target && e.target.id === "master-search") masterComposing = true; });
+appEl.addEventListener("compositionend", function(e){ if(e.target && e.target.id === "search-input"){ searchComposing = false; onSearchInput(e.target); } if(e.target && e.target.id === "master-search"){ masterComposing = false; onMasterInput(e.target); } });
 appEl.addEventListener("keydown", function(e){
   if(e.target && e.target.id === "search-input" && (e.key === "Enter" || e.key === "Escape")){ if(e.key === "Escape" && e.target.value){ e.target.value = ""; onSearchInput(e.target); } else { e.target.blur(); } }
 });
@@ -3031,6 +3053,7 @@ appEl.addEventListener("input", function(e){
   var t = e.target;
   if(!t || !t.getAttribute) return;
   if(t.id === "search-input"){ if(!searchComposing && !e.isComposing) onSearchInput(t); return; }
+  if(t.id === "master-search"){ if(!masterComposing && !e.isComposing) onMasterInput(t); return; }
   var kind = t.getAttribute("data-input");
   if(kind === "csv-text"){ csv.text = t.value; csv.file = ""; csv.garbled = false; csv.plan = null; var pv = document.getElementById("csv-preview"); if(pv) pv.innerHTML = ""; }
   else if(kind === "pack-imp-text"){ packImp.text = t.value; packImp.file = ""; packImp.garbled = false; packImp.plan = null; var ppv = document.getElementById("pack-imp-preview"); if(ppv) ppv.innerHTML = ""; }
