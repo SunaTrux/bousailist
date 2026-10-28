@@ -414,6 +414,7 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .fb-search input::-webkit-search-cancel-button, .fb-search input::-webkit-search-decoration{ -webkit-appearance:none; appearance:none; display:none; }
   .master-search{ width:100%; min-height:44px; margin:0 0 12px; padding:0 12px; border:1.5px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; font-size:16px; -webkit-appearance:none; appearance:none; }
   .master-search:focus{ outline:none; border-color:var(--accent,var(--ink)); }
+  .set-row.hit .set-name{ background:var(--accent-soft,rgba(200,120,60,.25)); border-radius:4px; padding:0 4px; font-weight:700; }
   .master-search::placeholder{ font-size:14px; color:var(--ink-soft); opacity:.8; }
   .fb-clear{ display:none; position:absolute; right:5px; top:50%; width:22px; height:22px; margin-top:-11px; padding:0; border:0; border-radius:50%; background:var(--line); color:var(--ink-soft); align-items:center; justify-content:center; }
   .fb-search.has-q .fb-clear{ display:flex; }
@@ -561,11 +562,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.56.0";
+var APP_VERSION = "1.57.0";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.57.0", lines:["設定の「拡張パック」に、検索窓をつけました。パック名や用品名で探せて、合うパックは開いて、合う用品に色がつきます。ひらがな・カタカナの違いは区別せずに探します。"] },
   { v:"1.56.0", lines:["設定の「防災用品マスタ」に、用品名の検索窓をつけました。用品がすでにあるか調べるときに使えます。ひらがな・カタカナの違いは区別せずに探します。","「持ち歩きEx」に、「日焼け止め」「折りたたみ傘(晴雨兼用)」を追加しました。"] },
   { v:"1.55.0", lines:["入れられる数の上限を整理しました(用品は各フェーズ500件、保管場所は30個、用品名は100文字、場所名は30文字、自分のパックは20個・1パック100件まで)。上限に達したときは、黙って止まらずに、メッセージを出すようにしました。ヘルプの「データのこと」にも書きました。"] },
   { v:"1.54.4", lines:["用品の追加欄の入力例を、すでにある「携帯充電器」から「推しの写真」に変えました。"] },
@@ -856,6 +858,7 @@ function parsePackCode(code){
   return plan;
 }
 var CONTENT_VERSION = 16;
+var packQuery = "", packComposing = false;   // 拡張パックの検索窓の文字(保存しない)
 var masterQuery = "", masterComposing = false;   // 防災用品マスタの検索窓の文字(保存しない)
 var addMsg = null;   // 用品の追加欄の下に出すメッセージ(上限など)
 var MAX_ITEMS = 500, MAX_LOCATIONS = 30, MAX_NAME = 100, MAX_LOC_NAME = 30, MAX_DESC = 1000;
@@ -1775,7 +1778,7 @@ var csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled
 var json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
 var appEl = document.getElementById("app");
 
-function resetSettingsUi(){ masterQuery = ""; helpOpen = []; guideMsg = null; recMsg = null; recPackId = null; recPackMsg = null;
+function resetSettingsUi(){ masterQuery = ""; packQuery = ""; helpOpen = []; guideMsg = null; recMsg = null; recPackId = null; recPackMsg = null;
   panels = { mdExport:false, csvExport:false, csvImport:false, jsonExport:false, jsonImport:false };
   csv = { text:"", mode:"merge", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
   json = { text:"", plan:null, msg:null, file:"", enc:"", garbled:false, exportMsg:null };
@@ -2121,8 +2124,11 @@ function buildJsonPreviewHtml(plan){
 }
 
 
+function packWords(){ return searchNorm(packQuery).split(/\s+/).filter(function(w){ return w; }); }
+function hitAll(s, words){ var hay = searchNorm(s); for(var i = 0; i < words.length; i++){ if(hay.indexOf(words[i]) === -1) return false; } return true; }
+function packMatches(pack, words){ if(!words.length) return true; if(hitAll(pack.title, words)) return true; return pack.items.some(function(d){ return hitAll(d.name, words); }); }
 function packCardHtml(pack){
-  var open = setOpen === pack.id, pick = setPick[pack.id] || {};
+  var pw = packWords(), open = setOpen === pack.id || pw.length > 0, pick = setPick[pack.id] || {};
   var grp = state.groups[pack.g], meta = GROUP_META[pack.g], pid = esc(pack.id);
   var h = '<div class="set-card"><button type="button" class="set-head" data-act="toggle-set" data-set="' + pid + '" aria-expanded="' + open + '"><span class="set-t">' + esc(pack.title) + '<small>' + pack.items.length + '件</small></span><span class="acc-ch" aria-hidden="true">' + ICON_CHEV + '</span></button>';
   if(!open) return h + '</div>';
@@ -2132,7 +2138,7 @@ function packCardHtml(pack){
       var exists = grp.items.some(function(it){ return keyOf(it.name) === keyOf(d.name); });
       var on = !exists && pick[i] !== false;
       if(on) n++;
-      return '<li><button type="button" class="set-row' + (exists ? " done" : "") + '" data-act="toggle-set-item" data-set="' + pid + '" data-i="' + i + '"' + (exists ? " disabled" : "") + ' role="checkbox" aria-checked="' + on + '">'
+      return '<li><button type="button" class="set-row' + (exists ? " done" : "") + (pw.length && hitAll(d.name, pw) ? " hit" : "") + '" data-act="toggle-set-item" data-set="' + pid + '" data-i="' + i + '"' + (exists ? " disabled" : "") + ' role="checkbox" aria-checked="' + on + '">'
         + '<span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span>'
         + '<span class="set-name">' + esc(d.name) + '</span><span class="set-cat">' + (exists ? "追加ずみ" : esc(catLabel(d.cat))) + '</span></button></li>';
     }).join('')
@@ -2163,13 +2169,18 @@ function packCardHtml(pack){
 function packSegHtml(act, cur){
   return '<div class="seg" style="margin-bottom:12px">' + GROUP_ORDER.map(function(g){ return '<button type="button" class="' + (cur === g ? "active" : "") + '" data-act="' + act + '" data-g="' + g + '">' + GROUP_META[g].label + '</button>'; }).join("") + '</div>';
 }
+function buildPackListHtml(){
+  var pw = packWords(), all = allPacks().filter(function(p){ return packMatches(p, pw); }), h = "";
+  var std = all.filter(function(p){ return !p.mine; }), mine = all.filter(function(p){ return p.mine; });
+  h += std.map(packCardHtml).join('');
+  if(!pw.length || mine.length) h += '<h3 class="acc-sub">自分のパック</h3>';
+  h += mine.length ? mine.map(packCardHtml).join('') : (pw.length ? '' : '<p class="note">まだありません。自分で作るか、もらったパックを取り込めます。</p>');
+  if(pw.length && !all.length) h += '<div class="empty">「' + esc(packQuery.trim()) + '」に合うパックや用品はありません。</div>';
+  return h;
+}
 function buildPacksHtml(){
   var h = '<p class="note">場面に合わせた用品を、まとめて追加できます。追加したい用品を選んで「追加」を押してください。すでにある同じ名前の用品は追加されません。</p>';
-  var all = allPacks();
-  h += all.filter(function(p){ return !p.mine; }).map(packCardHtml).join('');
-  h += '<h3 class="acc-sub">自分のパック</h3>';
-  var mine = all.filter(function(p){ return p.mine; });
-  h += mine.length ? mine.map(packCardHtml).join('') : '<p class="note">まだありません。自分で作るか、もらったパックを取り込めます。</p>';
+  h += '<input type="search" id="pack-search" class="master-search" autocomplete="off" enterkeyhint="search" maxlength="30" placeholder="パック名・用品名で検索" value="' + esc(packQuery) + '" aria-label="拡張パックを検索"><div id="pack-list">' + buildPackListHtml() + '</div>';
   h += msgHtml(packMsg && !packExportId && !packSendId ? packMsg : null);
   h += '<div class="pack-actions"><button type="button" class="settings-btn" data-act="pack-new">パックを作る</button>'
     + '<button type="button" class="settings-btn" data-act="pack-from-open">今のリストからパックを作る</button>'
@@ -3039,13 +3050,18 @@ function onSearchInput(t){
   searchKey = k; keepVisible = {};
   applySearch();
 }
+function onPackSearchInput(t){
+  packQuery = t.value;
+  var box = document.getElementById("pack-list");
+  if(box) box.innerHTML = buildPackListHtml();
+}
 function onMasterInput(t){
   masterQuery = t.value;
   var box = document.getElementById("master-list");
   if(box) box.innerHTML = buildMasterListHtml();
 }
-appEl.addEventListener("compositionstart", function(e){ if(e.target && e.target.id === "search-input") searchComposing = true; if(e.target && e.target.id === "master-search") masterComposing = true; });
-appEl.addEventListener("compositionend", function(e){ if(e.target && e.target.id === "search-input"){ searchComposing = false; onSearchInput(e.target); } if(e.target && e.target.id === "master-search"){ masterComposing = false; onMasterInput(e.target); } });
+appEl.addEventListener("compositionstart", function(e){ if(e.target && e.target.id === "search-input") searchComposing = true; if(e.target && e.target.id === "master-search") masterComposing = true; if(e.target && e.target.id === "pack-search") packComposing = true; });
+appEl.addEventListener("compositionend", function(e){ if(e.target && e.target.id === "search-input"){ searchComposing = false; onSearchInput(e.target); } if(e.target && e.target.id === "master-search"){ masterComposing = false; onMasterInput(e.target); } if(e.target && e.target.id === "pack-search"){ packComposing = false; onPackSearchInput(e.target); } });
 appEl.addEventListener("keydown", function(e){
   if(e.target && e.target.id === "search-input" && (e.key === "Enter" || e.key === "Escape")){ if(e.key === "Escape" && e.target.value){ e.target.value = ""; onSearchInput(e.target); } else { e.target.blur(); } }
 });
@@ -3054,6 +3070,7 @@ appEl.addEventListener("input", function(e){
   if(!t || !t.getAttribute) return;
   if(t.id === "search-input"){ if(!searchComposing && !e.isComposing) onSearchInput(t); return; }
   if(t.id === "master-search"){ if(!masterComposing && !e.isComposing) onMasterInput(t); return; }
+  if(t.id === "pack-search"){ if(!packComposing && !e.isComposing) onPackSearchInput(t); return; }
   var kind = t.getAttribute("data-input");
   if(kind === "csv-text"){ csv.text = t.value; csv.file = ""; csv.garbled = false; csv.plan = null; var pv = document.getElementById("csv-preview"); if(pv) pv.innerHTML = ""; }
   else if(kind === "pack-imp-text"){ packImp.text = t.value; packImp.file = ""; packImp.garbled = false; packImp.plan = null; var ppv = document.getElementById("pack-imp-preview"); if(ppv) ppv.innerHTML = ""; }
