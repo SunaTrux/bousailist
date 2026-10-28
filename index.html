@@ -558,11 +558,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.54.3";
+var APP_VERSION = "1.54.4";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.54.4", lines:["用品の追加欄の入力例を、すでにある「携帯充電器」から「推しの写真」に変えました。"] },
   { v:"1.54.3", lines:["検索窓の右端に、小さなクリアボタンをつけました。1回タップすると、入力した内容を消せます。"] },
   { v:"1.54.2", lines:["検索窓に日本語を入力している途中、文字が虫めがねの上に重なって見えていたのを直しました。"] },
   { v:"1.54.1", lines:["「どこにある？」の「配置済」で出る「場所未定」の説明は、場所未定に用品が1つ以上あるときだけ出すようにしました。"] },
@@ -2044,7 +2045,7 @@ function renderMain(){
     + '<div class="fb-search' + (searchQuery ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="search-input" value="' + esc(searchQuery) + '" placeholder=" " maxlength="30" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="防災用品を検索"><button type="button" class="fb-clear" data-act="clear-search" aria-label="検索の入力を消す" title="入力を消す"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg></button></div></div>';
   if(viewMode === "item"){
     html += '<div class="items" id="list-area" style="' + accentStyle(meta) + '">' + buildItemsHtml(g, meta) + '</div>'
-      + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" autocomplete="off" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:携帯充電器)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
+      + '<div class="add-row" style="' + accentStyle(meta) + '"><input type="text" autocomplete="off" id="new-item-input" maxlength="' + MAX_NAME + '" placeholder="防災用品を追加(例:推しの写真)" data-enter="add-item" data-g="' + g + '" enterkeyhint="done">'
       + '<button type="button" class="btn btn-accent" data-act="add-item" data-g="' + g + '">追加</button></div>'
       + '<div class="footer-note"><span class="hint-fine">左にスワイプ(マウスはドラッグ)で非表示、右にスワイプでピン留めします</span><span class="hint-coarse">左にスワイプで非表示、右にスワイプでピン留めします</span>用品名をタップで名前を編集できます(削除は設定の「防災用品マスタ」から)</div>';
   } else {
