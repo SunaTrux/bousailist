@@ -554,11 +554,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.54.0";
+var APP_VERSION = "1.54.1";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.54.1", lines:["「どこにある？」の「配置済」で出る「場所未定」の説明は、場所未定に用品が1つ以上あるときだけ出すようにしました。"] },
   { v:"1.54.0", lines:["上の進捗バーを、左にスワイプすると非表示にできるようにしました。もう一度出すときは、設定の「進捗バー」で選びます。","アプリのヒント文の初期の文を、「持ち歩き・持ち出し・備蓄の3つのフェーズで防災用品をそろえよう。備えておく場所を決めたらチェック。」に変えました(自分で書き換えた文はそのままです)。"] },
   { v:"1.53.0", lines:["持ち出しの初期の用品を分けました。「不織布マスク😷」「手指消毒」「体温計」、「雨具」「防寒着」、「缶切り」「ライター」「ナイフ」です。いま使っているリストでは、変更していない用品だけが、チェックを引き継いで分かれます。","備蓄の「衛生用品(生理用品・水のいらないシャンプー)」を「水のいらないシャンプー」にしました。","備蓄の初期の保管場所を、「キッチン」「洗面所」にしました。「リビング」は候補に移しました(いまの保管場所は、リビングに置いたものがなければ入れ替わります)。"] },
   { v:"1.52.0", lines:["「場所未定」を、いつも保管場所の一番最後に表示する固定の場所にしました。保管場所の編集画面には出さず、名前の変更・削除・並べ替えはできません。","保管場所を追加しても、「場所未定」は最後のままです。"] },
@@ -1992,14 +1993,14 @@ function buildByLocationHtml(g, meta){
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
   var html = '<div class="loc-group">';
-  var rows = 0;
+  var rows = 0, undShown = false;
   grp.locations.forEach(function(loc, li){
     if(onlyUnplanned && loc !== UND_LOC) return;
     var base = grp.items.filter(function(it){ return (!it.hidden || showHidden) && matchesSearch(it) && it.locations.indexOf(loc) !== -1 && (!onlyUnplanned || isUnplanned(it) || keepVisible[it.id]); });
     var done = base.filter(function(it){ return (it.have || []).indexOf(loc) !== -1; }).length;
     var shown = base.filter(function(it){ var on = (it.have || []).indexOf(loc) !== -1, kv = keepVisible[it.id + "|" + loc]; return !(onlyUnchecked && on && !kv) && !(onlyChecked && !on && !kv); });
     if(onlyChecked && !shown.length) return;   // チェック済の用品がない場所は、見出しごと出さない
-    rows++;
+    rows++; if(loc === UND_LOC) undShown = true;
     html += '<div class="loc-head"><span class="loc-tag' + (loc === UND_LOC ? ' und' : '') + '" style="' + accentStyle(meta) + '">' + esc(loc) + '</span><span class="loc-count">' + done + '/' + base.length + '</span></div>';
     html += shown.length ? shown.map(function(it){ return row(it, loc, li); }).join("")
       : '<div class="note" style="padding:10px 0;margin:0">' + (base.length ? (onlyChecked ? '配置済みの用品はありません' : 'すべて配置済みです') : (searchKey ? '合う防災用品はありません' : 'ここに防災用品はありません')) + '</div>';
@@ -2007,7 +2008,7 @@ function buildByLocationHtml(g, meta){
   var un = unassignedHtml();
   if(onlyUnplanned && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">場所未定の防災用品はありません。</div>';
   if(onlyChecked && !un && !rows) html += '<div class="empty" style="grid-column:1 / -1">配置済みの防災用品はまだありません。用品の画面で場所の箱にチェックすると、ここに並びます(「すべて」で全部の用品を見られます)。</div>';
-  var undHint = (onlyChecked && grp.locations.indexOf(UND_LOC) !== -1 && (un || rows)) ? '<p class="footer-note" style="grid-column:1 / -1">「配置済」で「' + esc(UND_LOC) + '」にあるのは、持っているけれど、どこに置いておくかはまだ決めていない用品です。</p>' : '';
+  var undHint = (onlyChecked && undShown) ? '<p class="footer-note" style="grid-column:1 / -1">「配置済」で「' + esc(UND_LOC) + '」にあるのは、持っているけれど、どこに置いておくかはまだ決めていない用品です。</p>' : '';
   return html + un + undHint + locAdd + '</div>';
 }
 
