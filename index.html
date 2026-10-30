@@ -570,11 +570,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.58.0";
+var APP_VERSION = "1.58.1";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.58.1", lines:["書き出しの「ファイルをダウンロード」などのボタン名を、2行にならないよう「ダウンロード」に短くしました。"] },
   { v:"1.58.0", lines:["ホーム画面のアイコンを、青い盾にチェックマークのデザインに変えました。すでにホーム画面にあるアイコンは、いったん削除して、もう一度「ホーム画面に追加」すると新しくなります。"] },
   { v:"1.57.1", lines:["防災用品マスタと拡張パックの検索窓に、虫めがねのアイコンと、右端の入力クリアボタンをつけました。"] },
   { v:"1.57.0", lines:["設定の「拡張パック」に、検索窓をつけました。パック名や用品名で探せて、合うパックは開いて、合う用品に色がつきます。ひらがな・カタカナの違いは区別せずに探します。"] },
@@ -2174,7 +2175,7 @@ function packCardHtml(pack){
     }
     if(packExportId === pack.id){
       h += '<div class="panel" style="margin-top:10px"><p class="note">この文章を、LINEやメモで送れます。受け取った人は、設定の「拡張パック」から取り込めます。</p>'
-        + '<div class="btn-row"><button type="button" class="btn" data-act="pack-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="pack-download" data-set="' + pid + '">ファイルでダウンロード</button></div>'
+        + '<div class="btn-row"><button type="button" class="btn" data-act="pack-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="pack-download" data-set="' + pid + '">ダウンロード</button></div>'
         + '<textarea autocomplete="off" class="code-box" id="pack-export-text" readonly aria-label="パックの内容">' + esc(packToMd(findPack(pack.id))) + '</textarea>' + msgHtml(packMsg) + '</div>';
     }
   }
@@ -2249,7 +2250,7 @@ function buildSettingsHtml(){
 
   var mdExport = '<button type="button" class="settings-btn" data-act="panel" data-p="mdExport">' + (panels.mdExport ? "Markdownを閉じる" : "Markdownで書き出し") + '</button>';
   if(panels.mdExport){
-    mdExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="md-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="md-download">.mdファイルをダウンロード</button></div>'
+    mdExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="md-copy">テキストをコピー</button><button type="button" class="btn btn-ghost" data-act="md-download">ダウンロード</button></div>'
       + '<textarea autocomplete="off" class="code-box" id="md-export-text" readonly aria-label="Markdownの内容">' + esc(buildMarkdownText()) + '</textarea>' + msgHtml(mdMsg) + '</div>';
   }
   var csvExport = '<button type="button" class="settings-btn" data-act="panel" data-p="csvExport">' + (panels.csvExport ? "CSVエクスポートを閉じる" : "リストをCSVでエクスポート") + '</button>';
@@ -2271,7 +2272,7 @@ function buildSettingsHtml(){
   }
   var jsonExport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonExport">' + (panels.jsonExport ? "エクスポートを閉じる" : "全データをエクスポート") + '</button>';
   if(panels.jsonExport){
-    jsonExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="json-download">ファイルをダウンロード</button><button type="button" class="btn btn-ghost" data-act="json-copy">テキストをコピー</button></div>'
+    jsonExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="json-download">ダウンロード</button><button type="button" class="btn btn-ghost" data-act="json-copy">テキストをコピー</button></div>'
       + '<textarea autocomplete="off" class="code-box" id="json-export-text" readonly aria-label="バックアップの内容">' + esc(JSON.stringify(state, null, 2)) + '</textarea>' + msgHtml(json.exportMsg) + '</div>';
   }
   var jsonImport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonImport">' + (panels.jsonImport ? "インポートを閉じる" : "データをインポート") + '</button>';
