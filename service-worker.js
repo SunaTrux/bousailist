@@ -3,14 +3,14 @@
 //   so a new version reaches users on the next online visit.
 // - Everything else (icons, manifest, web fonts) is served cache-first and filled in as it is used.
 // Bump CACHE_NAME when you want to force every client to drop its old cache.
-const CACHE_NAME = "bousai-list-1.59.2";
+const CACHE_NAME = "bousai-list-1.59.3";
 const PRECACHE = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icons/icon-180.png",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/shield-180.png",
+  "./icons/shield-192.png",
+  "./icons/shield-512.png"
 ];
 
 self.addEventListener("install", function(event){

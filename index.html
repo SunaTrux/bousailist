@@ -12,8 +12,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="防災リスト">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/shield-192.png">
+<link rel="apple-touch-icon" href="icons/shield-180.png">
 <title>わが家の防災リスト</title>
 <script>
 /* Apply a manually chosen theme before first paint (avoids a light/dark flash). */
@@ -573,11 +573,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.59.2";
+var APP_VERSION = "1.59.3";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.59.3", lines:["ホーム画面のアイコンが古い絵のままになることがあるため、アイコンのファイル名を新しくして、確実に新しい絵が使われるようにしました。"] },
   { v:"1.59.2", lines:["ホーム画面のアイコンで、背景が左上にしか塗られていなかった不具合を直しました。背景が全面の紺になります。すでにホーム画面にあるアイコンは、いったん削除して、もう一度「ホーム画面に追加」すると新しくなります。"] },
   { v:"1.59.1", lines:["ホーム画面のアイコンの背景を、単色の紺にしました。すでにホーム画面にあるアイコンは、いったん削除して、もう一度「ホーム画面に追加」すると新しくなります。"] },
   { v:"1.59.0", lines:["アプリのタイトルの先頭に、ホーム画面のアイコンと同じ青い盾を付けました。"] },
