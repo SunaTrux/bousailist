@@ -80,7 +80,10 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   /* ---------- Header / overview ---------- */
   .header{ padding:16px 20px 10px; border-bottom:1px solid var(--line); }
   .header-top{ display:flex; align-items:center; gap:12px; }
-  .header h1{ flex:1; min-width:0; font-size:22px; font-weight:900; margin:0; letter-spacing:.02em; overflow-wrap:anywhere; }
+  .app-shield{ flex:none; width:.95em; height:1.18em; }
+  .app-title{ min-width:0; }
+  @media (max-width:360px){ .header h1{ gap:6px; } .header .app-title{ font-size:15.5px; white-space:nowrap; } .app-shield{ width:.9em; } }
+  .header h1{ display:flex; align-items:center; gap:8px; flex:1; min-width:0; font-size:22px; font-weight:900; margin:0; letter-spacing:.02em; overflow-wrap:anywhere; }
   .header p{ margin:4px 0 0; font-size:13px; color:var(--ink-soft); }
   .gear-btn{
     flex-shrink:0; display:flex; align-items:center; gap:6px; min-height:44px; padding:0 14px;
@@ -570,11 +573,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.58.1";
+var APP_VERSION = "1.59.0";
 var APP_VERSION_DATE = "2026-10-27";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.59.0", lines:["アプリのタイトルの先頭に、ホーム画面のアイコンと同じ青い盾を付けました。"] },
   { v:"1.58.1", lines:["書き出しの「ファイルをダウンロード」などのボタン名を、2行にならないよう「ダウンロード」に短くしました。"] },
   { v:"1.58.0", lines:["ホーム画面のアイコンを、青い盾にチェックマークのデザインに変えました。すでにホーム画面にあるアイコンは、いったん削除して、もう一度「ホーム画面に追加」すると新しくなります。"] },
   { v:"1.57.1", lines:["防災用品マスタと拡張パックの検索窓に、虫めがねのアイコンと、右端の入力クリアボタンをつけました。"] },
@@ -1810,6 +1814,7 @@ var delUndo = null;   // 直前に削除した保管場所/候補(「元に戻�
 var ICON_GRIP = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 8h14M5 12h14M5 16h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
 var ICON_X = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
 var ICON_OK = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+var ICON_SHIELD = '<svg class="app-shield" viewBox="100 66 312 386" aria-hidden="true" focusable="false"><path d="M256 78 L400 126 V250 C400 342 336 402 256 440 Z" fill="#2a6fd6"/><path d="M256 78 L112 126 V250 C112 342 176 402 256 440 Z" fill="#4aa3ff"/><path d="M188 258 L238 308 L332 198" fill="none" stroke="#fff" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 var ICON_SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>';
 function sboxHtml(id, ph, val, label){
   return '<div class="sbox' + (val ? " has-q" : "") + '">' + ICON_SEARCH + '<input type="search" id="' + id + '" autocomplete="off" enterkeyhint="search" maxlength="30" placeholder="' + ph + '" value="' + esc(val) + '" aria-label="' + label + '">'
@@ -2060,7 +2065,7 @@ function renderMain(){
   var g = state.activeTab, meta = GROUP_META[g], grp = state.groups[g];
   var html = ''
     + (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした(プライベートブラウズや保存容量の制限など)。設定からCSV/JSONでバックアップしてください。</div>' : '')
-    + '<div class="header"><div class="header-top"><h1>わが家の防災リスト</h1>'
+    + '<div class="header"><div class="header-top"><h1>' + ICON_SHIELD + '<span class="app-title">わが家の防災リスト</span></h1>'
     + '<button type="button" class="gear-btn" data-act="open-settings"><span aria-hidden="true">⚙</span> 設定</button></div>'
     + (foldClosed.app
         ? '<div class="fold-row"><button type="button" class="fold-btn" data-act="toggle-fold" data-key="app" aria-expanded="false">' + ICON_CHEV + 'ヒントを開く</button></div>'
