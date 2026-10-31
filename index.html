@@ -11,6 +11,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="防災リスト">
+<meta property="og:title" content="わが家の防災リスト">
+<meta property="og:description" content="持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理するチェックリスト">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://sunatrux.github.io/bousailist/icons/og-share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icons/shield-192.png">
 <link rel="apple-touch-icon" href="icons/shield-180.png">
@@ -573,11 +580,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.59.3";
-var APP_VERSION_DATE = "2026-10-27";
+var APP_VERSION = "1.59.4";
+var APP_VERSION_DATE = "2026-10-31";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.59.4", lines:["LINEなどで送ったときのリンクカードに、新しい盾の絵とアプリ名が出るようにしました。友達に勧める文のURLも新しくしたので、これから送るものに反映されます。すでに送ったカードは変わりません。"] },
   { v:"1.59.3", lines:["ホーム画面のアイコンが古い絵のままになることがあるため、アイコンのファイル名を新しくして、確実に新しい絵が使われるようにしました。"] },
   { v:"1.59.2", lines:["ホーム画面のアイコンで、背景が左上にしか塗られていなかった不具合を直しました。背景が全面の紺になります。すでにホーム画面にあるアイコンは、いったん削除して、もう一度「ホーム画面に追加」すると新しくなります。"] },
   { v:"1.59.1", lines:["ホーム画面のアイコンの背景を、単色の紺にしました。すでにホーム画面にあるアイコンは、いったん削除して、もう一度「ホーム画面に追加」すると新しくなります。"] },
@@ -1749,7 +1757,7 @@ function planJsonImport(text, cur){
 
 /* ================= UI state ================= */
 var viewMode = "item";
-var APP_URL = "https://sunatrux.github.io/bousailist/";
+var APP_URL = "https://sunatrux.github.io/bousailist/?v=2";   // ?v= はLINE等のリンクカードの古いキャッシュを避ける目印
 /* ご意見・感想フォーム(Tally)。バンドマン持ち物リスト・プレイヤーズセットリストと共通で、?app= でフォームの「アプリを選択」が自動で選ばれる */
 var FEEDBACK_URL = "https://tally.so/r/9qL0A4", FEEDBACK_APP_NAME = "わが家の防災リスト";
 var REC_TITLE = "わが家の防災リスト";
