@@ -580,11 +580,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.59.4";
-var APP_VERSION_DATE = "2026-10-31";
+var APP_VERSION = "1.60.0";
+var APP_VERSION_DATE = "2026-11-01";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.60.0", lines:["スマホのブラウザで開いたときに、上に「ホーム画面に追加」のお知らせが出るようになりました。設定の「ホーム画面に追加」からも、追加の手順の確認と、追加(Androidのみ)ができます。"] },
   { v:"1.59.4", lines:["LINEなどで送ったときのリンクカードに、新しい盾の絵とアプリ名が出るようにしました。友達に勧める文のURLも新しくしたので、これから送るものに反映されます。すでに送ったカードは変わりません。"] },
   { v:"1.59.3", lines:["ホーム画面のアイコンが古い絵のままになることがあるため、アイコンのファイル名を新しくして、確実に新しい絵が使われるようにしました。"] },
   { v:"1.59.2", lines:["ホーム画面のアイコンで、背景が左上にしか塗られていなかった不具合を直しました。背景が全面の紺になります。すでにホーム画面にあるアイコンは、いったん削除して、もう一度「ホーム画面に追加」すると新しくなります。"] },
@@ -1400,6 +1401,11 @@ function noticesHtml(){
         + '<div class="note" style="margin-top:6px">追加すると、同じ名前の用品はそのままで、新しい用品だけが入ります。どちらも、自分のパックとして残ります。</div>' + msgHtml(ip.msg) + '</div></div>';
     }
   }
+  if(!showSettings && showA2hsNotice()){
+    h += '<div class="notice" role="region" aria-label="ホーム画面に追加"><div class="notice-body"><b>ホーム画面に追加すると、アプリのように使えます</b>'
+      + '<div class="btn-row" style="margin-top:6px"><button type="button" class="btn" data-act="a2hs-go">' + (deferredInstall ? "追加する" : "追加のしかた") + '</button></div></div>'
+      + '<button type="button" class="notice-x" data-act="a2hs-hide" aria-label="お知らせを閉じる">' + ICON_X + '</button></div>';
+  }
   if(swUpdated) h += '<div class="notice" role="status"><div class="notice-body">新しいバージョン' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + 'があります。</div><button type="button" class="btn" data-act="reload-app">再読み込み</button></div>';
   if(updateNotes){
     h += '<div class="notice" role="status"><div class="notice-body"><b>v' + esc(APP_VERSION) + ' にアップデートしました</b>';
@@ -1762,6 +1768,39 @@ var APP_URL = "https://sunatrux.github.io/bousailist/?v=2";   // ?v= はLINE等�
 var FEEDBACK_URL = "https://tally.so/r/9qL0A4", FEEDBACK_APP_NAME = "わが家の防災リスト";
 var REC_TITLE = "わが家の防災リスト";
 var REC_TEXT = "持ち歩き・持ち出し・備蓄の防災用品を管理して、「あれどこだっけ？」をなくせる防災チェックリストです。ホーム画面に追加すると、アプリのように使えます。入力したデータはこの端末の中だけに保存され、サーバーには送られません。";
+/* ホーム画面に追加(スマホのブラウザで開いたときのお知らせと、設定のボタン) */
+var A2HS_KEY = "bousai-a2hs-hide";   // お知らせを閉じた時刻(ミリ秒)。30日は出さない
+var deferredInstall = null, installMsg = null;
+function isStandaloneNow(){ try{ return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; }catch(e){ return false; } }
+function phoneOs(){
+  var ua = navigator.userAgent || "";
+  if(/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  if(/Android/.test(ua)) return "android";
+  return "";
+}
+function showA2hsNotice(){
+  if(!phoneOs() || isStandaloneNow()) return false;
+  var t = parseInt(lsGet(A2HS_KEY), 10);
+  return !(t && Date.now() - t < 30 * 86400000);
+}
+function a2hsSteps(){
+  var os = phoneOs();
+  if(os === "ios") return '<ol><li>画面の下(iPadは上)の<b>共有ボタン</b>をタップ</li><li>メニューの<b>「ホーム画面に追加」</b>をタップ</li><li>右上の<b>「追加」</b>をタップ</li></ol><p class="note">iPhoneは、Safariで開いているときに追加できます。</p>';
+  if(os === "android") return '<ol><li>ブラウザ(Chrome)の<b>メニュー(︙)</b>をタップ</li><li><b>「ホーム画面に追加」</b>または<b>「アプリをインストール」</b>をタップ</li></ol>';
+  return '<ul><li><b>iPhone(Safari)</b>: 共有ボタン →「ホーム画面に追加」</li><li><b>Android(Chrome)</b>: メニュー(︙) →「ホーム画面に追加」</li></ul><p class="note">スマホのブラウザでこのページを開いて、追加してください。</p>';
+}
+function installApp(){
+  if(!deferredInstall){ return Promise.resolve(false); }
+  var ev = deferredInstall; deferredInstall = null;
+  try{
+    ev.prompt();
+    return ev.userChoice.then(function(c){ return !!(c && c.outcome === "accepted"); }, function(){ return false; });
+  }catch(e){ return Promise.resolve(false); }
+}
+try{
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); deferredInstall = e; try{ render(); }catch(x){} });
+  window.addEventListener("appinstalled", function(){ deferredInstall = null; installMsg = { type:"ok", text:"ホーム画面に追加しました。" }; try{ render(); }catch(x){} });
+}catch(e){}
 var recMsg = null, recPackId = null, recPackMsg = null;   // 「友達に勧める」の中の、自作パックを送る部分
 var guideMsg = null;
 var renameLoc = null, locMsg = "", locMsgOk = false;   // 保管場所の名前変更中("区分:番号")、編集中のメッセージ
@@ -2328,6 +2367,7 @@ function buildSettingsHtml(){
     hint: !!editingDescG
   };
   var SEC_ICONS = {
+    install:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M12 9v6M9 12h6"/>',
     help:'<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2.9-1.2 1.8M12 17h.01"/>',
     theme:'<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
     hint:'<path d="M4 5h16v11H9.5L5 20v-4H4z"/>',
@@ -2390,6 +2430,11 @@ function buildSettingsHtml(){
       + '</section>';
   }
   var setsBody = buildPacksHtml();
+  var instBody = isStandaloneNow() ? '<p class="note">いま、ホーム画面のアプリとして開いています。</p>'
+    : (phoneOs() && deferredInstall ? '<button type="button" class="settings-btn" data-act="a2hs-install">ホーム画面に追加する</button>' : '')
+      + '<div class="note" style="margin:8px 0 4px">' + (phoneOs() && deferredInstall ? "ボタンで追加できないときは、次の手順で追加します。" : "追加の手順") + '</div>' + a2hsSteps()
+      + (phoneOs() && !isStandaloneNow() && lsGet(A2HS_KEY) ? '<button type="button" class="settings-btn" data-act="a2hs-show">開いたときのお知らせを、また出す</button>' : '')
+      + msgHtml(installMsg);
   var updBody = ''
     + '<p class="note">ホーム画面のアプリは、閉じても裏で止まっているだけで、自動では新しくなりません。開いたときと数分おきに最新版を確認しますが、すぐ知りたいときはここで確認できます。</p>'
     + '<button type="button" class="settings-btn" data-act="check-update">更新を確認</button>'
@@ -2469,6 +2514,7 @@ function buildSettingsHtml(){
     + acc("feedback", "作者に感想を送る", "フォームで届きます", fbBody)
     + grpLabel("アプリ")
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
+    + acc("install", "ホーム画面に追加", isStandaloneNow() ? "追加済み" : "アプリのように使う", instBody)
     + acc("update", "アプリの更新", swUpdated ? "新しい版があります" : "最新版を確認", updBody)
   var wideHtml = "";
   if(wideSet){
@@ -2707,6 +2753,13 @@ var ACTIONS = {
   "dismiss-update": function(){ updateNotes = null; lsSet(SEEN_KEY, APP_VERSION); render(); },
   "reset-hint": function(){ state.appHint = ""; save(); render(); },
   "check-update": function(){ checkForUpdate(true); },
+  "a2hs-hide": function(){ lsSet(A2HS_KEY, String(Date.now())); render(); },
+  "a2hs-show": function(){ try{ window.localStorage.removeItem(A2HS_KEY); }catch(e){} installMsg = { type:"ok", text:"次に開いたときから、お知らせが出ます。" }; render(); },
+  "a2hs-go": function(){
+    if(deferredInstall){ installApp().then(function(ok){ if(!ok) render(); }); return; }
+    clearTransient(); resetSettingsUi(); showSettings = true; setSec = "install"; openSecs = ["install"]; render(); var w = document.querySelector("[data-sec-wrap=install]"); if(w && w.scrollIntoView) w.scrollIntoView(); else window.scrollTo(0, 0);
+  },
+  "a2hs-install": function(){ installApp().then(function(ok){ installMsg = ok ? { type:"ok", text:"ホーム画面に追加しました。" } : { type:"warn", text:"追加できませんでした。下の手順で追加してください。" }; render(); }); },
   "reload-app": function(){ try{ window.location.reload(); }catch(e){} },
   "req-del-loc": function(t){
     var g = getGroup(t), grp = state.groups[g], li = parseInt(t.getAttribute("data-li"), 10);
