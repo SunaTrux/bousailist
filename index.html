@@ -67,8 +67,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   }
   #app{
     width:100%; max-width:480px; margin:0 auto; background:var(--paper);
-    min-height:100vh; min-height:100dvh; padding-bottom:48px; overflow-x:hidden;
+    min-height:100vh; min-height:100dvh; padding-bottom:48px; overflow-x:hidden; overflow-x:clip;   /* clip: 横はみ出しは隠しつつ、上に固定する部分(sticky)を邪魔しない */
   }
+  .sticky-nav{ position:sticky; top:0; z-index:20; background:var(--paper); box-shadow:0 1px 0 var(--line); }
   button{
     -webkit-appearance:none; appearance:none; background:none; border:0; padding:0; margin:0;
     font:inherit; color:inherit; cursor:pointer; touch-action:manipulation; text-align:inherit;
@@ -580,11 +581,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.60.1";
+var APP_VERSION = "1.60.2";
 var APP_VERSION_DATE = "2026-11-03";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.60.2", lines:["リストを下にスクロールしても、「0次・1次・2次」のタブと「防災用品／どこにある？」の切り替えが画面の上に残るようにしました。いま、どのリストを見ているかが分かります。"] },
   { v:"1.60.1", lines:["ヘルプの「どんなアプリ？」に、「事前防災のうち、用品の備えをまとめるアプリ」と一言添えました。"] },
   { v:"1.60.0", lines:["スマホのブラウザで開いたときに、上に「ホーム画面に追加」のお知らせが出るようになりました。設定の「ホーム画面に追加」からも、追加の手順の確認と、追加(Androidのみ)ができます。"] },
   { v:"1.59.4", lines:["LINEなどで送ったときのリンクカードに、新しい盾の絵とアプリ名が出るようにしました。友達に勧める文のURLも新しくしたので、これから送るものに反映されます。すでに送ったカードは変わりません。"] },
@@ -2124,10 +2126,10 @@ function renderMain(){
     + '</div>'
     + buildPinnedHtml()
     + (lsGet(OVERVIEW_KEY) === "1" ? '' : '<div class="overview">' + buildOverviewHtml() + '</div>')
-    + '<div class="tabs">' + buildTabsHtml() + '</div>'
+    + '<div class="sticky-nav"><div class="tabs">' + buildTabsHtml() + '</div>'
     + '<div class="view-toggle" style="' + accentStyle(meta) + '">'
     + '<button type="button" class="' + (viewMode === "item" ? "active" : "") + '" data-act="view" data-mode="item">' + VIEW_ICONS.item + '防災用品</button>'
-    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + 'どこにある？</button><span class="vt-link" aria-hidden="true">' + ICON_LINK + '</span></div>';
+    + '<button type="button" class="' + (viewMode === "location" ? "active" : "") + '" data-act="view" data-mode="location">' + TAB_ICONS[g] + 'どこにある？</button><span class="vt-link" aria-hidden="true">' + ICON_LINK + '</span></div></div>';
   var hiddenCount = grp.items.filter(function(it){ return it.hidden; }).length;
   html += '<div class="filter-bar" style="' + accentStyle(meta) + '">'
     + '<div class="fb-seg" role="group" aria-label="表示する防災用品の絞り込み">'
