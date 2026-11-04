@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="description" content="持ち歩き・持ち出し・備蓄の防災用品と保管場所を管理するチェックリスト">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
@@ -68,6 +68,13 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   #app{
     width:100%; max-width:480px; margin:0 auto; background:var(--paper);
     min-height:100vh; min-height:100dvh; padding-bottom:48px; overflow-x:hidden; overflow-x:clip;   /* clip: 横はみ出しは隠しつつ、上に固定する部分(sticky)を邪魔しない */
+  }
+  body{ padding-left:env(safe-area-inset-left,0px); padding-right:env(safe-area-inset-right,0px); }
+  #app{ padding-bottom:calc(48px + env(safe-area-inset-bottom,0px)); }
+  input,textarea{ scroll-margin-top:140px; scroll-margin-bottom:110px; }   /* 上の固定部分や下の案内・キーボードで入力欄が隠れないように */
+  @media (hover:hover){
+    .btn:hover,.settings-btn:hover,.gear-btn:hover,.back-btn:hover,.tab:hover,.view-toggle button:hover,.fb-seg button:hover,.fb-eye:hover,.acc-btn:hover,.help-btn:hover,.loc-chip:hover,.suggest:hover,.suggest-chip:hover,.icon-btn:hover,.fold-btn:hover,.a2hs-go:hover,.a2hs-x:hover,.notice-x:hover,.text-link:hover{ background-image:linear-gradient(rgba(127,127,127,.14),rgba(127,127,127,.14)); }
+    .item-name:hover{ text-decoration:underline; text-decoration-color:var(--ink-soft); text-underline-offset:3px; }
   }
   .a2hs-space{ height:76px; }
   .a2hs-bar{ position:fixed; z-index:30; left:50%; bottom:0; transform:translateX(-50%); width:100%; max-width:480px; display:flex; align-items:stretch; background:var(--ink); color:var(--paper); box-shadow:0 -2px 12px rgba(0,0,0,.25); padding-bottom:env(safe-area-inset-bottom,0px); }
@@ -591,11 +598,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.62.0";
+var APP_VERSION = "1.63.0";
 var APP_VERSION_DATE = "2026-11-04";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.63.0", lines:["パソコンで、ボタンや用品名にマウスを乗せると反応するようにしました。Escキーで、設定や小窓を閉じられます。","スマホで入力欄を押したとき、キーボードや上の固定部分で隠れないようにしました。横向きでノッチ側の余白も確保しました。","送る・書き出す前の画面に、「相手に見える内容」の説明を追加しました。取り込みデータの安全対策も強めました。"] },
   { v:"1.62.0", lines:["バックアップ(JSON)に、アプリ名・バージョン・書き出した日時と端末を入れました。ファイル名も、英数字だけで日時とバージョン入りになります。復元前の確認に、その書き出し元が出ます。","新しい版のアプリで作られたバックアップは、「アプリを最新にしてから」と案内して止めます。","設定の「書き出し・バックアップ」に、いまのデータの保存場所(Safariやホーム画面のアプリなどはデータがそれぞれ別)の説明を追加しました。ヘルプに「別の端末にデータを移したい」も加えました。"] },
   { v:"1.61.0", lines:["パソコンで開くと、設定に「スマホで開く」が出て、スマホのカメラで読み取るだけで同じアプリを開けるようになりました。","スマホのブラウザでの「ホーム画面に追加」の案内を、画面の下に出すようにしました。2回目以降に開いたときだけ表示します。iPhoneの追加手順には、ボタンの絵も付けました。"] },
   { v:"1.60.2", lines:["リストを下にスクロールしても、「0次・1次・2次」のタブと「防災用品／どこにある？」の切り替えが画面の上に残るようにしました。いま、どのリストを見ているかが分かります。"] },
@@ -735,6 +743,8 @@ var RELEASE_NOTES = [
   { v:"1.1.5", lines:["「〇次避難」を「〇次の備え」に変更しました。"] },
   { v:"1.1.0", lines:["左スワイプで削除できます。保管場所は「持ち歩き1・2」に。","CSVの文字化け対策と、取り込み前の確認画面を追加しました。"] }
 ];
+/* 取り込むJSON用。__proto__ などの危険なキーは読み飛ばす */
+function safeJsonParse(t){ return JSON.parse(t, function(k, v){ return (k === "__proto__" || k === "constructor" || k === "prototype") ? undefined : v; }); }
 function cmpVer(a, b){
   var x = String(a).split("."), y = String(b).split(".");
   for(var i = 0; i < 3; i++){ var d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0); if(d) return d < 0 ? -1 : 1; }
@@ -889,7 +899,7 @@ function findPackCode(text){ var m = String(text == null ? "" : text).match(/[#&
 function parsePackCode(code){
   var plan = { ok:false, fatal:[], warnings:[], title:"", g:null, items:[], skipped:0 };
   var obj = null;
-  try{ if(code.length > MAX_PACK_CODE) throw new Error("big"); obj = JSON.parse(b64uDecode(code)); }catch(e){ obj = null; }
+  try{ if(code.length > MAX_PACK_CODE) throw new Error("big"); obj = safeJsonParse(b64uDecode(code)); }catch(e){ obj = null; }
   if(!isPlainObject(obj) || obj.v !== 1 || !Array.isArray(obj.i)){ plan.fatal.push("パックのリンクを読み取れませんでした。リンクが途中で切れていないか確認してください。"); return plan; }
   var raw = { title:obj.t, g:obj.g, items:obj.i.map(function(a){ return Array.isArray(a) ? { name:a[0], cat:CAT_BY_LETTER[a[1]] } : null; }).filter(function(x){ return x && typeof x.name === "string"; }) };
   var sp = sanitizePacks([raw]);
@@ -1446,7 +1456,7 @@ function load(){
   return storageGet().then(function(res){
     var loaded = null;
     if(res && res.value){
-      try{ loaded = sanitizeState(JSON.parse(res.value)); }catch(e){ loaded = null; }
+      try{ loaded = sanitizeState(safeJsonParse(res.value)); }catch(e){ loaded = null; }
       if(!loaded) lsSet(BROKEN_KEY, res.value);          // keep unreadable data instead of silently overwriting it
     }
     state = loaded || defaultData();
@@ -1778,7 +1788,7 @@ function planJsonImport(text, cur){
   if(text.indexOf("�") !== -1){ plan.fatal.push("文字化けしている部分があります。バックアップ時のファイルをそのまま選んでください。"); return plan; }
   if(text.trim().charAt(0) !== "{"){ plan.fatal.push("JSONバックアップではないようです。CSVの場合は「家族と共有(CSV)」の「CSVからインポート」を使ってください。"); return plan; }
   var parsed;
-  try{ parsed = JSON.parse(text); }catch(e){ plan.fatal.push("JSONの形式が正しくありません(途中で切れている可能性があります)。"); return plan; }
+  try{ parsed = safeJsonParse(text); }catch(e){ plan.fatal.push("JSONの形式が正しくありません(途中で切れている可能性があります)。"); return plan; }
   var meta = (isPlainObject(parsed) && isPlainObject(parsed._backup)) ? parsed._backup : null;
   if(meta){
     if(typeof meta.app === "string" && meta.app !== "bousai-list"){ plan.fatal.push("別のアプリのバックアップのようです。このアプリ(わが家の防災リスト)のバックアップを選んでください。"); return plan; }
@@ -2634,14 +2644,14 @@ function buildSettingsHtml(){
   }
   var fbBody = '<p class="note">使ってみた感想や、「ここが使いにくい」「動かない」などは、下のフォームから気軽にどうぞ。不具合の場合は、どの画面で何をしたかを書いてもらえると助かります。端末・ブラウザ・バージョンは自動で一緒に届きます(今のバージョン: v' + esc(APP_VERSION) + ')。</p>'
     + '<a class="settings-btn" href="' + esc(FEEDBACK_URL + "?app=" + encodeURIComponent(FEEDBACK_APP_NAME) + "&version=" + encodeURIComponent(APP_VERSION) + "&device=" + encodeURIComponent(deviceInfo())) + '" target="_blank" rel="noopener">感想を送る</a>';
-  var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。</p>'
+  var recBody = '<p class="note">友達に、このアプリのURLと簡単な説明を送れます。送る前に、文章を確認できます。<br>送られるのは、下の文章だけです。あなたの用品のデータや個人情報は含まれません。</p>'
     + '<textarea autocomplete="off" class="code-box" id="rec-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:170px" aria-label="友達に送る文章">' + esc(REC_TITLE + "\n" + REC_TEXT + "\n" + APP_URL) + '</textarea>'
     + '<div class="btn-row"><button type="button" class="btn" data-act="rec-share">友達に送る</button><button type="button" class="btn btn-ghost" data-act="rec-copy">文章をコピー</button></div>' + msgHtml(recMsg);
   var myPacks = state.packs || [], recPack = recPackId ? myPacks.filter(function(p){ return p.id === recPackId; })[0] : null;
   recBody += '<h3 class="acc-sub">自分の拡張パックも送る</h3>';
   if(!myPacks.length) recBody += '<p class="note">自分で作った拡張パックを、リンクにして送れます。設定の「拡張パック」でパックを作ると、ここに出ます。リンクを開いた人は、アプリがそのまま開いて、パックを取り込めます。</p>';
   else {
-    recBody += '<p class="note">送りたいパックを選んでください。リンクを開いた人は、アプリがそのまま開いて、パックを取り込めます。</p><div class="pack-tools">'
+    recBody += '<p class="note">送りたいパックを選んでください。リンクを開いた人は、アプリがそのまま開いて、パックを取り込めます。<br><b>リンクには、パックの名前と用品名が入ります。</b>リンクを受け取った人に、その内容が見えます。名前や連絡先などは入れないでください。</p><div class="pack-tools">'
       + myPacks.map(function(p){ var on = recPack && recPack.id === p.id; return '<button type="button" class="btn ' + (on ? "" : "btn-ghost") + '" data-act="rec-pack-pick" data-set="' + esc(p.id) + '" aria-pressed="' + (!!on) + '">' + esc(p.title) + '(' + p.items.length + '件)</button>'; }).join("") + '</div>';
     if(recPack){
       recBody += '<textarea autocomplete="off" class="code-box" id="rec-pack-text" readonly wrap="soft" style="white-space:pre-wrap;overflow-wrap:anywhere;min-height:150px;margin-top:10px" aria-label="送るメッセージ">' + esc(packShareText({ title:recPack.title, g:recPack.g, items:recPack.items })) + '</textarea>'
@@ -2666,7 +2676,7 @@ function buildSettingsHtml(){
         }
         return '<div class="desc-block"><div class="field-title">' + m.num + ' ' + m.label + '</div><p class="note" style="margin:0 0 6px">' + esc(grp.desc).replace(/\n/g, "<br>") + '</p><button type="button" class="btn btn-ghost" data-act="edit-desc" data-g="' + g + '">編集</button></div>';
       }).join("");
-  var familyBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
+  var familyBody = '<p class="note"><b>送る前に:</b> 書き出した内容(防災用品・保管場所・チェック状態)は、送った相手に見えます。名前や連絡先などの個人情報は含まれません。</p><h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
     + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport;
   var backupBody = '<p class="note">自分のための書き出しです。説明文や設定も含めた完全なバックアップ(JSON)を保管したり、端末を引っ越したりするときに使います。</p>'
     + '<div class="note"><b>いまのデータの場所: ' + esc(dataPlaceText()) + '</b><br>Safari・別のブラウザ・ホーム画面のアプリは、それぞれ別のデータで、自動ではつながりません。移すときは、今の場所でバックアップを書き出して、移したい場所で取り込みます。</div>' + jsonExport + jsonImport;
@@ -3218,7 +3228,7 @@ var ACTIONS = {
   "cancel-restore": function(){ pendingRestore = false; render(); },
   "do-restore": function(){
     var restored = null;
-    try{ restored = prevSnap ? sanitizeState(JSON.parse(prevSnap.text)) : null; }catch(e){ restored = null; }
+    try{ restored = prevSnap ? sanitizeState(safeJsonParse(prevSnap.text)) : null; }catch(e){ restored = null; }
     pendingRestore = false;
     var doneLabel = prevSnap ? prevSnap.label : "";
     if(!restored){ prevSnap = null; lsDel(PREV_KEY); render(); return; }
@@ -3281,6 +3291,24 @@ function endOvSwipe(e, cancel){
 }
 appEl.addEventListener("pointerup", function(e){ endOvSwipe(e, false); });
 appEl.addEventListener("pointercancel", function(e){ endOvSwipe(e, true); });
+/* Escで、開いている小窓や設定画面を閉じる(文字を入力中の欄では、入力を守るため設定は閉じない) */
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Escape" || e.escDone || e.isComposing || e.keyCode === 229) return;
+  var t = e.target || {};
+  if(t.id === "search-input") return;
+  var typing = /^(INPUT|TEXTAREA)$/.test(t.tagName || "") && !t.readOnly;
+  if(pickFor){ pickFor = null; render(); }
+  else if(locEditorFor && !typing){ locEditorFor = null; render(); }
+  else if(showSettings && !typing){ ACTIONS["close-settings"](); }
+});
+/* スマホで入力欄を押したとき、キーボードで隠れないよう、画面の中ほどに寄せる */
+document.addEventListener("focusin", function(e){
+  var t = e.target;
+  try{
+    if(!t || !/^(INPUT|TEXTAREA)$/.test(t.tagName) || t.readOnly || !window.matchMedia("(pointer:coarse)").matches) return;
+    setTimeout(function(){ if(document.activeElement === t && t.scrollIntoView) t.scrollIntoView({ block:"center", behavior:"smooth" }); }, 350);
+  }catch(x){}
+});
 appEl.addEventListener("compositionend", function(e){ lastCompEnd = e.timeStamp; });
 appEl.addEventListener("keydown", function(e){
   var t = e.target;
@@ -3290,7 +3318,7 @@ appEl.addEventListener("keydown", function(e){
     var fn = ACTIONS[t.getAttribute("data-enter")];
     if(fn) fn(t, e);
   } else if(e.key === "Escape" && editingItemId){
-    editingItemId = null; render();
+    e.escDone = true; editingItemId = null; render();
   }
 });
 /* 検索: リスト部分だけ差し替える(入力欄を作り直さないので、キーボードもカーソルも保たれる) */
