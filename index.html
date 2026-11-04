@@ -591,11 +591,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.61.0";
-var APP_VERSION_DATE = "2026-11-03";
+var APP_VERSION = "1.62.0";
+var APP_VERSION_DATE = "2026-11-04";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.62.0", lines:["バックアップ(JSON)に、アプリ名・バージョン・書き出した日時と端末を入れました。ファイル名も、英数字だけで日時とバージョン入りになります。復元前の確認に、その書き出し元が出ます。","新しい版のアプリで作られたバックアップは、「アプリを最新にしてから」と案内して止めます。","設定の「書き出し・バックアップ」に、いまのデータの保存場所(Safariやホーム画面のアプリなどはデータがそれぞれ別)の説明を追加しました。ヘルプに「別の端末にデータを移したい」も加えました。"] },
   { v:"1.61.0", lines:["パソコンで開くと、設定に「スマホで開く」が出て、スマホのカメラで読み取るだけで同じアプリを開けるようになりました。","スマホのブラウザでの「ホーム画面に追加」の案内を、画面の下に出すようにしました。2回目以降に開いたときだけ表示します。iPhoneの追加手順には、ボタンの絵も付けました。"] },
   { v:"1.60.2", lines:["リストを下にスクロールしても、「0次・1次・2次」のタブと「防災用品／どこにある？」の切り替えが画面の上に残るようにしました。いま、どのリストを見ているかが分かります。"] },
   { v:"1.60.1", lines:["ヘルプの「どんなアプリ？」に、「事前防災のうち、用品の備えをまとめるアプリ」と一言添えました。"] },
@@ -1042,17 +1043,35 @@ function deviceTag(){
   try{ standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; }catch(e){}
   return os + (br ? "-" + br : "") + (standalone ? "-アプリ" : "");
 }
+/* バックアップ(JSON)のファイル名。英数字だけ(iPhoneのBraveなどで日本語名が崩れるため)。例: bousai-backup_iPhone-Safari_20261104-2210_v1.62.0.json */
+function backupFileName(){
+  var d = new Date(), tag = deviceTag().replace("-アプリ", "-App").replace("不明端末", "Unknown");
+  return "bousai-backup_" + tag + "_" + ymd(d) + "-" + pad2(d.getHours()) + pad2(d.getMinutes()) + "_v" + APP_VERSION + ".json";
+}
+/* バックアップ(JSON)の中身。保存データに、どのアプリの・どの版の・いつどこで書き出したかを添える(復元時の確認に使う) */
+function buildBackupJson(){
+  var o = { _backup:{ app:"bousai-list", appName:"わが家の防災リスト", appVersion:APP_VERSION, contentVersion:CONTENT_VERSION, exportedAt:new Date().toISOString(), origin:deviceTag() } };
+  Object.keys(state).forEach(function(k){ o[k] = state[k]; });
+  return JSON.stringify(o, null, 2);
+}
+/* いまのデータが、どこ(Safari/別のブラウザ/ホーム画面のアプリ)にあるか */
+function dataPlaceText(){
+  var p = deviceTag().split("-"), os = p[0] === "不明端末" ? "この端末" : p[0], br = p[1] && p[1] !== "アプリ" ? p[1] : "", app = p.indexOf("アプリ") !== -1;
+  return app ? os + "のホーム画面のアプリ" : os + "の " + (br || "ブラウザ");
+}
 function exportFileName(kind, ext){ return "防災リスト_" + (kind ? kind + "_" : "") + deviceTag() + "_" + ymd(new Date()) + ext; }
 /* ファイル名から「どの端末で書き出したか」を読み取る(読み取れなければ null) */
 function parseExportOrigin(name){
-  var m = /_((?:iPhone|iPad|Android|Windows|Mac|ChromeOS|Linux|不明端末)(?:-[A-Za-z]+)?(?:-アプリ)?)_(\d{4})(\d{2})(\d{2})(?=[._(]|$)/.exec(name || "");
-  return m ? { device:m[1], date:m[2] + "/" + m[3] + "/" + m[4] } : null;
+  var m = /_((?:iPhone|iPad|Android|Windows|Mac|ChromeOS|Linux|不明端末|Unknown)(?:-[A-Za-z]+)?(?:-アプリ|-App)?)_(\d{4})(\d{2})(\d{2})(?:-(\d{2})(\d{2}))?(?=[._(]|$)/.exec(name || "");
+  return m ? { device:m[1].replace("-App", "-アプリ").replace("Unknown", "不明端末"), date:m[2] + "/" + m[3] + "/" + m[4] + (m[5] ? " " + m[5] + ":" + m[6] : "") } : null;
 }
-function importSummaryHtml(fileName, how){
+function importSummaryHtml(fileName, how, meta){
   var origin = parseExportOrigin(fileName);
+  if(meta && meta.origin) origin = { device:meta.origin.replace("-App", "-アプリ"), date:meta.date || (origin ? origin.date : "") };
   var rows = [
     ["取り込むファイル", fileName ? esc(fileName) : "貼り付けたテキスト"],
-    ["書き出した端末", origin ? esc(origin.device) + "(" + origin.date + " に書き出し)" : "ファイル名からは分かりません"],
+    ["書き出した端末", origin ? esc(origin.device) + (origin.date ? "(" + esc(origin.date) + " に書き出し)" : "") : "ファイル名からは分かりません"],
+    ["書き出したバージョン", meta && meta.appVersion ? "v" + esc(meta.appVersion) + "(いまは v" + esc(APP_VERSION) + ")" : "記録がありません(古いバックアップ)"],
     ["取り込み先", "この端末(" + esc(deviceTag()) + ")のこのアプリ"],
     ["取り込み方", how]
   ];
@@ -1760,6 +1779,19 @@ function planJsonImport(text, cur){
   if(text.trim().charAt(0) !== "{"){ plan.fatal.push("JSONバックアップではないようです。CSVの場合は「家族と共有(CSV)」の「CSVからインポート」を使ってください。"); return plan; }
   var parsed;
   try{ parsed = JSON.parse(text); }catch(e){ plan.fatal.push("JSONの形式が正しくありません(途中で切れている可能性があります)。"); return plan; }
+  var meta = (isPlainObject(parsed) && isPlainObject(parsed._backup)) ? parsed._backup : null;
+  if(meta){
+    if(typeof meta.app === "string" && meta.app !== "bousai-list"){ plan.fatal.push("別のアプリのバックアップのようです。このアプリ(わが家の防災リスト)のバックアップを選んでください。"); return plan; }
+    var mv = (typeof meta.appVersion === "string" && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(meta.appVersion)) ? meta.appVersion : "";
+    var mc = (typeof meta.contentVersion === "number" && isFinite(meta.contentVersion)) ? meta.contentVersion : 0;
+    if((mv && cmpVer(mv, APP_VERSION) > 0) || mc > CONTENT_VERSION){ plan.fatal.push("新しいバージョンのアプリで作られたバックアップです。設定の「アプリの更新」で最新にしてから、もう一度復元してください。"); return plan; }
+    var dt = (typeof meta.exportedAt === "string" && !isNaN(Date.parse(meta.exportedAt))) ? new Date(meta.exportedAt) : null;
+    plan.meta = {
+      appVersion: mv,
+      origin: (typeof meta.origin === "string" && /^[A-Za-z0-9\u3041-\u30FF\u4E00-\u9FFF-]{1,40}$/.test(meta.origin)) ? meta.origin : "",
+      date: dt ? dt.getFullYear() + "/" + pad2(dt.getMonth() + 1) + "/" + pad2(dt.getDate()) + " " + pad2(dt.getHours()) + ":" + pad2(dt.getMinutes()) : ""
+    };
+  }
   var next = sanitizeState(parsed);
   if(!next){ plan.fatal.push("このアプリのバックアップデータではないようです。"); return plan; }
   migrate(next);
@@ -1921,7 +1953,7 @@ function a2hsSteps(){
   var os = phoneOs();
   var shareIc = '<svg class="step-ic" viewBox="0 0 24 24" aria-label="共有ボタン" role="img"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M7 11H6a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-1"/></svg>';
   var plusIc = '<svg class="step-ic" viewBox="0 0 24 24" aria-label="ホーム画面に追加" role="img"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg>';
-  if(os === "ios") return '<ol class="step-list"><li><span>画面の下(iPadは上)の<b>共有ボタン</b>をタップ</span>' + shareIc + '</li><li><span>メニューを下にずらして、<b>「ホーム画面に追加」</b>をタップ</span>' + plusIc + '</li><li><span>右上の<b>「追加」</b>をタップ</span></li></ol><p class="note">共有ボタンの位置は、Safari・Chrome・Braveなどブラウザで違います。見つからないときは、メニュー(…)の中も探してください。</p>';
+  if(os === "ios") return '<ol class="step-list"><li><span>画面の下(iPadは上)の<b>共有ボタン</b>をタップ</span>' + shareIc + '</li><li><span>メニューを下にずらして、<b>「ホーム画面に追加」</b>をタップ</span>' + plusIc + '</li><li><span>右上の<b>「追加」</b>をタップ</span></li></ol><p class="note">共有ボタンの位置は、Safari・Chrome・Braveなどブラウザで違います。見つからないときは、メニュー(…)の中も探してください。</p><p class="note"><b>データは引き継がれません。</b>iPhoneでは、ブラウザで入れたデータは、ホーム画面のアプリには移りません。先に「書き出し・バックアップ」で書き出して、ホーム画面のアプリで取り込んでください。</p>';
   if(os === "android") return '<ol><li>ブラウザ(Chrome)の<b>メニュー(︙)</b>をタップ</li><li><b>「ホーム画面に追加」</b>または<b>「アプリをインストール」</b>をタップ</li></ol>';
   return '<ul><li><b>iPhone(Safari)</b>: 共有ボタン →「ホーム画面に追加」</li><li><b>Android(Chrome)</b>: メニュー(︙) →「ホーム画面に追加」</li></ul><p class="note">スマホのブラウザでこのページを開いて、追加してください。</p>';
 }
@@ -2320,7 +2352,7 @@ function buildJsonPreviewHtml(plan){
   plan.fatal.forEach(function(f){ html += '<div class="msg error" role="alert">' + esc(f) + '</div>'; });
   if(!plan.ok) return html;
   html += '<div class="preview"><h3>取り込みの確認:全データを置き換え</h3>'
-    + importSummaryHtml(json.file, "<b>全データを置き換え</b>:説明文・保管場所・チェック状態も、バックアップの内容になります。");
+    + importSummaryHtml(json.file, "<b>全データを置き換え</b>:説明文・保管場所・チェック状態も、バックアップの内容になります。", plan.meta);
   plan.counts.forEach(function(c){
     html += '<div class="pv-group"><div class="pv-head">' + c.label + '<small>防災用品 ' + c.now + '件 → ' + c.after + '件・保管場所 ' + c.locs + 'か所</small></div></div>';
   });
@@ -2464,7 +2496,7 @@ function buildSettingsHtml(){
   var jsonExport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonExport">' + (panels.jsonExport ? "エクスポートを閉じる" : "全データをエクスポート") + '</button>';
   if(panels.jsonExport){
     jsonExport += '<div class="panel"><div class="btn-row"><button type="button" class="btn" data-act="json-download">ダウンロード</button><button type="button" class="btn btn-ghost" data-act="json-copy">テキストをコピー</button></div>'
-      + '<textarea autocomplete="off" class="code-box" id="json-export-text" readonly aria-label="バックアップの内容">' + esc(JSON.stringify(state, null, 2)) + '</textarea>' + msgHtml(json.exportMsg) + '</div>';
+      + '<textarea autocomplete="off" class="code-box" id="json-export-text" readonly aria-label="バックアップの内容">' + esc(buildBackupJson()) + '</textarea>' + msgHtml(json.exportMsg) + '</div>';
   }
   var jsonImport = '<button type="button" class="settings-btn" data-act="panel" data-p="jsonImport">' + (panels.jsonImport ? "インポートを閉じる" : "データをインポート") + '</button>';
   if(panels.jsonImport){
@@ -2547,6 +2579,7 @@ function buildSettingsHtml(){
       + qa("ex4", "例: 友だちに防災の備えを伝える", '<p>設定の「友だちに紹介・パックを送る」から、アプリのURLと説明を送れます。自作パックを持ち物の例として渡すのもおすすめです。</p>')
       + '<h3 class="acc-sub">データのこと</h3>'
       + qa("data", "データはどこに保存される？", '<p>この端末のブラウザの中だけで、別の端末とは同期されません。機種変更の前に、設定の「書き出し・バックアップ」でJSONを書き出してください。ブラウザのデータを消すと、中身も消えます。</p>')
+      + qa("move", "別の端末にデータを移したい", '<p>設定の「書き出し・バックアップ」で、今の端末の「全データをエクスポート」を行い、書き出したファイルを移したい端末に送ります(自分宛てのLINEやメールなど)。移した先で、同じ画面の「バックアップファイルを選ぶ」から取り込みます。Safari・別のブラウザ・ホーム画面のアプリの間でも、同じ手順です。</p>')
       + qa("limit", "入れられる数の上限", '<ul><li>用品: 各フェーズ 500件まで(名前は100文字まで)</li><li>保管場所: 各フェーズ 30個まで(「場所未定」を含む。名前は30文字まで)</li><li>自分の拡張パック: 20個まで(1パックに100件まで)</li></ul><p>上限に達したら、不要な用品や場所を削除してください。</p>')
       + qa("home", "ホーム画面に追加する", '<ul><li><b>iPhone(Safari)</b>: 共有ボタン →「ホーム画面に追加」</li><li><b>Android(Chrome)</b>: メニュー →「ホーム画面に追加」(または「アプリをインストール」)</li></ul><p>ホーム画面から開くと、アプリのように使えます。</p>')
       + '<h3 class="acc-sub">困ったとき</h3>'
@@ -2635,7 +2668,8 @@ function buildSettingsHtml(){
       }).join("");
   var familyBody = '<h3 class="acc-sub">メモ・LINE用(Markdown)</h3>' + '<p class="note">いまのリストを、読みやすい文章にして書き出します。LINEやメモアプリに貼ったり、印刷したりするときに便利です。非表示の用品は含みません。取り込みには使えません(取り込みはCSVまたはJSONです)。</p>' + mdExport
     + '<h3 class="acc-sub">家族と共有(CSV)</h3>' + '<p class="note">このアプリのデータはこの端末のブラウザに保存されます。防災用品とチェック状態を家族に渡すときは、CSVを書き出して送り、相手が取り込みます。CSVはExcelやスプレッドシートでも編集できます。品名が空の行は、保管場所だけを登録する行です。</p>' + csvExport + csvImport;
-  var backupBody = '<p class="note">自分のための書き出しです。説明文や設定も含めた完全なバックアップ(JSON)を保管したり、端末を引っ越したりするときに使います。</p>' + jsonExport + jsonImport;
+  var backupBody = '<p class="note">自分のための書き出しです。説明文や設定も含めた完全なバックアップ(JSON)を保管したり、端末を引っ越したりするときに使います。</p>'
+    + '<div class="note"><b>いまのデータの場所: ' + esc(dataPlaceText()) + '</b><br>Safari・別のブラウザ・ホーム画面のアプリは、それぞれ別のデータで、自動ではつながりません。移すときは、今の場所でバックアップを書き出して、移したい場所で取り込みます。</div>' + jsonExport + jsonImport;
   var dangerBody = msgHtml(dangerMsg, "danger-msg") + restore + (prevSnap ? '<h3 class="acc-sub">初期化</h3>' : '') + '<p class="note">持ち歩き・持ち出し・備蓄すべての防災用品・保管場所・説明文・チェック状態が削除され、初期のサンプルデータに戻ります。</p>' + reset;
   var dangerSummary = prevSnap ? prevBefore() + "前に戻す・初期化" : "初期化";
 
@@ -3158,12 +3192,12 @@ var ACTIONS = {
   },
 
   "json-download": function(){
-    try{ downloadFile(JSON.stringify(state, null, 2), exportFileName("バックアップ", ".json"), "application/json;charset=utf-8", false); json.exportMsg = { type:"ok", text:"ダウンロードを開始しました。保存できない場合は「テキストをコピー」を使ってください。" }; }
+    try{ var fnm = backupFileName(); downloadFile(buildBackupJson(), fnm, "application/json;charset=utf-8", false); json.exportMsg = { type:"ok", text:"バックアップを保存しました(ファイル名:" + fnm + ")。保存できない場合は「テキストをコピー」を使ってください。" }; }
     catch(e){ json.exportMsg = { type:"error", text:"ダウンロードできませんでした。「テキストをコピー」を使ってください。" }; }
     render();
   },
   "reset-backup": function(){
-    try{ downloadFile(JSON.stringify(state, null, 2), exportFileName("バックアップ", ".json"), "application/json;charset=utf-8", false); resetBackupMsg = { type:"ok", text:"バックアップを保存しました。端末のダウンロードを確認してください。続けて初期化できます。" }; }
+    try{ var fnm2 = backupFileName(); downloadFile(buildBackupJson(), fnm2, "application/json;charset=utf-8", false); resetBackupMsg = { type:"ok", text:"バックアップを保存しました(ファイル名:" + fnm2 + ")。端末のダウンロードを確認してください。続けて初期化できます。" }; }
     catch(e){ resetBackupMsg = { type:"error", text:"保存できませんでした。キャンセルして、「書き出し・バックアップ」の「テキストをコピー」を使ってください。" }; }
     render();
   },
