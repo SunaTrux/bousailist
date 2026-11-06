@@ -589,6 +589,10 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .btn:disabled{ opacity:.45; cursor:default; }
   .refs{ margin:0; padding-left:1.2em; font-size:14px; line-height:1.8; overflow-wrap:anywhere; }
   .refs a{ color:var(--ink); text-decoration:underline; }
+  .hist-item{ padding:10px 0; border-bottom:1px solid var(--line); }
+  .hist-v{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:900; margin-bottom:4px; font-variant-numeric:tabular-nums; }
+  .hist-now{ padding:0 8px; border-radius:10px; background:var(--teal); color:var(--on-accent); font-size:11px; font-weight:700; line-height:1.7; }
+  .hist-l{ font-size:13px; line-height:1.7; color:var(--ink); overflow-wrap:anywhere; }
   .version{ padding:20px 20px 4px; text-align:center; font-size:13px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
   .version b{ color:var(--ink); }
 </style>
@@ -602,11 +606,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.64.4";
+var APP_VERSION = "1.65.0";
 var APP_VERSION_DATE = "2026-11-07";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.65.0", lines:["設定の「アプリの更新」に、更新履歴を出しました。これまでの更新の内容を、アプリの中で読めます(最新10件、続きは「さらに古い履歴を見る」)。"] },
   { v:"1.64.4", lines:["設定のフォームへのボタンを「感想、応援、FBを送る」に変えました(フォームのタイトルに合わせました)。"] },
   { v:"1.64.3", lines:["設定の項目名を「作者へお手紙を送る✉️」に変えました。"] },
   { v:"1.64.2", lines:["設定の項目名を、「友だちに紹介・自作の拡張パックを送る」「作者におたよりを送る」に変えました。"] },
@@ -1566,6 +1571,7 @@ function checkForUpdate(manual){
     if(manual) updateMsg = { type:"error", text:"確認できませんでした。オフラインか、通信が不安定かもしれません。" };
   }).then(function(){ updateChecking = false; if(state && (manual || swUpdated)) render(); });
 }
+var histCount = 10;   /* 設定「アプリの更新」の更新履歴に出す件数 */
 function prepareUpdateNotice(hadData){
   var last = lsGet(SEEN_KEY);
   if(!last){ if(hadData) last = "1.0.0"; else { lsSet(SEEN_KEY, APP_VERSION); return; } }
@@ -2767,7 +2773,13 @@ function buildSettingsHtml(){
     + '<p class="note">ホーム画面のアプリは、閉じても裏で止まっているだけで、自動では新しくなりません。開いたときと数分おきに最新版を確認しますが、すぐ知りたいときはここで確認できます。</p>'
     + '<button type="button" class="settings-btn" data-act="check-update">更新を確認</button>'
     + (swUpdated ? '<button type="button" class="settings-btn" data-act="reload-app">再読み込みして更新する' + (newVersion ? '(v' + esc(newVersion) + ')' : '') + '</button>' : '')
-    + msgHtml(updateMsg);
+    + msgHtml(updateMsg)
+    + '<h3 class="acc-sub">更新履歴</h3>'
+    + RELEASE_NOTES.slice(0, histCount).map(function(n, i){
+        return '<div class="hist-item"><div class="hist-v">v' + esc(n.v) + (i === 0 ? '<span class="hist-now">いまの版</span>' : '') + '</div>'
+          + n.lines.map(function(l){ return '<div class="hist-l">・' + esc(l) + '</div>'; }).join("") + '</div>';
+      }).join("")
+    + (histCount < RELEASE_NOTES.length ? '<button type="button" class="settings-btn" data-act="hist-more">さらに古い履歴を見る(あと' + (RELEASE_NOTES.length - histCount) + '件)</button>' : '');
 
   function deviceInfo(){
     var ua = navigator.userAgent || "", os = "", br = "", m;
@@ -3084,6 +3096,7 @@ var ACTIONS = {
   "dismiss-update": function(){ updateNotes = null; lsSet(SEEN_KEY, APP_VERSION); render(); },
   "reset-hint": function(){ state.appHint = ""; save(); render(); },
   "check-update": function(){ checkForUpdate(true); },
+  "hist-more": function(){ histCount += 10; render(); },
   "a2hs-hide": function(){ lsSet(A2HS_KEY, String(Date.now())); render(); },
   "a2hs-show": function(){ try{ window.localStorage.removeItem(A2HS_KEY); }catch(e){} installMsg = { type:"ok", text:"次に開いたときから、案内が出ます。" }; render(); },
   "a2hs-go": function(){
