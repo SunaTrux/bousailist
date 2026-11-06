@@ -76,6 +76,8 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
     .btn:hover,.settings-btn:hover,.gear-btn:hover,.back-btn:hover,.tab:hover,.view-toggle button:hover,.fb-seg button:hover,.fb-eye:hover,.acc-btn:hover,.help-btn:hover,.loc-chip:hover,.suggest:hover,.suggest-chip:hover,.icon-btn:hover,.fold-btn:hover,.a2hs-go:hover,.a2hs-x:hover,.notice-x:hover,.text-link:hover{ background-image:linear-gradient(rgba(127,127,127,.14),rgba(127,127,127,.14)); }
     .item-name:hover{ text-decoration:underline; text-decoration-color:var(--ink-soft); text-underline-offset:3px; }
   }
+  .item-ic{ width:18px; height:18px; flex:none; vertical-align:-3px; margin-right:6px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; opacity:.8; }
+  .item-ic.own{ opacity:.45; }
   .a2hs-space{ height:76px; }
   .a2hs-bar{ position:fixed; z-index:30; left:50%; bottom:0; transform:translateX(-50%); width:100%; max-width:480px; display:flex; align-items:stretch; background:var(--ink); color:var(--paper); box-shadow:0 -2px 12px rgba(0,0,0,.25); padding-bottom:env(safe-area-inset-bottom,0px); }
   .a2hs-go{ flex:1; min-width:0; display:flex; align-items:center; gap:10px; min-height:56px; padding:8px 4px 8px max(16px, env(safe-area-inset-left,0px)); text-align:left; color:inherit; font-size:14px; font-weight:700; line-height:1.4; }
@@ -598,11 +600,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.63.1";
+var APP_VERSION = "1.64.0";
 var APP_VERSION_DATE = "2026-11-04";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.64.0", lines:["初期の用品(と公式の拡張パックの用品)に、線画のアイコンを付けました。自分で追加した用品や、名前を変えた用品には、星のマークが付きます。"] },
   { v:"1.63.1", lines:["備蓄の初期の用品「トイレットペーパー・ティッシュ・ウェットティッシュ」を、「トイレットペーパー」と「ティッシュ・ウェットティッシュ」の2つに分けました。名前を変えていなければ、いまのリストも自動で分かれます(置き場所とチェックは両方に引き継ぎます)。"] },
   { v:"1.63.0", lines:["パソコンで、ボタンや用品名にマウスを乗せると反応するようにしました。Escキーで、設定や小窓を閉じられます。","スマホで入力欄を押したとき、キーボードや上の固定部分で隠れないようにしました。横向きでノッチ側の余白も確保しました。","送る・書き出す前の画面に、「相手に見える内容」の説明を追加しました。取り込みデータの安全対策も強めました。"] },
   { v:"1.62.0", lines:["バックアップ(JSON)に、アプリ名・バージョン・書き出した日時と端末を入れました。ファイル名も、英数字だけで日時とバージョン入りになります。復元前の確認に、その書き出し元が出ます。","新しい版のアプリで作られたバックアップは、「アプリを最新にしてから」と案内して止めます。","設定の「書き出し・バックアップ」に、いまのデータの保存場所(Safariやホーム画面のアプリなどはデータがそれぞれ別)の説明を追加しました。ヘルプに「別の端末にデータを移したい」も加えました。"] },
@@ -981,6 +984,121 @@ var DEFAULT_ITEMS = {
   g1:[["飲料水","f"],["非常食(乾パン・缶詰・栄養補助食品)","f"],["懐中電灯・予備の乾電池","l"],["携帯ラジオ","l"],["ヘルメット・防災ずきん","o"],["軍手(厚手の手袋)","l"],["エマージェンシーブランケット","l"],["携帯トイレ","l"],["救急セット","o"],["常備薬・処方箋の控え","o"],["生理用品","l"],["不織布マスク😷","l"],["手指消毒","l"],["体温計","l"],["着替え(下着・靴下・長袖長ズボン)","l"],["雨具","l"],["防寒着","l"],["携帯カイロ","l"],["缶切り","l"],["ライター","l"],["ナイフ","l"],["貴重品(現金・通帳・印鑑・保険証・免許証)","o"],["歩きやすい靴(職場用)","l"],["帰宅ルートの地図(職場用)","o"]],
   g2:[["飲料水(1人1日3L)","f"],["主食(アルファ米・レトルトごはん・乾麺)","f"],["主菜(缶詰・レトルト食品)","f"],["加熱せず食べられるもの・菓子","f"],["野菜ジュース・栄養補助食品","f"],["調味料(しょうゆ・塩など)","f"],["カセットコンロ","l"],["カセットボンベ(1人1週間で約6本)","l"],["簡易トイレ(1人1日5回分)","l"],["生活用水(ポリタンクに水道水)","l"],["トイレットペーパー","l"],["ティッシュ・ウェットティッシュ","l"],["ラップ・紙皿・紙コップ・割り箸","l"],["ポリ袋・ゴミ袋","l"],["使い捨てカイロ","l"],["懐中電灯・ランタン・乾電池","l"],["充電式ラジオ","l"],["モバイルバッテリー","l"],["長靴","l"],["常備薬の予備・救急箱","o"],["水のいらないシャンプー","l"]]
 };
+/* 用品のアイコン(線画)。初期の用品・公式の拡張パックの用品は、品名で決まったアイコン。それ以外(自分で追加・名前を変えた用品)は星。
+   使わなくするときは ITEM_ICONS を false にする */
+var ITEM_ICONS = true;
+var ITEM_ICON_PATHS = {
+  star:'<path d="M12 3l2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 17l-5.6 3 1.3-6.2L3 9.5l6.3-.7z"/>',
+  whistle:'<circle cx="9" cy="14.5" r="5.5"/><path d="M14 11h7v4h-5.5M9 9V5"/>',
+  flash:'<path d="M8 3h8l-1 5H9z"/><path d="M9 8v13h6V8M12 12v3"/>',
+  lantern:'<path d="M10 5V3h4v2M7 8h10l-1 11H8z"/><path d="M12 11v5"/>',
+  phonebat:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M13 8l-3 4h4l-3 4"/>',
+  radio:'<rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="15" cy="14.5" r="3"/><path d="M6 13h4M6 16h4M7 9l9-5"/>',
+  yen:'<circle cx="12" cy="12" r="9"/><path d="M9 8l3 4 3-4M9.5 13h5M9.5 16h5M12 12v6"/>',
+  mask:'<path d="M4 8c5-2 11-2 16 0v6c0 3-4 5-8 5s-8-2-8-5z"/><path d="M4 11H2M20 11h2M8 13h8M8 16h8"/>',
+  sanitizer:'<rect x="7" y="10" width="10" height="11" rx="2"/><path d="M12 10V5h4M10 5h2"/>',
+  pill:'<rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-35 12 12)"/><path d="M9 9l6 6"/>',
+  candy:'<circle cx="12" cy="12" r="4"/><path d="M8 12L3 9v6zM16 12l5-3v6z"/>',
+  toilet:'<path d="M7 3h10v6H7z"/><path d="M5 9h14c0 5-3 8-7 8s-7-3-7-8z"/><path d="M9 17v4h6v-4"/>',
+  bottle:'<path d="M10 3h4v3l2 3v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9l2-3z"/><path d="M8 13h8"/>',
+  can:'<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/>',
+  helmet:'<path d="M3 15a9 9 0 0 1 18 0z"/><path d="M3 15v2h18v-2M12 6v9"/>',
+  glove:'<path d="M7 21v-6L4 11a1.4 1.4 0 0 1 2.2-1.7L8 11V5a1.3 1.3 0 0 1 2.6 0v5-6a1.3 1.3 0 0 1 2.6 0v6-5a1.3 1.3 0 0 1 2.6 0v7l1-1.5a1.3 1.3 0 0 1 2.2 1.4L18 17v4z"/>',
+  blanket:'<path d="M4 7l4-2 4 2 4-2 4 2v11l-4-2-4 2-4-2-4 2z"/>',
+  firstaid:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M12 11v6M9 14h6"/>',
+  pad:'<rect x="8" y="3" width="8" height="18" rx="4"/><path d="M10 9h4M10 12h4M10 15h4"/>',
+  thermo:'<path d="M10 14V5a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>',
+  shirt:'<path d="M8 3l-5 4 3 3 2-1v11h8V9l2 1 3-3-5-4a4 4 0 0 1-8 0z"/>',
+  umbrella:'<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6a2 2 0 0 0 4 0"/>',
+  coat:'<path d="M9 3h6l3 3 2 5-3 1v9H7v-9l-3-1 2-5z"/><path d="M12 3v18"/>',
+  warm:'<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9c-1 1.5 1 2.5 0 4M13 9c-1 1.5 1 2.5 0 4"/>',
+  opener:'<circle cx="7" cy="17" r="3"/><path d="M9.2 14.8L19 5M15 5h4v4"/>',
+  lighter:'<rect x="8" y="11" width="8" height="10" rx="1.5"/><path d="M12 11V8M12 8c-2-2 0-5 0-5s2 3 0 5z"/>',
+  knife:'<path d="M3 21l7-7M10 14l9-9v5l-6 6z"/>',
+  wallet:'<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/>',
+  shoes:'<path d="M3 17v-5l4 1 3-4 3 3h4a4 4 0 0 1 4 4v1z"/>',
+  map:'<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  stove:'<rect x="3" y="13" width="18" height="6" rx="1.5"/><circle cx="12" cy="9" r="2"/><path d="M6 13l2-4M18 13l-2-4"/>',
+  gas:'<rect x="7" y="7" width="10" height="14" rx="2"/><path d="M10 7V5h4v2M9 12h6"/>',
+  jerry:'<path d="M6 8l3-4h6l3 4v12H6z"/><path d="M6 8h12M15 4v4M10 13h4"/>',
+  roll:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><ellipse cx="12" cy="6" rx="2" ry="1"/>',
+  tissue:'<rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M9 10c0-3 2-5 3-6 1 1 3 3 3 6"/>',
+  plate:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/>',
+  bag:'<path d="M8 4h8l-1 3c3 2 4 5 4 8 0 3-2 5-7 5s-7-2-7-5c0-3 1-6 4-8z"/><path d="M9 7h6"/>',
+  boots:'<path d="M8 3h6v9l6 3v5H6V3z"/>',
+  shampoo:'<path d="M8 10h8v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z"/><path d="M10 10V6h4v4"/><circle cx="17" cy="6" r="1.3"/><circle cx="19" cy="3" r="1"/>',
+  shaker:'<path d="M8 8h8l1 4v8H7v-8z"/><path d="M9 8c0-3 6-3 6 0M10 13h4"/>',
+  bowl:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 7c1-2 3-2 4 0 1-2 3-2 4 0"/>',
+  carton:'<path d="M8 3h8l1 4v14H7V7z"/><path d="M7 7h10M10 12c0 2 4 2 4 0"/>',
+  diaper:'<path d="M3 6h18v5c0 5-4 9-9 9s-9-4-9-9z"/><path d="M8 6v3M16 6v3"/>',
+  notebook:'<rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 8h6M9 12h6"/>',
+  tooth:'<path d="M7 4c-3 0-4 4-3 7s2 9 4 9 2-5 4-5 2 5 4 5 3-6 4-9-0-7-3-7c-2 0-3 1-5 1S9 4 7 4z"/>',
+  glasses:'<circle cx="7" cy="14" r="4"/><circle cx="17" cy="14" r="4"/><path d="M11 14h2M3 14l1-7M21 14l-1-7"/>',
+  ear:'<path d="M8 10a4 4 0 1 1 8 0c0 3-3 3-3 6a2 2 0 0 1-4 1"/>',
+  cell:'<rect x="3" y="8" width="16" height="8" rx="1.5"/><path d="M21 11v2M7 10v4"/>',
+  alarm:'<path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4z"/><path d="M10 21h4"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+  bear:'<circle cx="12" cy="13" r="6"/><circle cx="7" cy="6" r="2.2"/><circle cx="17" cy="6" r="2.2"/>'
+};
+var ITEM_ICON_NAMES = [
+  ["whistle", ["エマージェンシーホイッスル"]],
+  ["flash", ["小型LEDライト", "懐中電灯・予備の乾電池"]],
+  ["lantern", ["懐中電灯・ランタン・乾電池"]],
+  ["phonebat", ["モバイルバッテリー・充電器", "モバイルバッテリー", "携帯電話の充電器(職場用)"]],
+  ["radio", ["携帯ラジオ", "充電式ラジオ"]],
+  ["yen", ["現金(小銭)"]],
+  ["mask", ["不織布マスク", "不織布マスク😷"]],
+  ["sanitizer", ["手指消毒・ウェットティッシュ", "手指消毒"]],
+  ["pill", ["常備薬・お薬手帳", "常備薬・処方箋の控え", "常備薬(職場用)", "常時服用している薬(高齢者用)"]],
+  ["candy", ["栄養補助食品・飴", "加熱せず食べられるもの・菓子"]],
+  ["toilet", ["携帯トイレ", "簡易トイレ(1人1日5回分)"]],
+  ["bottle", ["飲料水", "飲料水(1人1日3L)", "ミルクセット(乳児用)"]],
+  ["can", ["非常食(乾パン・缶詰・栄養補助食品)", "主菜(缶詰・レトルト食品)", "非常食(職場用)"]],
+  ["helmet", ["ヘルメット・防災ずきん"]],
+  ["glove", ["軍手(厚手の手袋)"]],
+  ["blanket", ["エマージェンシーブランケット"]],
+  ["firstaid", ["救急セット", "常備薬の予備・救急箱"]],
+  ["pad", ["生理用品"]],
+  ["thermo", ["体温計"]],
+  ["shirt", ["着替え(下着・靴下・長袖長ズボン)"]],
+  ["umbrella", ["雨具", "折りたたみ傘(晴雨兼用)"]],
+  ["coat", ["防寒着"]],
+  ["warm", ["携帯カイロ", "使い捨てカイロ"]],
+  ["opener", ["缶切り"]],
+  ["lighter", ["ライター"]],
+  ["knife", ["ナイフ"]],
+  ["wallet", ["貴重品(現金・通帳・印鑑・保険証・免許証)"]],
+  ["shoes", ["歩きやすい靴(職場用)", "踏み抜き防止中敷き"]],
+  ["map", ["帰宅ルートの地図(職場用)"]],
+  ["stove", ["カセットコンロ"]],
+  ["gas", ["カセットボンベ(1人1週間で約6本)"]],
+  ["jerry", ["生活用水(ポリタンクに水道水)"]],
+  ["roll", ["トイレットペーパー"]],
+  ["tissue", ["ティッシュ・ウェットティッシュ", "お尻ふき(乳児用)"]],
+  ["plate", ["ラップ・紙皿・紙コップ・割り箸"]],
+  ["bag", ["ポリ袋・ゴミ袋"]],
+  ["boots", ["長靴"]],
+  ["shampoo", ["水のいらないシャンプー"]],
+  ["shaker", ["調味料(しょうゆ・塩など)"]],
+  ["bowl", ["主食(アルファ米・レトルトごはん・乾麺)", "離乳食(乳児用)", "おかゆ(高齢者用)"]],
+  ["carton", ["野菜ジュース・栄養補助食品"]],
+  ["diaper", ["おむつ(乳児用)"]],
+  ["notebook", ["母子健康手帳(乳児用)", "処方箋(高齢者用)"]],
+  ["tooth", ["入れ歯(高齢者用)", "入れ歯洗浄剤(高齢者用)"]],
+  ["glasses", ["老眼鏡(高齢者用)"]],
+  ["ear", ["補聴器(高齢者用)"]],
+  ["cell", ["補聴器用電池(高齢者用)"]],
+  ["alarm", ["防犯ブザー"]],
+  ["sun", ["日焼け止め"]],
+  ["bear", ["ぬいぐるみ"]]
+];
+var ITEM_ICON_BY_NAME = {};
+ITEM_ICON_NAMES.forEach(function(e){ e[1].forEach(function(n){ ITEM_ICON_BY_NAME[n] = e[0]; }); });
+function itemIconHtml(item){
+  if(!ITEM_ICONS) return "";
+  var id = (item && typeof item.name === "string" && hasOwn(ITEM_ICON_BY_NAME, item.name)) ? ITEM_ICON_BY_NAME[item.name] : "star";
+  return '<svg class="item-ic' + (id === "star" ? " own" : "") + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ITEM_ICON_PATHS[id] + '</svg>';
+}
 var CATS = [["food","食品"],["life","生活"],["other","その他"]];
 var CAT_BY_LETTER = { f:"food", l:"life", o:"other" };
 function catKey(v){ for(var i = 0; i < CATS.length; i++){ if(CATS[i][0] === v) return v; } return ""; }
@@ -2136,7 +2254,7 @@ function buildItemRow(g, meta, item, locations, num){
   } else {
     top = '<div class="item-top">'
       + '<span class="check-btn status" aria-hidden="true"><span class="stat-num">' + (num || "") + '</span></span>'
-      + '<div class="item-name head' + (checked ? " checked" : "") + '" data-dt="1" data-g="' + g + '" data-id="' + id + '" tabindex="0" role="button" title="タップで用品名を編集" aria-label="' + esc(item.name) + '(タップで用品名を編集)">' + esc(item.name) + '</div>'
+      + '<div class="item-name head' + (checked ? " checked" : "") + '" data-dt="1" data-g="' + g + '" data-id="' + id + '" tabindex="0" role="button" title="タップで用品名を編集" aria-label="' + esc(item.name) + '(タップで用品名を編集)">' + itemIconHtml(item) + esc(item.name) + '</div>'
       + '<button type="button" class="icon-btn row-btn pin-btn' + (item.pinned ? " on" : "") + '" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-pressed="' + (item.pinned === true) + '" aria-label="' + esc(item.name) + (item.pinned ? 'のピン留めを外す' : 'をピン留め(先頭に固定)') + '">' + (item.pinned ? ICON_PIN_ON : ICON_PIN) + '</button>'
       + '<button type="button" class="icon-btn row-btn" data-act="toggle-hide" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + (hid ? 'を表示に戻す' : 'を非表示にする') + '">' + (hid ? ICON_EYE : ICON_EYE_OFF) + '</button>'
       + '<button type="button" class="drag-handle" data-drag-id="' + id + '" data-g="' + g + '" aria-label="' + esc(item.name) + 'を並べ替え(ドラッグ、または上下キー)">' + ICON_GRIP + '</button></div>';
@@ -2167,7 +2285,7 @@ function buildMasterRow(g, item){
       + '<button type="button" class="icon-btn" data-act="cancel-edit" aria-label="キャンセル">' + ICON_X + '</button></div>'
       + '<div class="cat-edit"><label for="edit-cat-input">分類</label><select id="edit-cat-input">' + CATS.map(function(c){ return '<option value="' + c[0] + '"' + ((catKey(item.cat) || guessCat(item.name)) === c[0] ? ' selected' : '') + '>' + c[1] + '</option>'; }).join('') + '</select></div>';
   } else {
-    top = '<div class="item-top"><div class="item-name" style="cursor:default;padding-left:0">' + esc(item.name) + (item.hidden ? ' <span class="tag-hidden">非表示中</span>' : '') + '</div>'
+    top = '<div class="item-top"><div class="item-name" style="cursor:default;padding-left:0">' + itemIconHtml(item) + esc(item.name) + (item.hidden ? ' <span class="tag-hidden">非表示中</span>' : '') + '</div>'
       + '<button type="button" class="icon-btn" data-act="start-edit" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を編集">' + ICON_EDIT + '</button>'
       + '<button type="button" class="icon-btn" data-act="req-del" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(item.name) + 'を削除">' + ICON_X + '</button></div>';
   }
@@ -2234,7 +2352,7 @@ function buildPinnedHtml(){
         + '<div class="swipe-content pin-content' + (open ? " open-l" : "") + '" data-swipe-id="p:' + id + '" data-pin="1" data-noleft="1" style="' + accentStyle(meta) + '">'
         + '<span class="pin-tag" style="background:' + meta.accent + '">' + meta.label + '</span>'
         + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + c + '" aria-label="' + esc(it.name) + 'のチェック(' + meta.label + ')"><span class="checkbox' + boxCls(it) + '" style="' + (boxCls(it) ? accentStyle(meta) : "") + '">' + (c ? ICON_TICK : "") + '</span></button>'
-        + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + esc(it.name) + '</div>'
+        + '<div class="item-name' + (c ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + itemIconHtml(it) + esc(it.name) + '</div>'
         + '<button type="button" class="icon-btn row-btn pin-btn on" data-act="toggle-pin" data-g="' + g + '" data-id="' + id + '" aria-label="' + esc(it.name) + 'のピン留めを外す">' + ICON_PIN_ON + '</button>'
         + '</div></div></div>');
     });
@@ -2265,7 +2383,7 @@ function buildByLocationHtml(g, meta){
     var id = esc(it.id), on = (it.have || []).indexOf(loc) !== -1, lock = loc !== UND_LOC && (it.have || []).indexOf(UND_LOC) !== -1;
     return '<div class="loc-group-item' + (it.hidden ? ' is-hidden' : '') + (lock ? ' locked' : '') + '">'
       + '<button type="button" class="check-btn"' + (lock ? ' disabled' : '') + ' data-act="toggle-have" data-g="' + g + '" data-id="' + id + '" data-li="' + li + '" role="checkbox" aria-checked="' + on + '" aria-label="' + esc(it.name) + 'が' + esc(loc) + 'にそろった"><span class="checkbox' + (on ? " checked" : "") + '" style="' + (on ? accentStyle(meta) : "") + '">' + (on ? ICON_TICK : "") + '</span></button>'
-      + '<div class="item-name' + (on && !onlyChecked ? " checked" : "") + '"' + (lock ? '' : ' data-act="toggle-have"') + ' data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
+      + '<div class="item-name' + (on && !onlyChecked ? " checked" : "") + '"' + (lock ? '' : ' data-act="toggle-have"') + ' data-g="' + g + '" data-id="' + id + '" data-li="' + li + '">' + itemIconHtml(it) + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
   }
   var locAdd = buildLocAddHtml(g, meta);
   function unassignedHtml(){
@@ -2278,7 +2396,7 @@ function buildByLocationHtml(g, meta){
         var id = esc(it.id);
         return '<div class="loc-group-item sq' + (it.hidden ? ' is-hidden' : '') + '">'
           + '<button type="button" class="check-btn" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '" role="checkbox" aria-checked="' + it.checked + '" aria-label="' + esc(it.name) + 'のチェック(どこにも置いていない用品)"><span class="checkbox' + (it.checked ? " checked" : "") + '" style="' + (it.checked ? accentStyle(meta) : "") + '">' + (it.checked ? ICON_TICK : "") + '</span></button>'
-          + '<div class="item-name' + (it.checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
+          + '<div class="item-name' + (it.checked ? " checked" : "") + '" data-act="toggle-check" data-g="' + g + '" data-id="' + id + '">' + itemIconHtml(it) + (it.pinned ? '<span class="pin-mark" title="ピン留め">' + ICON_PIN_ON + '</span>' : '') + esc(it.name) + '</div></div>';
       }).join("") : '<div class="note" style="padding:10px 0;margin:0">すべて配置済みです</div>');
   }
   if(!grp.locations.length) return '<div class="loc-group"><div class="loc-group-title">保管場所が未設定です</div>' + unassignedHtml() + locAdd + '</div>';
