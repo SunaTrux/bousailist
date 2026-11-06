@@ -602,11 +602,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.64.1";
+var APP_VERSION = "1.64.2";
 var APP_VERSION_DATE = "2026-11-06";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.64.2", lines:["設定の項目名を、「友だちに紹介・自作の拡張パックを送る」「作者におたよりを送る」に変えました。"] },
   { v:"1.64.1", lines:["「歩きやすい靴(職場用)」と「帰宅ルートの地図(職場用)」を、持ち出しの初期の用品から、拡張パック「職場に保管セット」に移しました。すでにチェックや置き場所を付けている場合は、そのまま残ります。","設定画面の「戻る」ボタンを大きくして、画面の一番下にも付けました。"] },
   { v:"1.64.0", lines:["初期の用品(と公式の拡張パックの用品)に、線画のアイコンを付けました。自分で追加した用品や、名前を変えた用品には、星のマークが付きます。"] },
   { v:"1.63.1", lines:["備蓄の初期の用品「トイレットペーパー・ティッシュ・ウェットティッシュ」を、「トイレットペーパー」と「ティッシュ・ウェットティッシュ」の2つに分けました。名前を変えていなければ、いまのリストも自動で分かれます(置き場所とチェックは両方に引き継ぎます)。"] },
@@ -2727,7 +2728,7 @@ function buildSettingsHtml(){
       + qa("ex1", "例: 玄関・車・職場など、場所ごとに点検", '<p>「どこにある？」で場所ごとの一覧を、実物の袋や棚と見比べます。足りなければ、その場でチェックを外します。</p>')
       + qa("ex2", "例: 定期的な見直し", '<p>防災の日などに見直す日を決め、「未配置」の絞り込みで残りを確認します。期限のある食品や薬は、用品名に期限をメモしておけます。</p>')
       + qa("ex3", "例: 家族でリストを共有", '<p>設定の「家族に共有」でCSVを書き出して送ります。受け取った人は「マージ」で取り込むと、自分の用品を消さずに、新しい用品だけ追加されます。現状を文章で送るなら、同じ画面の「メモ・LINE用(Markdown)」が使えます。</p>')
-      + qa("ex4", "例: 友だちに防災の備えを伝える", '<p>設定の「友だちに紹介・パックを送る」から、アプリのURLと説明を送れます。自作パックを持ち物の例として渡すのもおすすめです。</p>')
+      + qa("ex4", "例: 友だちに防災の備えを伝える", '<p>設定の「友だちに紹介・自作の拡張パックを送る」から、アプリのURLと説明を送れます。自作パックを持ち物の例として渡すのもおすすめです。</p>')
       + '<h3 class="acc-sub">データのこと</h3>'
       + qa("data", "データはどこに保存される？", '<p>この端末のブラウザの中だけで、別の端末とは同期されません。機種変更の前に、設定の「書き出し・バックアップ」でJSONを書き出してください。ブラウザのデータを消すと、中身も消えます。</p>')
       + qa("move", "別の端末にデータを移したい", '<p>設定の「書き出し・バックアップ」で、今の端末の「全データをエクスポート」を行い、書き出したファイルを移したい端末に送ります(自分宛てのLINEやメールなど)。移した先で、同じ画面の「バックアップファイルを選ぶ」から取り込みます。Safari・別のブラウザ・ホーム画面のアプリの間でも、同じ手順です。</p>')
@@ -2836,8 +2837,8 @@ function buildSettingsHtml(){
     + grpLabel("データ") + acc("backup", "書き出し・バックアップ", "自分用(JSON)", backupBody)
     + acc("danger", "危険な操作", dangerSummary, dangerBody, "danger")
     + grpLabel("コミュニケーション") + acc("family", "家族に共有", "文章(LINE・メモ)・CSV", familyBody)
-    + acc("recommend", "友だちに紹介・パックを送る", "URLと説明・自作パックを送る", recBody)
-    + acc("feedback", "作者に感想を送る", "フォームで届きます", fbBody)
+    + acc("recommend", "友だちに紹介・自作の拡張パックを送る", "URLと説明・自作パックを送る", recBody)
+    + acc("feedback", "作者におたよりを送る", "フォームで届きます", fbBody)
     + grpLabel("アプリ")
     + acc("refs", "参考にしたもの", "", '<ul class="refs"><li><a href="https://www.bousai.metro.tokyo.lg.jp/" target="_blank" rel="noopener noreferrer">東京都防災ホームページ</a></li><li><a href="https://www.fdma.go.jp/publication/database/activity001.html" target="_blank" rel="noopener noreferrer">総務省消防庁「地震などの災害に備えて - 防災グッズの紹介」</a></li><li><a href="https://www.bousai.metro.tokyo.lg.jp/content/kitakukonnansya-handbook/original.pdf" target="_blank" rel="noopener noreferrer">東京都「帰宅困難者対策ハンドブック」(PDF)</a></li><li><a href="https://www.bousai.go.jp/kohou/kouhoubousai/h24/68/special_01.html" target="_blank" rel="noopener noreferrer">内閣府「特集 オフィスの防災」(広報誌「ぼうさい」)</a></li></ul>')
     + (!phoneOs() && wideSet ? acc("phone", "スマホで開く", "カメラで読み取る", pcBody) : "")
