@@ -499,7 +499,9 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
   .loc-group-item{ display:flex; align-items:center; gap:2px; min-height:48px; border-bottom:1px solid var(--line); }
 
   /* ---------- Settings ---------- */
-  .back-btn{ min-height:44px; padding:0; font-size:14px; font-weight:700; color:var(--ink-soft); }
+  .back-btn{ display:inline-flex; align-items:center; gap:6px; min-height:48px; padding:0 20px 0 14px; font-size:17px; font-weight:700; color:var(--ink); background:var(--card); border:1.5px solid var(--line); border-radius:24px; }
+  .back-bottom{ padding:16px max(16px, env(safe-area-inset-left,0px)) 4px; }
+  @media (min-width:760px){ .back-bottom{ padding-left:28px; } }
   .acc{ border-bottom:1px solid var(--line); }
   .acc-h{ margin:0; font-size:inherit; }
   .acc-btn{
@@ -600,11 +602,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.64.0";
-var APP_VERSION_DATE = "2026-11-04";
+var APP_VERSION = "1.64.1";
+var APP_VERSION_DATE = "2026-11-06";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.64.1", lines:["「歩きやすい靴(職場用)」と「帰宅ルートの地図(職場用)」を、持ち出しの初期の用品から、拡張パック「職場に保管セット」に移しました。すでにチェックや置き場所を付けている場合は、そのまま残ります。","設定画面の「戻る」ボタンを大きくして、画面の一番下にも付けました。"] },
   { v:"1.64.0", lines:["初期の用品(と公式の拡張パックの用品)に、線画のアイコンを付けました。自分で追加した用品や、名前を変えた用品には、星のマークが付きます。"] },
   { v:"1.63.1", lines:["備蓄の初期の用品「トイレットペーパー・ティッシュ・ウェットティッシュ」を、「トイレットペーパー」と「ティッシュ・ウェットティッシュ」の2つに分けました。名前を変えていなければ、いまのリストも自動で分かれます(置き場所とチェックは両方に引き継ぎます)。"] },
   { v:"1.63.0", lines:["パソコンで、ボタンや用品名にマウスを乗せると反応するようにしました。Escキーで、設定や小窓を閉じられます。","スマホで入力欄を押したとき、キーボードや上の固定部分で隠れないようにしました。横向きでノッチ側の余白も確保しました。","送る・書き出す前の画面に、「相手に見える内容」の説明を追加しました。取り込みデータの安全対策も強めました。"] },
@@ -790,7 +793,7 @@ var showHidden = (function(){ try{ return window.localStorage.getItem("bousai-sh
 /* 拡張パック(設定から選んで追加できる用品のまとまり)。品名は公的な資料の記載にそろえ、数量は入れない */
 var ADD_SETS = [
   { id:"work", title:"職場に保管セット", note:"職場に置いておく備え(持ち出しに追加します)。「職場に保管」の保管場所がなければ追加し、自動でそこに置く用品にします。", src:"内閣府「オフィスの防災」・東京都「帰宅困難者対策ハンドブック」", g:"g1", loc:"職場に保管",
-    items:[["非常食(職場用)","f"],["常備薬(職場用)","l"],["携帯電話の充電器(職場用)","l"]] },
+    items:[["非常食(職場用)","f"],["常備薬(職場用)","l"],["携帯電話の充電器(職場用)","l"],["歩きやすい靴(職場用)","l"],["帰宅ルートの地図(職場用)","o"]] },
   { id:"baby", title:"乳児用セット", note:"乳児がいる家庭向け(持ち出しに追加します)。", src:"東京都防災ホームページ・内閣府「あかちゃんとママを守る防災ノート」", g:"g1",
     items:[["おむつ(乳児用)","l"],["お尻ふき(乳児用)","l"],["ミルクセット(乳児用)","f"],["離乳食(乳児用)","f"],["母子健康手帳(乳児用)","o"]] },
   { id:"elder", title:"高齢者用セット", note:"高齢の方がいる家庭向け(持ち出しに追加します)。", src:"東京都防災ホームページ「高齢者の地震対策」", g:"g1",
@@ -913,7 +916,7 @@ function parsePackCode(code){
   plan.ok = true;
   return plan;
 }
-var CONTENT_VERSION = 17;
+var CONTENT_VERSION = 18;
 var packQuery = "", packComposing = false;   // 拡張パックの検索窓の文字(保存しない)
 var masterQuery = "", masterComposing = false;   // 防災用品マスタの検索窓の文字(保存しない)
 var addMsg = null;   // 用品の追加欄の下に出すメッセージ(上限など)
@@ -981,7 +984,7 @@ var DEFAULT_LOCATIONS = {
    [品名, 分類] 分類: f=食品 l=生活 o=その他 */
 var DEFAULT_ITEMS = {
   g0:[["エマージェンシーホイッスル","o"],["小型LEDライト","l"],["モバイルバッテリー・充電器","l"],["携帯ラジオ","l"],["現金(小銭)","o"],["不織布マスク","l"],["手指消毒・ウェットティッシュ","l"],["常備薬・お薬手帳","o"],["栄養補助食品・飴","f"],["携帯トイレ","l"]],
-  g1:[["飲料水","f"],["非常食(乾パン・缶詰・栄養補助食品)","f"],["懐中電灯・予備の乾電池","l"],["携帯ラジオ","l"],["ヘルメット・防災ずきん","o"],["軍手(厚手の手袋)","l"],["エマージェンシーブランケット","l"],["携帯トイレ","l"],["救急セット","o"],["常備薬・処方箋の控え","o"],["生理用品","l"],["不織布マスク😷","l"],["手指消毒","l"],["体温計","l"],["着替え(下着・靴下・長袖長ズボン)","l"],["雨具","l"],["防寒着","l"],["携帯カイロ","l"],["缶切り","l"],["ライター","l"],["ナイフ","l"],["貴重品(現金・通帳・印鑑・保険証・免許証)","o"],["歩きやすい靴(職場用)","l"],["帰宅ルートの地図(職場用)","o"]],
+  g1:[["飲料水","f"],["非常食(乾パン・缶詰・栄養補助食品)","f"],["懐中電灯・予備の乾電池","l"],["携帯ラジオ","l"],["ヘルメット・防災ずきん","o"],["軍手(厚手の手袋)","l"],["エマージェンシーブランケット","l"],["携帯トイレ","l"],["救急セット","o"],["常備薬・処方箋の控え","o"],["生理用品","l"],["不織布マスク😷","l"],["手指消毒","l"],["体温計","l"],["着替え(下着・靴下・長袖長ズボン)","l"],["雨具","l"],["防寒着","l"],["携帯カイロ","l"],["缶切り","l"],["ライター","l"],["ナイフ","l"],["貴重品(現金・通帳・印鑑・保険証・免許証)","o"]],
   g2:[["飲料水(1人1日3L)","f"],["主食(アルファ米・レトルトごはん・乾麺)","f"],["主菜(缶詰・レトルト食品)","f"],["加熱せず食べられるもの・菓子","f"],["野菜ジュース・栄養補助食品","f"],["調味料(しょうゆ・塩など)","f"],["カセットコンロ","l"],["カセットボンベ(1人1週間で約6本)","l"],["簡易トイレ(1人1日5回分)","l"],["生活用水(ポリタンクに水道水)","l"],["トイレットペーパー","l"],["ティッシュ・ウェットティッシュ","l"],["ラップ・紙皿・紙コップ・割り箸","l"],["ポリ袋・ゴミ袋","l"],["使い捨てカイロ","l"],["懐中電灯・ランタン・乾電池","l"],["充電式ラジオ","l"],["モバイルバッテリー","l"],["長靴","l"],["常備薬の予備・救急箱","o"],["水のいらないシャンプー","l"]]
 };
 /* 用品のアイコン(線画)。初期の用品・公式の拡張パックの用品は、品名で決まったアイコン。それ以外(自分で追加・名前を変えた用品)は星。
@@ -1459,6 +1462,13 @@ function migrate(st){
         var c = JSON.parse(JSON.stringify(it)); c.id = newId(); c.name = "ティッシュ・ウェットティッシュ"; c.pinned = false; out.push(c);
       });
       st.groups[g].items = out;
+    });
+  }
+  if(v < 18){
+    // 持ち出しの初期の用品から、職場用の2つを外す(拡張パック「職場に保管セット」に移した)。チェックや置き場所を付けたもの・ピン留めしたものは残す
+    var movedToPack = ["歩きやすい靴(職場用)", "帰宅ルートの地図(職場用)"];
+    st.groups.g1.items = st.groups.g1.items.filter(function(it){
+      return movedToPack.indexOf(it.name) === -1 || it.checked === true || it.pinned === true || (it.have && it.have.length > 0);
     });
   }
   if(v < 14){ normalizeLocs(st); }   // 用品ごとの保管場所をやめて、次ごとに共通にする
@@ -2845,6 +2855,7 @@ function buildSettingsHtml(){
     wideHtml = '<div class="set-wide"><nav class="set-nav" aria-label="設定の項目">' + nav + '</nav><section class="set-pane' + (cur.cls ? ' ' + cur.cls : '') + '" data-sec-wrap="' + cur.key + '"><h2 class="set-pane-t">' + cur.title + '</h2><div class="acc-body" id="sec-' + cur.key + '">' + cur.body + '</div></section></div>';
   }
   return headHtml + (wideSet ? wideHtml : chain)
+    + '<div class="back-bottom"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button></div>'
     + '<div class="version">バージョン <b>' + esc(APP_VERSION) + '</b>(' + esc(APP_VERSION_DATE) + ')</div>';
 }
 
