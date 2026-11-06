@@ -606,11 +606,12 @@ try{var __t=localStorage.getItem("bousai-theme-pref");if(__t==="light"||__t==="d
 
 /* ================= Version =================
    Bump on every release. Keep service-worker.js CACHE_NAME in step. */
-var APP_VERSION = "1.65.0";
+var APP_VERSION = "1.65.1";
 var APP_VERSION_DATE = "2026-11-07";
 var SEEN_KEY = "bousai-last-seen-version";
 /* 更新のお知らせ用。新しい版を上に足す(1版あたり2〜3行) */
 var RELEASE_NOTES = [
+  { v:"1.65.1", lines:["更新のお知らせを、画面の一番上ではなく、アプリのヒント文の下に出すようにしました(ホーム画面のアプリで、上端が透けて見づらかったため)。"] },
   { v:"1.65.0", lines:["設定の「アプリの更新」に、更新履歴を出しました。これまでの更新の内容を、アプリの中で読めます(最新10件、続きは「さらに古い履歴を見る」)。"] },
   { v:"1.64.4", lines:["設定のフォームへのボタンを「感想、応援、FBを送る」に変えました(フォームのタイトルに合わせました)。"] },
   { v:"1.64.3", lines:["設定の項目名を「作者へお手紙を送る✉️」に変えました。"] },
@@ -2449,6 +2450,7 @@ function renderMain(){
         ? '<div class="fold-row"><button type="button" class="fold-btn" data-act="toggle-fold" data-key="app" aria-expanded="false">' + ICON_CHEV + 'ヒントを開く</button></div>'
         : '<div class="fold-box"><p>' + esc(state.appHint || DEFAULT_APP_HINT).replace(/\n/g, "<br>") + '</p><button type="button" class="fold-x" data-act="toggle-fold" data-key="app" aria-expanded="true" aria-label="ヒントを閉じる">' + ICON_CHEV + '</button></div>')
     + '</div>'
+    + noticesHtml()   /* お知らせは、アプリのヒント文の下に出す(上端はステータスバーに重なって見づらいため) */
     + buildPinnedHtml()
     + (lsGet(OVERVIEW_KEY) === "1" ? '' : '<div class="overview">' + buildOverviewHtml() + '</div>')
     + '<div class="sticky-nav"><div class="tabs">' + buildTabsHtml() + '</div>'
@@ -2840,7 +2842,7 @@ function buildSettingsHtml(){
   var dangerSummary = prevSnap ? prevBefore() + "前に戻す・初期化" : "初期化";
 
   var headHtml = (saveFailed ? '<div class="banner" role="alert">この端末に保存できませんでした。CSV/JSONでバックアップしてください。</div>' : '')
-    + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>';
+    + '<div class="header"><button type="button" class="back-btn" data-act="close-settings">← 戻る</button><div class="header-top"><h1>設定</h1></div></div>' + noticesHtml();
   var chain = ''
     + grpLabel("使い方") + acc("help", "使い方・ヘルプ", "特徴・使い方・使い方例・困ったとき", helpHtml())
     + grpLabel("リスト") + acc("master", "防災用品マスタ", total + "件" + (hiddenN ? "(非表示 " + hiddenN + "件)" : "") + "・削除はここ", buildMasterHtml())
@@ -2882,7 +2884,7 @@ function render(){
   normalizeLocs(state);
   lastWide = isWideNow();
   appEl.className = showSettings ? "is-settings" : "";
-  appEl.innerHTML = noticesHtml() + (showSettings ? buildSettingsHtml() : renderMain()) + a2hsBarHtml();
+  appEl.innerHTML = (showSettings ? buildSettingsHtml() : renderMain()) + a2hsBarHtml();
 }
 
 /* ================= Actions ================= */
